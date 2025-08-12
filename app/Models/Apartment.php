@@ -53,6 +53,16 @@ class Apartment extends Model
         return $this->hasMany(Unit::class);
     }
 
+    public function rfidCards()
+    {
+        return $this->hasMany(RfidCard::class);
+    }
+
+    public function accessLogs()
+    {
+        return $this->hasMany(AccessLog::class);
+    }
+
     // Helper methods
     public function isActive()
     {

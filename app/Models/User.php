@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'approved_by');
     }
 
+    public function rfidCards()
+    {
+        return $this->hasMany(RfidCard::class, 'landlord_id');
+    }
+
     // Tenant assignments
     public function tenantAssignments()
     {

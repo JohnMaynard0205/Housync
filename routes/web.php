@@ -7,6 +7,7 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\LandlordController;
 use App\Http\Controllers\TenantAssignmentController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\RfidController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -82,6 +83,14 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::put('/staff/{id}/status', [StaffController::class, 'updateStatus'])->name('update-staff-status');
     Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('delete-staff');
     Route::get('/staff/{id}/credentials', [StaffController::class, 'getCredentials'])->name('get-staff-credentials');
+    
+    // RFID Security Management Routes
+    Route::get('/security', [RfidController::class, 'index'])->name('security');
+    Route::get('/security/cards/create', [RfidController::class, 'create'])->name('security.create-card');
+    Route::post('/security/cards', [RfidController::class, 'store'])->name('security.store-card');
+    Route::get('/security/cards/{id}', [RfidController::class, 'show'])->name('security.card-details');
+    Route::put('/security/cards/{id}/toggle-status', [RfidController::class, 'toggleStatus'])->name('security.toggle-card-status');
+    Route::get('/security/access-logs', [RfidController::class, 'accessLogs'])->name('security.access-logs');
     
     // API endpoints for apartment management
     Route::get('/apartments/{id}/details', [LandlordController::class, 'getApartmentDetails'])->name('apartment-details')->whereNumber('id');
@@ -178,6 +187,9 @@ Route::get('/messages', function () {
 Route::get('/security', function () {
     return view('security');
 })->name('security');
+
+// ESP32 API Routes (no middleware needed for hardware access)
+Route::post('/api/rfid/verify', [RfidController::class, 'verifyAccess'])->name('api.rfid.verify');
 
 // Authentication routes
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

@@ -76,6 +76,16 @@ class TenantAssignment extends Model
         return $this->hasMany(TenantDocument::class);
     }
 
+    public function rfidCards()
+    {
+        return $this->hasMany(RfidCard::class);
+    }
+
+    public function accessLogs()
+    {
+        return $this->hasMany(AccessLog::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
