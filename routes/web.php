@@ -188,8 +188,26 @@ Route::get('/security', function () {
     return view('security');
 })->name('security');
 
-// ESP32 API Routes (no middleware needed for hardware access)
-Route::post('/api/rfid/verify', [RfidController::class, 'verifyAccess'])->name('api.rfid.verify');
+// Health Check Route (for Railway monitoring)
+Route::get('/health', function () {
+    try {
+        $dbConnected = DB::connection()->getPdo() ? 'connected' : 'disconnected';
+    } catch (Exception $e) {
+        $dbConnected = 'disconnected';
+    }
+    
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now(),
+        'database' => $dbConnected,
+        'version' => app()->version()
+    ]);
+});
+
+// ESP32 API Routes (with rate limiting for security)
+Route::middleware(['throttle:60,1'])->group(function () {
+    Route::post('/api/rfid/verify', [RfidController::class, 'verifyAccess'])->name('api.rfid.verify');
+});
 
 // Authentication routes
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

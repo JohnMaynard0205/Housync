@@ -4,8 +4,8 @@ echo.
 
 REM Check if COM port is provided as argument
 if "%1"=="" (
-    set COM_PORT=COM3
-    echo Using default COM port: COM3
+    set COM_PORT=COM7
+    echo Using default COM port: COM7
 ) else (
     set COM_PORT=%1
     echo Using COM port: %1
