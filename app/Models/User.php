@@ -39,6 +39,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'staff_type',
         'status',
         'phone',
         'address',

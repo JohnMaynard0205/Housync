@@ -42,27 +42,17 @@ class StaffController extends Controller
     }
 
     /**
-     * Assign staff to unit
+     * Add new staff member
      */
-    public function store(Request $request)
+    public function addStaff(Request $request)
     {
         try {
             $request->validate([
-                'unit_id' => 'required|exists:units,id',
                 'name' => 'required|string|max:255',
                 'phone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:500',
                 'staff_type' => 'required|string|max:100',
-                'assignment_start_date' => 'required|date|after_or_equal:today',
-                'assignment_end_date' => 'nullable|date|after:assignment_start_date',
-                'hourly_rate' => 'nullable|numeric|min:0',
-                'notes' => 'nullable|string|max:1000',
             ]);
-
-            // Verify landlord owns the unit
-            $unit = Unit::whereHas('apartment', function($query) {
-                $query->where('landlord_id', Auth::id());
-            })->findOrFail($request->unit_id);
 
             // Generate unique email
             $baseEmail = strtolower(str_replace(' ', '.', $request->name)) . '@staff.housesync.com';
@@ -82,10 +72,64 @@ class StaffController extends Controller
                 'email' => $email,
                 'password' => Hash::make($password),
                 'role' => 'staff',
+                'staff_type' => $request->staff_type,
                 'status' => 'active',
                 'phone' => $request->phone,
                 'address' => $request->address,
             ]);
+
+            return redirect()->route('landlord.staff')
+                ->with('success', 'Staff member added successfully!')
+                ->with('staff_credentials', [
+                    'email' => $email,
+                    'password' => $password,
+                    'staff_name' => $request->name,
+                    'staff_type' => $request->staff_type
+                ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to add staff member: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Assign staff to unit
+     */
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'unit_id' => 'required|exists:units,id',
+                'staff_id' => 'required|exists:users,id',
+                'staff_type' => 'required|string|max:100',
+                'assignment_start_date' => 'required|date|after_or_equal:today',
+                'assignment_end_date' => 'nullable|date|after:assignment_start_date',
+                'hourly_rate' => 'nullable|numeric|min:0',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+
+            // Verify landlord owns the unit
+            $unit = Unit::whereHas('apartment', function($query) {
+                $query->where('landlord_id', Auth::id());
+            })->findOrFail($request->unit_id);
+
+            // Verify the selected user is a staff member
+            $staff = User::where('id', $request->staff_id)
+                ->where('role', 'staff')
+                ->where('status', 'active')
+                ->firstOrFail();
+
+            // Check if staff is already assigned to this unit
+            $existingAssignment = StaffAssignment::where('unit_id', $request->unit_id)
+                ->where('staff_id', $request->staff_id)
+                ->where('status', 'active')
+                ->first();
+
+            if ($existingAssignment) {
+                return back()->with('error', 'This staff member is already assigned to this unit.')->withInput();
+            }
 
             // Create staff assignment
             $assignment = StaffAssignment::create([
@@ -97,21 +141,15 @@ class StaffController extends Controller
                 'assignment_end_date' => $request->assignment_end_date,
                 'hourly_rate' => $request->hourly_rate,
                 'notes' => $request->notes,
-                'generated_password' => $password,
             ]);
 
             return redirect()->route('landlord.staff')
-                ->with('success', 'Staff assigned successfully!')
-                ->with('credentials', [
-                    'email' => $email,
-                    'password' => $password,
-                    'staff_name' => $request->name
-                ]);
+                ->with('success', "Staff member {$staff->name} has been assigned to unit {$unit->unit_number} successfully!");
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to create staff assignment: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Failed to assign staff: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -166,6 +204,21 @@ class StaffController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to delete staff assignment. Please try again.');
         }
+    }
+
+    /**
+     * Get staff members by type for assignment
+     */
+    public function getStaffByType($staffType)
+    {
+        // Get active staff members that match the selected staff type
+        $staff = User::where('role', 'staff')
+            ->where('status', 'active')
+            ->where('staff_type', $staffType)
+            ->select('id', 'name', 'email', 'staff_type')
+            ->get();
+
+        return response()->json(['staff' => $staff]);
     }
 
     /**

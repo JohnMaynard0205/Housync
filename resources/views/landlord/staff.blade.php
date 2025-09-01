@@ -19,7 +19,7 @@
     </div>
 
     <!-- Credentials Alert -->
-    @if(session('credentials'))
+    @if(session('credentials') || session('staff_credentials'))
         <script>
             // Auto-show credentials modal when page loads
             document.addEventListener('DOMContentLoaded', function() {
@@ -136,8 +136,11 @@
                         <div class="col-md-6 d-flex gap-2 align-items-end">
                             <button type="submit" class="btn btn-primary">Filter</button>
                             <a href="{{ route('landlord.staff') }}" class="btn btn-secondary">Clear</a>
+                            <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                                <i class="mdi mdi-account-plus me-1"></i> Add Staff
+                            </button>
                             <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#assignStaffModal">
-                                <i class="mdi mdi-account-plus me-1"></i> Assign Staff
+                                <i class="mdi mdi-account-check me-1"></i> Assign Staff
                             </button>
                         </div>
                     </form>
@@ -187,9 +190,9 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="staff_type" class="form-label">Staff Type <span class="text-danger">*</span></label>
-                                <select class="form-select" id="staff_type" name="staff_type" required>
-                                    <option value="">-- Select Staff Type --</option>
+                                <label for="staff_type_filter" class="form-label">Staff Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="staff_type_filter" name="staff_type" required onchange="filterStaffByType()">
+                                    <option value="">-- Select Staff Type First --</option>
                                     <option value="maintenance_worker" {{ old('staff_type') == 'maintenance_worker' ? 'selected' : '' }}>Maintenance Worker</option>
                                     <option value="plumber" {{ old('staff_type') == 'plumber' ? 'selected' : '' }}>Plumber</option>
                                     <option value="electrician" {{ old('staff_type') == 'electrician' ? 'selected' : '' }}>Electrician</option>
@@ -203,12 +206,10 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="name" class="form-label">Staff Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="phone" class="form-label">Phone Number</label>
-                                <input type="text" class="form-control" id="phone" name="phone" value="{{ old('phone') }}">
+                                <label for="staff_id" class="form-label">Select Staff Member <span class="text-danger">*</span></label>
+                                <select class="form-select" id="staff_id" name="staff_id" required disabled>
+                                    <option value="">-- Select Staff Type First --</option>
+                                </select>
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -226,21 +227,17 @@
                                 <label for="hourly_rate" class="form-label">Hourly Rate (₱)</label>
                                 <input type="number" step="0.01" class="form-control" id="hourly_rate" name="hourly_rate" value="{{ old('hourly_rate') }}">
                             </div>
-                            <div class="col-md-6">
-                                <label for="address" class="form-label">Address</label>
-                                <input type="text" class="form-control" id="address" name="address" value="{{ old('address') }}">
-                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="notes" class="form-label">Additional Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="2">{{ old('notes') }}</textarea>
                         </div>
                         <div class="alert alert-info mt-3">
-                            <h6 class="alert-heading">Workflow</h6>
+                            <h6 class="alert-heading">Assignment Process</h6>
                             <ul class="mb-0">
-                                <li>A new staff account will be automatically created</li>
-                                <li>Login credentials will be generated and shown after assignment</li>
-                                <li>The staff member will receive access to their dashboard</li>
+                                <li>Select a staff type to see available staff members</li>
+                                <li>Choose an existing staff member to assign to the unit</li>
+                                <li>The staff member will be notified of their new assignment</li>
                             </ul>
                         </div>
                     </div>
@@ -248,6 +245,67 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="mdi mdi-account-plus me-1"></i> Assign Staff
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStaffModalLabel">Add New Staff Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ route('landlord.add-staff') }}" id="addStaffForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="add_staff_name" class="form-label">Staff Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="add_staff_name" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="add_staff_phone" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="add_staff_phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="add_staff_type" class="form-label">Staff Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="add_staff_type" name="staff_type" required>
+                                    <option value="">-- Select Staff Type --</option>
+                                    <option value="maintenance_worker">Maintenance Worker</option>
+                                    <option value="plumber">Plumber</option>
+                                    <option value="electrician">Electrician</option>
+                                    <option value="cleaner">Cleaner</option>
+                                    <option value="painter">Painter</option>
+                                    <option value="carpenter">Carpenter</option>
+                                    <option value="security_guard">Security Guard</option>
+                                    <option value="gardener">Gardener</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="add_staff_address" class="form-label">Address</label>
+                                <input type="text" class="form-control" id="add_staff_address" name="address">
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <h6 class="alert-heading">What happens next?</h6>
+                            <ul class="mb-0">
+                                <li>A new staff account will be created with auto-generated login credentials</li>
+                                <li>The staff member can be assigned to units later</li>
+                                <li>Login credentials will be displayed after creation</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="mdi mdi-account-plus me-1"></i> Add Staff Member
                         </button>
                     </div>
                 </form>
@@ -398,14 +456,24 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @if(session('credentials'))
-                    <div class="alert alert-success mb-4">
-                        <h6 class="alert-heading mb-2">
-                            <i class="mdi mdi-account-plus me-1"></i>
-                            New Staff Account Created
-                        </h6>
-                        <p class="mb-0">A new staff account has been created for <strong>{{ session('credentials')['staff_name'] }}</strong>. Please share these credentials with the staff member:</p>
-                    </div>
+                @if(session('credentials') || session('staff_credentials'))
+                    @if(session('credentials'))
+                        <div class="alert alert-success mb-4">
+                            <h6 class="alert-heading mb-2">
+                                <i class="mdi mdi-account-plus me-1"></i>
+                                Staff Assigned Successfully!
+                            </h6>
+                            <p class="mb-0">A new staff account has been created for <strong>{{ session('credentials')['staff_name'] }}</strong> and assigned to a unit. Please share these credentials with the staff member:</p>
+                        </div>
+                    @else
+                        <div class="alert alert-success mb-4">
+                            <h6 class="alert-heading mb-2">
+                                <i class="mdi mdi-account-plus me-1"></i>
+                                New Staff Member Added!
+                            </h6>
+                            <p class="mb-0">A new staff account has been created for <strong>{{ session('staff_credentials')['staff_name'] }}</strong> ({{ ucwords(str_replace('_', ' ', session('staff_credentials')['staff_type'])) }}). Please share these credentials with the staff member:</p>
+                        </div>
+                    @endif
                     
                     <!-- Credentials Display -->
                     <div class="credentials-box p-4 mb-4" style="background: #f8f9fa; border: 2px solid #28a745; border-radius: 8px;">
@@ -413,7 +481,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold text-primary">📧 Email Address:</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="assignedStaffEmail" value="{{ session('credentials')['email'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem;">
+                                    <input type="text" class="form-control" id="assignedStaffEmail" value="{{ session('credentials')['email'] ?? session('staff_credentials')['email'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem;">
                                     <button class="btn btn-outline-primary" type="button" onclick="copyText('assignedStaffEmail')" title="Copy email">
                                         <i class="mdi mdi-content-copy"></i>
                                     </button>
@@ -422,7 +490,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold text-primary">🔑 Password:</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="assignedStaffPassword" value="{{ session('credentials')['password'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem; color: #dc3545;">
+                                    <input type="text" class="form-control" id="assignedStaffPassword" value="{{ session('credentials')['password'] ?? session('staff_credentials')['password'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem; color: #dc3545;">
                                     <button class="btn btn-outline-primary" type="button" onclick="copyText('assignedStaffPassword')" title="Copy password">
                                         <i class="mdi mdi-content-copy"></i>
                                     </button>
@@ -477,7 +545,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                @if(session('credentials'))
+                @if(session('credentials') || session('staff_credentials'))
                     <button type="button" class="btn btn-primary" onclick="copyAllStaffCredentials()">
                         <i class="mdi mdi-content-copy me-1"></i> Copy Credentials
                     </button>
@@ -661,5 +729,44 @@ document.getElementById('assignment_start_date').addEventListener('change', func
         endDateInput.value = '';
     }
 });
+
+// Function to filter staff by type
+function filterStaffByType() {
+    const staffTypeSelect = document.getElementById('staff_type_filter');
+    const staffSelect = document.getElementById('staff_id');
+    const selectedType = staffTypeSelect.value;
+    
+    // Clear and disable staff select
+    staffSelect.innerHTML = '<option value="">Loading...</option>';
+    staffSelect.disabled = true;
+    
+    if (!selectedType) {
+        staffSelect.innerHTML = '<option value="">-- Select Staff Type First --</option>';
+        return;
+    }
+    
+    // Fetch staff members by type
+    fetch(`/landlord/staff/by-type/${selectedType}`)
+        .then(response => response.json())
+        .then(data => {
+            staffSelect.innerHTML = '<option value="">-- Select Staff Member --</option>';
+            
+            if (data.staff && data.staff.length > 0) {
+                data.staff.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.email})`;
+                    staffSelect.appendChild(option);
+                });
+                staffSelect.disabled = false;
+            } else {
+                staffSelect.innerHTML = '<option value="">No staff members available for this type</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching staff:', error);
+            staffSelect.innerHTML = '<option value="">Error loading staff members</option>';
+        });
+}
 </script>
 @endpush 

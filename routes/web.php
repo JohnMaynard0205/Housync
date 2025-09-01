@@ -76,6 +76,8 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     
     // Staff Management Routes
     Route::get('/staff', [StaffController::class, 'index'])->name('staff');
+    Route::post('/staff/add', [StaffController::class, 'addStaff'])->name('add-staff');
+    Route::get('/staff/by-type/{staffType}', [StaffController::class, 'getStaffByType'])->name('staff-by-type');
     Route::get('/staff/create', [StaffController::class, 'create'])->name('create-staff');
     Route::get('/units/{unitId}/assign-staff', [StaffController::class, 'create'])->name('assign-staff');
     Route::post('/staff', [StaffController::class, 'store'])->name('store-staff');
