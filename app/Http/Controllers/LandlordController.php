@@ -183,7 +183,7 @@ class LandlordController extends Controller
             'unit_number' => 'required|string|max:50|unique:units,unit_number',
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
-            'status' => 'required|in:available,occupied,maintenance',
+            'status' => 'required|in:available,maintenance',
             'leasing_type' => 'required|in:separate,inclusive',
             'description' => 'nullable|string|max:1000',
             'floor_area' => 'nullable|numeric|min:0',

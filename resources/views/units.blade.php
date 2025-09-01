@@ -391,8 +391,7 @@
                         <div class="form-group">
                             <label for="status">Status *</label>
                             <select id="status" name="status" required>
-                                <option value="available">Available</option>
-                                <option value="occupied">Occupied</option>
+                                <option value="available" selected>Available</option>
                                 <option value="maintenance">Under Maintenance</option>
                             </select>
                         </div>

@@ -508,8 +508,7 @@
                                 <label for="status" class="form-label">Status *</label>
                                 <select id="status" name="status" class="form-control @error('status') error @enderror" required>
                                     <option value="">Select Status</option>
-                                    <option value="available" {{ old('status') == 'available' ? 'selected' : '' }}>Available</option>
-                                    <option value="occupied" {{ old('status') == 'occupied' ? 'selected' : '' }}>Occupied</option>
+                                    <option value="available" {{ old('status', 'available') == 'available' ? 'selected' : '' }}>Available</option>
                                     <option value="maintenance" {{ old('status') == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                                 </select>
                                 @error('status')

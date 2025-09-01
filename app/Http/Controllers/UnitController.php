@@ -87,7 +87,7 @@ class UnitController extends Controller
             'apartment_id' => 'required|exists:apartments,id',
             'unit_type' => 'required|string|max:255',
             'rent_amount' => 'required|numeric|min:0',
-            'status' => 'required|in:occupied,available,maintenance',
+            'status' => 'required|in:available,maintenance',
             'leasing_type' => 'required|in:separate,inclusive',
             'tenant_count' => 'required|integer|min:0',
             'max_occupants' => 'nullable|integer|min:1',
