@@ -9,6 +9,8 @@ use App\Services\TenantAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TenantAssignmentController extends Controller
 {
@@ -52,29 +54,69 @@ class TenantAssignmentController extends Controller
      */
     public function store(Request $request, $unitId)
     {
+        // Enhanced validation rules
         $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z\s\-\'\.]+$/',
+            'phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'address' => 'nullable|string|max:500',
             'lease_start_date' => 'required|date|after_or_equal:today',
-            'lease_end_date' => 'required|date|after:lease_start_date',
-            'rent_amount' => 'required|numeric|min:0',
-            'security_deposit' => 'nullable|numeric|min:0',
+            'lease_end_date' => 'required|date|after:lease_start_date|before:2 years',
+            'rent_amount' => 'required|numeric|min:1000|max:100000',
+            'security_deposit' => 'nullable|numeric|min:0|max:50000',
             'notes' => 'nullable|string|max:1000',
+        ], [
+            'name.regex' => 'Name can only contain letters, spaces, hyphens, apostrophes, and periods',
+            'phone.regex' => 'Please enter a valid phone number',
+            'lease_end_date.before' => 'Lease cannot exceed 2 years',
+            'rent_amount.min' => 'Rent must be at least ₱1,000',
+            'rent_amount.max' => 'Rent cannot exceed ₱100,000',
+            'security_deposit.max' => 'Security deposit cannot exceed ₱50,000',
         ]);
 
-        $result = $this->assignmentService->assignTenantToUnit(
-            $unitId,
-            $request->all(),
-            Auth::id()
-        );
+        try {
+            // Use database transaction to ensure data consistency
+            $result = DB::transaction(function() use ($request, $unitId) {
+                return $this->assignmentService->assignTenantToUnit(
+                    $unitId,
+                    $request->all(),
+                    Auth::id()
+                );
+            });
 
-        if ($result['success']) {
-            return redirect()->route('landlord.tenant-assignments')
-                ->with('success', 'Tenant assigned successfully!')
-                ->with('credentials', $result['credentials']);
-        } else {
-            return back()->withInput()->with('error', $result['message']);
+            if ($result['success']) {
+                // Audit log for successful assignment
+                Log::info('Tenant assigned successfully', [
+                    'landlord_id' => Auth::id(),
+                    'unit_id' => $unitId,
+                    'tenant_name' => $request->name,
+                    'tenant_email' => $result['credentials']['email'] ?? 'N/A',
+                    'lease_start_date' => $request->lease_start_date,
+                    'lease_end_date' => $request->lease_end_date,
+                    'rent_amount' => $request->rent_amount,
+                    'timestamp' => now()
+                ]);
+
+                return redirect()->route('landlord.tenant-assignments')
+                    ->with('success', 'Tenant assigned successfully!')
+                    ->with('credentials', $result['credentials']);
+            } else {
+                return back()->withInput()->with('error', $result['message']);
+            }
+
+        } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Tenant assignment failed', [
+                'landlord_id' => Auth::id(),
+                'unit_id' => $unitId,
+                'tenant_name' => $request->name,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'request_data' => $request->except(['_token']),
+                'timestamp' => now()
+            ]);
+
+            return back()->withInput()->with('error', 'Failed to assign tenant. Please try again.');
         }
     }
 
@@ -83,63 +125,113 @@ class TenantAssignmentController extends Controller
      */
     public function reassign(Request $request, $assignmentId)
     {
+        // Enhanced validation rules for reassignment
         $request->validate([
             'unit_id' => 'required|exists:units,id',
             'lease_start_date' => 'required|date|after_or_equal:today',
-            'lease_end_date' => 'required|date|after:lease_start_date',
-            'rent_amount' => 'required|numeric|min:0',
-            'security_deposit' => 'nullable|numeric|min:0',
+            'lease_end_date' => 'required|date|after:lease_start_date|before:2 years',
+            'rent_amount' => 'required|numeric|min:1000|max:100000',
+            'security_deposit' => 'nullable|numeric|min:0|max:50000',
             'notes' => 'nullable|string|max:1000',
+        ], [
+            'lease_end_date.before' => 'Lease cannot exceed 2 years',
+            'rent_amount.min' => 'Rent must be at least ₱1,000',
+            'rent_amount.max' => 'Rent cannot exceed ₱100,000',
+            'security_deposit.max' => 'Security deposit cannot exceed ₱50,000',
         ]);
 
-        // Fetch the vacated assignment within landlord scope
-        $assignment = TenantAssignment::where('landlord_id', Auth::id())
-            ->with('tenant')
-            ->findOrFail($assignmentId);
+        try {
+            // Use database transaction with race condition protection
+            $result = DB::transaction(function() use ($request, $assignmentId) {
+                // Fetch the vacated assignment within landlord scope
+                $assignment = TenantAssignment::where('landlord_id', Auth::id())
+                    ->with(['tenant', 'unit'])
+                    ->findOrFail($assignmentId);
 
-        if ($assignment->status !== 'terminated') {
-            return back()->with('error', 'Only vacated tenants can be reassigned.');
+                if ($assignment->status !== 'terminated') {
+                    throw new \Exception('Only vacated tenants can be reassigned.');
+                }
+
+                // Get the old unit to free it up
+                $oldUnit = $assignment->unit;
+                
+                // Race condition protection: Lock the target unit and check availability
+                $newUnit = Unit::whereHas('apartment', function($q) {
+                    $q->where('landlord_id', Auth::id());
+                })
+                ->where('id', $request->unit_id)
+                ->where('status', 'available')
+                ->lockForUpdate() // This prevents race conditions
+                ->first();
+
+                if (!$newUnit) {
+                    throw new \Exception('Selected unit is not available or does not belong to you.');
+                }
+
+                // Free up the old unit (make it available again)
+                $oldUnit->update([
+                    'status' => 'available',
+                    'tenant_count' => 0,
+                ]);
+
+                // Update the existing assignment with new unit and details
+                $assignment->update([
+                    'unit_id' => $newUnit->id,
+                    'lease_start_date' => $request->lease_start_date,
+                    'lease_end_date' => $request->lease_end_date,
+                    'rent_amount' => $request->rent_amount,
+                    'security_deposit' => $request->security_deposit ?? 0,
+                    'status' => 'active',
+                    'notes' => $request->notes ?? null,
+                    'documents_uploaded' => false, // Reset document status for new assignment
+                    'documents_verified' => false,
+                ]);
+
+                // Update new unit status to occupied
+                $newUnit->update([
+                    'status' => 'occupied',
+                    'tenant_count' => 1,
+                ]);
+
+                return [
+                    'assignment' => $assignment,
+                    'old_unit' => $oldUnit,
+                    'new_unit' => $newUnit
+                ];
+            });
+
+            // Audit log for successful reassignment
+            Log::info('Tenant reassigned successfully', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $assignmentId,
+                'old_unit_id' => $result['old_unit']->id,
+                'new_unit_id' => $result['new_unit']->id,
+                'tenant_id' => $result['assignment']->tenant_id,
+                'tenant_name' => $result['assignment']->tenant->name,
+                'lease_start_date' => $request->lease_start_date,
+                'lease_end_date' => $request->lease_end_date,
+                'rent_amount' => $request->rent_amount,
+                'timestamp' => now()
+            ]);
+
+            return redirect()->route('landlord.tenant-assignments')
+                ->with('success', 'Tenant reassigned successfully. Credentials remain the same.');
+
+        } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Tenant reassignment failed', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $assignmentId,
+                'unit_id' => $request->unit_id,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'request_data' => $request->except(['_token']),
+                'timestamp' => now()
+            ]);
+
+            return back()->withInput()->with('error', $e->getMessage());
         }
-
-        // Get the old unit to free it up
-        $oldUnit = $assignment->unit;
-        
-        // Ensure target unit belongs to landlord and is available
-        $newUnit = Unit::whereHas('apartment', function($q) {
-            $q->where('landlord_id', Auth::id());
-        })->findOrFail($request->unit_id);
-
-        if ($newUnit->status !== 'available') {
-            return back()->with('error', 'Selected unit is not available.');
-        }
-
-        // Free up the old unit (make it available again)
-        $oldUnit->update([
-            'status' => 'available',
-            'tenant_count' => 0,
-        ]);
-
-        // Update the existing assignment with new unit and details
-        $assignment->update([
-            'unit_id' => $newUnit->id,
-            'lease_start_date' => $request->lease_start_date,
-            'lease_end_date' => $request->lease_end_date,
-            'rent_amount' => $request->rent_amount,
-            'security_deposit' => $request->security_deposit ?? 0,
-            'status' => 'active',
-            'notes' => $request->notes ?? null,
-            'documents_uploaded' => false, // Reset document status for new assignment
-            'documents_verified' => false,
-        ]);
-
-        // Update new unit status to occupied
-        $newUnit->update([
-            'status' => 'occupied',
-            'tenant_count' => 1,
-        ]);
-
-        return redirect()->route('landlord.tenant-assignments')
-            ->with('success', 'Tenant reassigned successfully. Credentials remain the same.');
     }
 
     /**
@@ -158,15 +250,52 @@ class TenantAssignmentController extends Controller
     {
         $request->validate([
             'status' => 'required|in:active,terminated',
+            'reason' => 'nullable|string|max:500',
         ]);
 
-        $assignment = $this->assignmentService->updateAssignmentStatus(
-            $id,
-            $request->status,
-            Auth::id()
-        );
+        try {
+            // Get the assignment to log the old status
+            $assignment = TenantAssignment::where('landlord_id', Auth::id())
+                ->with('tenant')
+                ->findOrFail($id);
 
-        return back()->with('success', 'Assignment status updated successfully.');
+            $oldStatus = $assignment->status;
+
+            // Update the assignment status
+            $updatedAssignment = $this->assignmentService->updateAssignmentStatus(
+                $id,
+                $request->status,
+                Auth::id()
+            );
+
+            // Audit log for status change
+            Log::info('Assignment status updated', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'tenant_id' => $assignment->tenant_id,
+                'tenant_name' => $assignment->tenant->name,
+                'old_status' => $oldStatus,
+                'new_status' => $request->status,
+                'reason' => $request->reason ?? 'No reason provided',
+                'timestamp' => now()
+            ]);
+
+            return back()->with('success', 'Assignment status updated successfully.');
+
+        } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Assignment status update failed', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'new_status' => $request->status,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'timestamp' => now()
+            ]);
+
+            return back()->with('error', 'Failed to update assignment status. Please try again.');
+        }
     }
 
     /**
@@ -204,9 +333,14 @@ class TenantAssignmentController extends Controller
      */
     public function storeDocuments(Request $request)
     {
+        // Enhanced validation rules
         $request->validate([
             'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'document_types.*' => 'required|string',
+            'document_types.*' => 'required|string|in:contract,id_copy,proof_of_income,other',
+        ], [
+            'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
+            'documents.*.max' => 'Each file must not exceed 5MB',
+            'document_types.*.in' => 'Invalid document type selected',
         ]);
 
         $tenant = Auth::user();
@@ -217,33 +351,65 @@ class TenantAssignmentController extends Controller
         }
 
         try {
-            foreach ($request->file('documents') as $index => $file) {
-                $documentType = $request->document_types[$index];
-                
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
+            $uploadedDocuments = [];
+            
+            // Use database transaction for document uploads
+            DB::transaction(function() use ($request, $assignment, &$uploadedDocuments) {
+                foreach ($request->file('documents') as $index => $file) {
+                    $documentType = $request->document_types[$index];
+                    
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
 
-                TenantDocument::create([
-                    'tenant_assignment_id' => $assignment->id,
-                    'document_type' => $documentType,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $filePath,
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                    'verification_status' => 'pending',
+                    $document = TenantDocument::create([
+                        'tenant_assignment_id' => $assignment->id,
+                        'document_type' => $documentType,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $filePath,
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                        'verification_status' => 'pending',
+                    ]);
+
+                    $uploadedDocuments[] = $document;
+                }
+
+                // Mark documents as uploaded and update assignment status
+                $assignment->update([
+                    'documents_uploaded' => true,
+                    'documents_verified' => false, // New documents are always pending verification
                 ]);
-            }
+            });
 
-            // Mark documents as uploaded and update assignment status
-            $assignment->update([
-                'documents_uploaded' => true,
-                'documents_verified' => false, // New documents are always pending verification
+            // Audit log for successful document upload
+            Log::info('Documents uploaded successfully', [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'assignment_id' => $assignment->id,
+                'unit_id' => $assignment->unit_id,
+                'landlord_id' => $assignment->landlord_id,
+                'documents_count' => count($uploadedDocuments),
+                'document_types' => $request->document_types,
+                'total_size' => array_sum(array_map(fn($doc) => $doc->file_size, $uploadedDocuments)),
+                'timestamp' => now()
             ]);
 
             return redirect()->route('tenant.dashboard')
                 ->with('success', 'Documents uploaded successfully. They will be reviewed by your landlord.');
 
         } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Document upload failed', [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'assignment_id' => $assignment->id ?? 'N/A',
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'files_count' => count($request->file('documents', [])),
+                'timestamp' => now()
+            ]);
+
             return back()->with('error', 'Failed to upload documents. Please try again.');
         }
     }
@@ -278,39 +444,76 @@ class TenantAssignmentController extends Controller
             'verification_notes' => 'nullable|string|max:1000',
         ]);
 
-        $document = TenantDocument::with('tenantAssignment')->findOrFail($documentId);
-        
-        // Check if landlord has access to this document
-        if ($document->tenantAssignment->landlord_id !== Auth::id()) {
-            abort(403, 'Unauthorized access to document.');
-        }
+        try {
+            $document = TenantDocument::with('tenantAssignment.tenant')->findOrFail($documentId);
+            
+            // Check if landlord has access to this document
+            if ($document->tenantAssignment->landlord_id !== Auth::id()) {
+                abort(403, 'Unauthorized access to document.');
+            }
 
-        // Update the individual document
-        $document->update([
-            'verification_status' => 'verified',
-            'verified_by' => Auth::id(),
-            'verified_at' => now(),
-            'verification_notes' => $request->verification_notes,
-        ]);
+            $oldStatus = $document->verification_status;
 
-        // Check if all documents for this assignment are verified
-        $assignment = $document->tenantAssignment;
-        $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-        
-        if ($pendingDocuments === 0) {
-            // All documents verified, update assignment status
-            $assignment->update([
-                'documents_verified' => true,
-                'verification_notes' => 'All documents verified',
+            // Update the individual document
+            $document->update([
+                'verification_status' => 'verified',
+                'verified_by' => Auth::id(),
+                'verified_at' => now(),
+                'verification_notes' => $request->verification_notes,
             ]);
 
-            // Update assignment status to active if it was pending
-            if ($assignment->status === 'pending') {
-                $assignment->update(['status' => 'active']);
-            }
-        }
+            // Check if all documents for this assignment are verified
+            $assignment = $document->tenantAssignment;
+            $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
+            
+            $allDocumentsVerified = false;
+            if ($pendingDocuments === 0) {
+                // All documents verified, update assignment status
+                $assignment->update([
+                    'documents_verified' => true,
+                    'verification_notes' => 'All documents verified',
+                ]);
 
-        return back()->with('success', 'Document verified successfully.');
+                // Update assignment status to active if it was pending
+                if ($assignment->status === 'pending') {
+                    $assignment->update(['status' => 'active']);
+                }
+                
+                $allDocumentsVerified = true;
+            }
+
+            // Audit log for document verification
+            Log::info('Document verified successfully', [
+                'landlord_id' => Auth::id(),
+                'document_id' => $documentId,
+                'assignment_id' => $assignment->id,
+                'tenant_id' => $assignment->tenant_id,
+                'tenant_name' => $assignment->tenant->name,
+                'document_type' => $document->document_type,
+                'document_name' => $document->file_name,
+                'old_status' => $oldStatus,
+                'new_status' => 'verified',
+                'verification_notes' => $request->verification_notes,
+                'all_documents_verified' => $allDocumentsVerified,
+                'assignment_status_updated' => $allDocumentsVerified && $assignment->status === 'active',
+                'timestamp' => now()
+            ]);
+
+            return back()->with('success', 'Document verified successfully.');
+
+        } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Document verification failed', [
+                'landlord_id' => Auth::id(),
+                'document_id' => $documentId,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'timestamp' => now()
+            ]);
+
+            return back()->with('error', 'Failed to verify document. Please try again.');
+        }
     }
 
     /**
@@ -338,7 +541,9 @@ class TenantAssignmentController extends Controller
             abort(404);
         }
 
-        return Storage::disk('public')->response($document->file_path, $document->file_name);
+        return response()->file(Storage::disk('public')->path($document->file_path), [
+            'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"'
+        ]);
     }
 
     /**
@@ -346,48 +551,79 @@ class TenantAssignmentController extends Controller
      */
     public function deleteDocument($documentId)
     {
-        $document = TenantDocument::with('tenantAssignment')->findOrFail($documentId);
-        
-        // Check if user is the tenant who uploaded this document
-        if ($document->tenantAssignment->tenant_id !== Auth::id()) {
-            abort(403, 'Unauthorized access to document.');
-        }
-
-        // Allow deletion of any document (tenant's own documents)
-        // No restriction on verification status
-
         try {
-            // Delete the file from storage
-            if (Storage::disk('public')->exists($document->file_path)) {
-                Storage::disk('public')->delete($document->file_path);
-            }
-
-            // Delete the document record
-            $document->delete();
-
-            // Update assignment status based on remaining documents
-            $assignment = $document->tenantAssignment;
-            $remainingDocuments = $assignment->documents()->count();
+            $document = TenantDocument::with('tenantAssignment.tenant')->findOrFail($documentId);
             
-            if ($remainingDocuments === 0) {
-                // No documents left, mark as not uploaded
-                $assignment->update([
-                    'documents_uploaded' => false,
-                    'documents_verified' => false,
-                ]);
-            } else {
-                // Check if all remaining documents are verified
-                $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-                $allVerified = $pendingDocuments === 0;
-                
-                $assignment->update([
-                    'documents_uploaded' => true,
-                    'documents_verified' => $allVerified,
-                ]);
+            // Check if user is the tenant who uploaded this document
+            if ($document->tenantAssignment->tenant_id !== Auth::id()) {
+                abort(403, 'Unauthorized access to document.');
             }
+
+            $assignment = $document->tenantAssignment;
+            $documentType = $document->document_type;
+            $fileName = $document->file_name;
+            $fileSize = $document->file_size;
+
+            // Use database transaction for document deletion
+            DB::transaction(function() use ($document, $assignment) {
+                // Delete the file from storage
+                if (Storage::disk('public')->exists($document->file_path)) {
+                    Storage::disk('public')->delete($document->file_path);
+                }
+
+                // Delete the document record
+                $document->delete();
+
+                // Update assignment status based on remaining documents
+                $remainingDocuments = $assignment->documents()->count();
+                
+                if ($remainingDocuments === 0) {
+                    // No documents left, mark as not uploaded
+                    $assignment->update([
+                        'documents_uploaded' => false,
+                        'documents_verified' => false,
+                    ]);
+                } else {
+                    // Check if all remaining documents are verified
+                    $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
+                    $allVerified = $pendingDocuments === 0;
+                    
+                    $assignment->update([
+                        'documents_uploaded' => true,
+                        'documents_verified' => $allVerified,
+                    ]);
+                }
+            });
+
+            // Audit log for document deletion
+            Log::info('Document deleted successfully', [
+                'tenant_id' => Auth::id(),
+                'tenant_name' => $assignment->tenant->name,
+                'document_id' => $documentId,
+                'assignment_id' => $assignment->id,
+                'unit_id' => $assignment->unit_id,
+                'landlord_id' => $assignment->landlord_id,
+                'document_type' => $documentType,
+                'document_name' => $fileName,
+                'file_size' => $fileSize,
+                'verification_status' => $document->verification_status,
+                'remaining_documents' => $assignment->documents()->count(),
+                'timestamp' => now()
+            ]);
 
             return back()->with('success', 'Document deleted successfully.');
+
         } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Document deletion failed', [
+                'tenant_id' => Auth::id(),
+                'document_id' => $documentId,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'timestamp' => now()
+            ]);
+
             return back()->with('error', 'Failed to delete document. Please try again.');
         }
     }
@@ -427,34 +663,76 @@ class TenantAssignmentController extends Controller
     public function destroy($id)
     {
         try {
-            $assignment = TenantAssignment::where('landlord_id', Auth::id())
-                ->with(['tenant', 'unit', 'documents'])
-                ->findOrFail($id);
+            // Use database transaction for assignment deletion
+            $result = DB::transaction(function() use ($id) {
+                $assignment = TenantAssignment::where('landlord_id', Auth::id())
+                    ->with(['tenant', 'unit', 'documents'])
+                    ->findOrFail($id);
 
-            // Delete all associated documents first
-            foreach ($assignment->documents as $document) {
-                // Delete the file from storage
-                if (Storage::disk('public')->exists($document->file_path)) {
-                    Storage::disk('public')->delete($document->file_path);
+                $tenantName = $assignment->tenant->name;
+                $tenantId = $assignment->tenant_id;
+                $unitId = $assignment->unit_id;
+                $documentsCount = $assignment->documents->count();
+                $totalFileSize = $assignment->documents->sum('file_size');
+
+                // Delete all associated documents first
+                foreach ($assignment->documents as $document) {
+                    // Delete the file from storage
+                    if (Storage::disk('public')->exists($document->file_path)) {
+                        Storage::disk('public')->delete($document->file_path);
+                    }
+                    // Delete the document record
+                    $document->delete();
                 }
-                // Delete the document record
-                $document->delete();
-            }
 
-            // Update the unit status back to available
-            $assignment->unit->update(['status' => 'available']);
+                // Update the unit status back to available
+                $assignment->unit->update([
+                    'status' => 'available',
+                    'tenant_count' => 0
+                ]);
 
-            // Delete the tenant user account (optional - you may want to keep it)
-            // Uncomment the line below if you want to delete the tenant user account
-            // $assignment->tenant->delete();
+                // Delete the tenant user account (optional - you may want to keep it)
+                // Uncomment the line below if you want to delete the tenant user account
+                // $assignment->tenant->delete();
 
-            // Delete the assignment
-            $assignment->delete();
+                // Delete the assignment
+                $assignment->delete();
+
+                return [
+                    'tenant_name' => $tenantName,
+                    'tenant_id' => $tenantId,
+                    'unit_id' => $unitId,
+                    'documents_count' => $documentsCount,
+                    'total_file_size' => $totalFileSize
+                ];
+            });
+
+            // Audit log for assignment deletion
+            Log::info('Tenant assignment deleted successfully', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'tenant_id' => $result['tenant_id'],
+                'tenant_name' => $result['tenant_name'],
+                'unit_id' => $result['unit_id'],
+                'documents_deleted' => $result['documents_count'],
+                'total_file_size_deleted' => $result['total_file_size'],
+                'timestamp' => now()
+            ]);
 
             return redirect()->route('landlord.tenant-assignments')
                 ->with('success', 'Tenant assignment deleted successfully. Unit is now available for new assignments.');
 
         } catch (\Exception $e) {
+            // Detailed error logging
+            Log::error('Tenant assignment deletion failed', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'timestamp' => now()
+            ]);
+
             return back()->with('error', 'Failed to delete tenant assignment. Please try again.');
         }
     }
