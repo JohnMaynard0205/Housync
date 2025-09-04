@@ -231,13 +231,29 @@
         }
 
         .btn-primary {
-            background-color: #10b981;
-            color: white;
+            background-color: #f97316 !important;
+            color: white !important;
+            border: 1px solid #f97316 !important;
         }
 
         .btn-primary:hover {
-            background-color: #059669;
-            color: white;
+            background-color: #ea580c !important;
+            color: white !important;
+            border-color: #ea580c !important;
+        }
+
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active {
+            background-color: #f97316 !important;
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.25) !important;
+        }
+
+        .btn-primary:focus:hover,
+        .btn-primary:active:hover {
+            background-color: #ea580c !important;
+            border-color: #ea580c !important;
         }
 
         .btn-secondary {
