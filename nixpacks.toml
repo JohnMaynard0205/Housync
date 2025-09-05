@@ -8,8 +8,9 @@ cmds = [
     'chmod -R 755 bootstrap/cache'
 ]
 
-[phases.build]
-cmds = ['php artisan migrate --force']
+#[phases.build]
+# Never run DB migrations during image build; database isn't reachable in build stage
+#cmds = ['php artisan migrate --force']
 
 [start]
-cmd = 'php artisan optimize:clear && php artisan config:cache && php artisan view:cache && php -d variables_order=EGPCS -S 0.0.0.0:$PORT -t public public/index.php'
+cmd = 'php artisan optimize:clear && php artisan migrate --force && php artisan config:cache && php artisan view:cache && php -d variables_order=EGPCS -S 0.0.0.0:$PORT -t public public/index.php'
