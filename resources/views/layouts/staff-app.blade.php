@@ -179,13 +179,29 @@
         }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background-color: #f97316 !important;
+            border-color: #f97316 !important;
+            color: white !important;
         }
 
         .btn-primary:hover {
-            background-color: #1976D2;
-            border-color: #1976D2;
+            background-color: #ea580c !important;
+            border-color: #ea580c !important;
+            color: white !important;
+        }
+
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active {
+            background-color: #f97316 !important;
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.25) !important;
+        }
+
+        .btn-primary:focus:hover,
+        .btn-primary:active:hover {
+            background-color: #ea580c !important;
+            border-color: #ea580c !important;
         }
 
         /* Badges */

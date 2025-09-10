@@ -58,8 +58,28 @@
         .stat-item-label, .detail-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
         .rent-amount { font-size: 1.25rem; font-weight: 700; color: #f97316; text-align: center; margin-bottom: 1rem; }
         .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn-primary { background: #f97316; color: white; }
-        .btn-primary:hover { background: #ea580c; color: white; }
+        .btn-primary { 
+            background: #f97316 !important; 
+            color: white !important; 
+            border: 1px solid #f97316 !important;
+        }
+        .btn-primary:hover { 
+            background: #ea580c !important; 
+            color: white !important; 
+            border-color: #ea580c !important;
+        }
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active {
+            background: #f97316 !important;
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.25) !important;
+        }
+        .btn-primary:focus:hover,
+        .btn-primary:active:hover {
+            background: #ea580c !important;
+            border-color: #ea580c !important;
+        }
         .btn-secondary { background: #6b7280; color: white; }
         .btn-secondary:hover { background: #4b5563; }
         .btn-success { background: #10b981; color: white; }
@@ -79,6 +99,31 @@
         .pagination a, .pagination span { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; text-decoration: none; color: #374151; font-size: 0.875rem; }
         .pagination a:hover { background: #f9fafb; border-color: #9ca3af; }
         .pagination .active span { background: #f97316; border-color: #f97316; color: white; }
+        
+        /* Global override for Bootstrap btn-primary to ensure orange color */
+        .btn-primary {
+            background-color: #f97316 !important;
+            border-color: #f97316 !important;
+            color: white !important;
+        }
+        .btn-primary:hover {
+            background-color: #ea580c !important;
+            border-color: #ea580c !important;
+            color: white !important;
+        }
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active,
+        .btn-primary:not(:disabled):not(.disabled):active {
+            background-color: #f97316 !important;
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.25) !important;
+        }
+        .btn-primary:focus:hover,
+        .btn-primary:active:hover {
+            background-color: #ea580c !important;
+            border-color: #ea580c !important;
+        }
     </style>
     @stack('styles')
 </head>

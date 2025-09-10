@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuperAdminController;
@@ -195,14 +196,35 @@ Route::get('/health', function () {
     try {
         $dbConnected = DB::connection()->getPdo() ? 'connected' : 'disconnected';
     } catch (Exception $e) {
-        $dbConnected = 'disconnected';
+        $dbConnected = 'disconnected: ' . $e->getMessage();
     }
     
     return response()->json([
         'status' => 'healthy',
         'timestamp' => now(),
         'database' => $dbConnected,
-        'version' => app()->version()
+        'version' => app()->version(),
+        'app_key' => config('app.key') ? 'set' : 'missing',
+        'app_debug' => config('app.debug'),
+        'app_env' => config('app.env')
+    ]);
+});
+
+// Simple debug route
+Route::get('/debug', function () {
+    return response()->json([
+        'message' => 'Laravel is working!',
+        'php_version' => PHP_VERSION,
+        'laravel_version' => app()->version(),
+        'environment' => app()->environment(),
+        'config_cached' => app()->configurationIsCached(),
+        'routes_cached' => app()->routesAreCached(),
+        'app_key' => config('app.key') ? 'configured' : 'missing',
+        'database' => [
+            'default' => config('database.default'),
+            'host' => config('database.connections.mysql.host'),
+            'database' => config('database.connections.mysql.database')
+        ]
     ]);
 });
 
