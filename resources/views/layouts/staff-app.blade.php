@@ -311,9 +311,7 @@
                 <a href="#" class="nav-item">
                     <i class="fas fa-calendar"></i> Work Schedule
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-file-alt"></i> Reports
-                </a>
+
                 <a href="#" class="nav-item">
                     <i class="fas fa-message"></i> Messages
                 </a>

@@ -513,9 +513,7 @@
                 <a href="#" class="nav-item">
                     <i class="fas fa-tools"></i> Maintenance
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-chart-bar"></i> Reports
-                </a>
+
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

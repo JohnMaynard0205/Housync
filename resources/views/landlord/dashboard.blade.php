@@ -465,9 +465,7 @@
                 <a href="#" class="nav-item">
                     <i class="fas fa-tools"></i> Maintenance
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-chart-line"></i> Reports
-                </a>
+
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
@@ -622,9 +620,7 @@
                         <i class="fas fa-door-open"></i> Manage Units
                     </a>
                     
-                    <a href="#" class="action-btn">
-                        <i class="fas fa-chart-bar"></i> View Reports
-                    </a>
+
                     
                     <a href="#" class="action-btn">
                         <i class="fas fa-users"></i> Tenant Directory

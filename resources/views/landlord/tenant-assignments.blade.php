@@ -464,9 +464,7 @@
                     <button type="button" class="btn btn-outline-success px-4" onclick="printNewCredentials()" title="Print credentials">
                         <i class="mdi mdi-printer me-1"></i> Print Credentials
                     </button>
-                    <button type="button" class="btn btn-outline-info px-4" onclick="emailCredentials()" title="Email credentials to tenant">
-                        <i class="mdi mdi-email-send me-1"></i> Email to Tenant
-                    </button>
+
                 </div>
                 
                 <!-- Important Notice -->

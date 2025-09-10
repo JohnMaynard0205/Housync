@@ -192,9 +192,7 @@
                         <a href="#" class="btn btn-outline-info">
                             <i class="mdi mdi-account-edit me-1"></i> Update Profile
                         </a>
-                        <a href="#" class="btn btn-outline-warning">
-                            <i class="mdi mdi-file-document me-1"></i> Work Reports
-                        </a>
+
                     </div>
                 </div>
             </div>
