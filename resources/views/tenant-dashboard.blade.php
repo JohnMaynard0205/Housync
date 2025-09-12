@@ -70,49 +70,44 @@
             font-size: 12px;
             font-weight: 500;
         }
+        
+        /* Fix anchor tag styling for navigation */
+        a.nav-item {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            pointer-events: auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        a.nav-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        
+        /* Ensure profile button is clickable */
+        .nav-item.tenant-nav-item {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 999 !important;
+        }
+        
+        .nav-item.tenant-nav-item * {
+            pointer-events: none !important;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Tenant Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-content">
-                <div class="nav-items-container">
-                    <div class="nav-item tenant-nav-item active">
-                        <i class="fas fa-home"></i>
-                        <span>My Home</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.payments') }}'">
-                        <i class="fas fa-credit-card"></i>
-                        <span>Payments</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.maintenance') }}'">
-                        <i class="fas fa-tools"></i>
-                        <span>Maintenance</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.messages') }}'">
-                        <i class="fas fa-envelope"></i>
-                        <span>Messages</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.lease') }}'">
-                        <i class="fas fa-file-contract"></i>
-                        <span>Lease Info</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.profile') }}'">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Profile</span>
-                    </div>
-                </div>
-                
-                <!-- Logout Button at Bottom -->
-                <div class="nav-bottom">
-                    <div class="nav-item logout-item" onclick="handleLogout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        @include('partials.tenant-sidebar')
 
         <!-- Main Content -->
         <main class="main-content">
@@ -330,6 +325,7 @@
                 form.submit();
             }
         }
+
 
         // Quick action button functionality
         document.querySelectorAll('.tenant-btn-primary').forEach(btn => {

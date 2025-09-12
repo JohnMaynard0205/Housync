@@ -1,339 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - Tenant Portal</title>
-    <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        .tenant-nav-item.active { background: #10b981; color: white; }
-        .tenant-nav-item:hover { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .tenant-header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
-        .tenant-btn-primary { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
-        .tenant-btn-primary:hover { background: #059669; }
-        .profile-card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
-        .form-group input[readonly] { background: #f9fafb; color: #6b7280; }
-        .profile-avatar-large { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; }
-        .avatar-upload { position: relative; display: inline-block; }
-        .avatar-upload-btn { position: absolute; bottom: 0; right: 0; background: #10b981; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .security-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px; }
-        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 24px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #10b981; }
-        input:checked + .slider:before { transform: translateX(26px); }
-        .notification-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
-        .notification-item:last-child { border-bottom: none; }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="sidebar-content">
-                <div class="nav-items-container">
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.dashboard') }}'">
-                        <i class="fas fa-home"></i>
-                        <span>My Home</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.payments') }}'">
-                        <i class="fas fa-credit-card"></i>
-                        <span>Payments</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.maintenance') }}'">
-                        <i class="fas fa-tools"></i>
-                        <span>Maintenance</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.messages') }}'">
-                        <i class="fas fa-envelope"></i>
-                        <span>Messages</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item" onclick="window.location.href='{{ route('tenant.lease') }}'">
-                        <i class="fas fa-file-contract"></i>
-                        <span>Lease Info</span>
-                    </div>
-                    <div class="nav-item tenant-nav-item active">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Profile</span>
-                    </div>
-                </div>
-                <div class="nav-bottom">
-                    <div class="nav-item logout-item" onclick="handleLogout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
+@extends('layouts.app')
 
-        <main class="main-content">
-            <header class="header tenant-header">
-                <div class="header-left">
-                    <button class="menu-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                </div>
-                <div class="header-center">
-                    <h1 class="app-title">Profile Settings</h1>
-                </div>
-                <div class="header-right">
-                    <button class="header-btn">
-                        <i class="fas fa-bell"></i>
-                    </button>
-                    <div class="user-profile">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Juan Karlos" class="profile-avatar">
-                        <span class="profile-name">Juan Karlos</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-            </header>
+@section('title', 'Profile')
+
+@section('content')
 
             <div class="dashboard-content">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                    <!-- Personal Information -->
-                    <div>
-                        <div class="profile-card">
-                            <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px;">
-                                <div class="avatar-upload">
-                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Juan Karlos" class="profile-avatar-large">
-                                    <button class="avatar-upload-btn" onclick="uploadProfilePhoto()">
-                                        <i class="fas fa-camera"></i>
-                                    </button>
-                                </div>
-                                <div>
-                                    <h2 style="margin: 0 0 8px 0; color: #1f2937;">Juan Karlos</h2>
-                                    <p style="margin: 0 0 4px 0; color: #6b7280;">Tenant - Unit 01</p>
-                                    <p style="margin: 0; color: #10b981; font-weight: 600;">Active Lease</p>
-                                </div>
-                            </div>
+                <!-- Welcome Section -->
+                <div class="tenant-welcome" style="background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
+                    <h2 style="color: #1f2937; margin: 0 0 10px 0;">Profile Information</h2>
+                    <p style="color: #6b7280; margin: 0;">Manage your account details and settings</p>
+                </div>
 
-                            <h3 style="margin: 0 0 20px 0;">Personal Information</h3>
-                            <form id="personalInfoForm" onsubmit="updatePersonalInfo(event)">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                    <div class="form-group">
-                                        <label for="firstName">First Name</label>
-                                        <input type="text" id="firstName" name="firstName" value="Juan" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="lastName">Last Name</label>
-                                        <input type="text" id="lastName" name="lastName" value="Karlos" required>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="email">Email Address</label>
-                                    <input type="email" id="email" name="email" value="juan.karlos@email.com" required>
-                                </div>
-
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                    <div class="form-group">
-                                        <label for="phone">Phone Number</label>
-                                        <input type="tel" id="phone" name="phone" value="+63 917 123 4567" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="birthdate">Date of Birth</label>
-                                        <input type="date" id="birthdate" name="birthdate" value="1990-05-15">
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="occupation">Occupation</label>
-                                    <input type="text" id="occupation" name="occupation" value="Software Developer">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="company">Company</label>
-                                    <input type="text" id="company" name="company" value="TechCorp Philippines">
-                                </div>
-
-                                <button type="submit" class="tenant-btn-primary">
-                                    <i class="fas fa-save"></i>
-                                    Update Information
-                                </button>
-                            </form>
+                <!-- Profile Stats Cards -->
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 30px;">
+                    <div class="stat-card tenant-stat-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
+                        <div class="stat-info">
+                            <div class="stat-label" style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Full Name</div>
+                            <div class="stat-value" style="color: #1f2937; font-size: 24px; font-weight: 600;">{{ $tenant->name }}</div>
                         </div>
-
-                        <div class="profile-card">
-                            <h3 style="margin: 0 0 20px 0;">Emergency Contacts</h3>
-                            
-                            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                                    <div>
-                                        <div style="font-weight: 600; color: #1f2937;">Maria Karlos</div>
-                                        <div style="color: #6b7280; font-size: 14px;">Mother</div>
-                                    </div>
-                                    <button style="color: #6b7280; background: none; border: none; cursor: pointer;" onclick="editEmergencyContact('primary')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                                <div style="color: #4b5563; font-size: 14px;">
-                                    <div>📞 +63 917 987 6543</div>
-                                    <div>📧 maria.karlos@email.com</div>
-                                </div>
-                            </div>
-
-                            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                                    <div>
-                                        <div style="font-weight: 600; color: #1f2937;">Roberto Santos</div>
-                                        <div style="color: #6b7280; font-size: 14px;">Friend</div>
-                                    </div>
-                                    <button style="color: #6b7280; background: none; border: none; cursor: pointer;" onclick="editEmergencyContact('secondary')">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                                <div style="color: #4b5563; font-size: 14px;">
-                                    <div>📞 +63 917 456 7890</div>
-                                    <div>📧 roberto.santos@email.com</div>
-                                </div>
-                            </div>
-
-                            <button class="tenant-btn-primary" style="width: 100%;" onclick="addEmergencyContact()">
-                                <i class="fas fa-plus"></i>
-                                Add Emergency Contact
-                            </button>
+                        <div class="stat-icon" style="color: #10b981; font-size: 32px;">
+                            <i class="fas fa-user"></i>
                         </div>
                     </div>
+                    
+                    @if($assignment)
+                    <div class="stat-card tenant-stat-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
+                        <div class="stat-info">
+                            <div class="stat-label" style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Unit</div>
+                            <div class="stat-value" style="color: #1f2937; font-size: 24px; font-weight: 600;">{{ $assignment->unit->unit_number }}</div>
+                        </div>
+                        <div class="stat-icon" style="color: #10b981; font-size: 32px;">
+                            <i class="fas fa-home"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card tenant-stat-card" style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
+                        <div class="stat-info">
+                            <div class="stat-label" style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">Lease Status</div>
+                            <div class="stat-value" style="color: #10b981; font-size: 20px; font-weight: 600;">{{ ucfirst($assignment->status) }}</div>
+                        </div>
+                        <div class="stat-icon" style="color: #10b981; font-size: 32px;">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                    </div>
+                    @endif
+                </div>
 
-                    <!-- Security & Settings -->
-                    <div>
-                        <div class="profile-card">
-                            <h3 style="margin: 0 0 20px 0;">Account Security</h3>
-                            
-                            <div class="security-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Two-Factor Authentication</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Add extra security to your account</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked onchange="toggle2FA(this)">
-                                    <span class="slider"></span>
-                                </label>
+                <!-- Account Information -->
+                <div style="background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); border-left: 4px solid #10b981;">
+                    <h3 style="color: #1f2937; margin: 0 0 24px 0; font-size: 20px; font-weight: 600;">Account Information</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                        <div style="space-y: 16px;">
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Email Address</label>
+                                <div style="color: #1f2937; font-size: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">{{ $tenant->email }}</div>
                             </div>
-
-                            <div class="security-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Email Notifications</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Receive important updates via email</div>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Password</label>
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <span id="passwordDisplay" style="color: #1f2937; flex: 1;">••••••••••</span>
+                                    <button onclick="togglePasswordVisibility()" id="passwordToggle" style="background: #10b981; border: none; color: white; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: all 0.2s;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    @if($assignment && $assignment->documents_verified)
+                                    <button onclick="showChangePasswordModal()" style="background: #059669; border: none; color: white; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: all 0.2s;">
+                                        <i class="fas fa-edit"></i> Change
+                                    </button>
+                                    @endif
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked onchange="toggleEmailNotifications(this)">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="security-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">SMS Notifications</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Receive urgent alerts via SMS</div>
+                                @if(!$assignment || !$assignment->documents_verified)
+                                <div style="margin-top: 8px; padding: 8px 12px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-info-circle" style="color: #d97706;"></i>
+                                        <span style="color: #92400e; font-size: 14px; font-weight: 500;">Password change will be available after your documents are verified by the landlord.</span>
+                                    </div>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" onchange="toggleSMSNotifications(this)">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div style="margin-top: 20px;">
-                                <button class="tenant-btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="changePassword()">
-                                    <i class="fas fa-key"></i>
-                                    Change Password
-                                </button>
-                                <button style="width: 100%; padding: 12px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 6px; cursor: pointer;" onclick="downloadData()">
-                                    <i class="fas fa-download"></i>
-                                    Download My Data
-                                </button>
+                                @endif
                             </div>
                         </div>
-
-                        <div class="profile-card">
-                            <h3 style="margin: 0 0 20px 0;">Notification Preferences</h3>
-                            
-                            <div class="notification-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Rent Reminders</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Get reminded before rent is due</div>
+                        <div style="space-y: 16px;">
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Account Type</label>
+                                <div style="color: #1f2937; font-size: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">{{ ucfirst($tenant->role) }}</div>
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Account Status</label>
+                                <div style="padding: 12px; background: #d1fae5; border-radius: 8px; border: 1px solid #a7f3d0;">
+                                    <span style="color: #065f46; font-weight: 600; font-size: 16px;">Active</span>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="notification-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Maintenance Updates</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Updates on your maintenance requests</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="notification-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Lease Notifications</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Important lease-related communications</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="notification-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Building Announcements</div>
-                                    <div style="color: #6b7280; font-size: 14px;">General building and community updates</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="notification-item">
-                                <div>
-                                    <div style="font-weight: 600; color: #1f2937;">Marketing Communications</div>
-                                    <div style="color: #6b7280; font-size: 14px;">Special offers and promotions</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="profile-card">
-                            <h3 style="margin: 0 0 20px 0;">Account Information</h3>
-                            
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #6b7280;">Account Type:</span>
-                                <strong>Tenant</strong>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #6b7280;">Member Since:</span>
-                                <strong>January 2024</strong>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #6b7280;">Last Login:</span>
-                                <strong>Today, 2:30 PM</strong>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #6b7280;">Account Status:</span>
-                                <strong style="color: #10b981;">Active</strong>
                             </div>
                         </div>
                     </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Member Since</label>
+                            <div style="color: #6b7280; font-size: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">{{ $tenant->created_at->format('F Y') }}</div>
+                        </div>
+                        @if($tenant->updated_at)
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Last Updated</label>
+                            <div style="color: #6b7280; font-size: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">{{ $tenant->updated_at->diffForHumans() }}</div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                @if($rfidCards && $rfidCards->count() > 0)
+                <!-- RFID Access Cards -->
+                <div style="background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); border-left: 4px solid #10b981;">
+                    <h3 style="color: #1f2937; margin: 0 0 24px 0; font-size: 20px; font-weight: 600;">
+                        <i class="fas fa-id-card" style="color: #10b981; margin-right: 8px;"></i>
+                        RFID Access Cards
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                        @foreach($rfidCards as $card)
+                        <div style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; position: relative; overflow: hidden;">
+                            <div style="position: absolute; top: 0; right: 0; width: 60px; height: 60px; background: rgba(16, 185, 129, 0.1); border-radius: 0 0 0 60px;"></div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                                <div>
+                                    <div style="font-weight: 700; color: #1f2937; font-size: 18px; margin-bottom: 4px;">
+                                        <i class="fas fa-credit-card" style="color: #10b981; margin-right: 8px;"></i>
+                                        Card #{{ $card->card_number }}
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        @if($card->status === 'active')
+                                        <span style="background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                            <i class="fas fa-check-circle" style="margin-right: 4px;"></i>Active
+                                        </span>
+                                        @else
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                            <i class="fas fa-times-circle" style="margin-right: 4px;"></i>Inactive
+                                        </span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <i class="fas fa-key" style="color: #10b981; font-size: 24px; opacity: 0.7;"></i>
+                            </div>
+                            <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                                    <div>
+                                        <span style="color: #6b7280; font-weight: 500;">Issued:</span>
+                                        <div style="color: #1f2937; font-weight: 600;">{{ $card->created_at->format('M d, Y') }}</div>
+                                    </div>
+                                    @if($card->expires_at)
+                                    <div>
+                                        <span style="color: #6b7280; font-weight: 500;">Expires:</span>
+                                        <div style="color: #1f2937; font-weight: 600;">{{ $card->expires_at->format('M d, Y') }}</div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 style="margin: 0; color: #1f2937; font-size: 20px; font-weight: 600;">
+                    <i class="fas fa-lock" style="color: #10b981; margin-right: 8px;"></i>
+                    Change Password
+                </h3>
+                <button onclick="hideChangePasswordModal()" style="background: none; border: none; color: #6b7280; cursor: pointer; font-size: 24px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="changePasswordForm">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Current Password</label>
+                    <input type="password" id="currentPassword" name="current_password" required
+                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">New Password</label>
+                    <input type="password" id="newPassword" name="new_password" required minlength="8"
+                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                    <div style="margin-top: 4px; font-size: 12px; color: #6b7280;">Minimum 8 characters required</div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" name="new_password_confirmation" required minlength="8"
+                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                </div>
+                
+                <div id="passwordError" style="display: none; margin-bottom: 16px; padding: 12px; background: #fee2e2; border-radius: 8px; border-left: 4px solid #ef4444;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exclamation-circle" style="color: #dc2626;"></i>
+                        <span id="passwordErrorText" style="color: #dc2626; font-size: 14px; font-weight: 500;"></span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" onclick="hideChangePasswordModal()" 
+                            style="padding: 12px 24px; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" id="changePasswordBtn"
+                            style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: all 0.2s;">
+                        <i class="fas fa-save" style="margin-right: 4px;"></i>
+                        Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -355,64 +237,154 @@
         
         function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                window.location.href = '{{ route("login") }}';
+                // Create and submit logout form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route("logout") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                
+                form.appendChild(csrfToken);
+                document.body.appendChild(form);
+                form.submit();
             }
         }
 
         function uploadProfilePhoto() {
-            alert('Profile photo upload functionality will be implemented.');
+            alert('Profile photo upload functionality will be implemented in a future update.');
         }
 
-        function updatePersonalInfo(event) {
-            event.preventDefault();
-            alert('Personal information has been updated successfully!');
-        }
-
-        function editEmergencyContact(type) {
-            alert(`Editing ${type} emergency contact...`);
-        }
-
-        function addEmergencyContact() {
-            alert('Add new emergency contact form will be opened.');
-        }
-
-        function toggle2FA(checkbox) {
-            if (checkbox.checked) {
-                alert('Two-factor authentication has been enabled. You will receive a verification code via SMS for future logins.');
+        function togglePasswordVisibility() {
+            const passwordDisplay = document.getElementById('passwordDisplay');
+            const passwordToggle = document.getElementById('passwordToggle');
+            
+            if (passwordDisplay.textContent === '••••••••••••') {
+                // Show actual password
+                passwordDisplay.textContent = 'Loading...';
+                passwordToggle.classList.remove('fa-eye');
+                passwordToggle.classList.add('fa-eye-slash');
+                
+                // Fetch the actual password
+                fetch('{{ route("tenant.get-password") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.password) {
+                        passwordDisplay.textContent = data.password;
+                    } else {
+                        passwordDisplay.textContent = 'Unable to retrieve password';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    passwordDisplay.textContent = 'Error loading password';
+                });
             } else {
-                if (confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) {
-                    alert('Two-factor authentication has been disabled.');
-                } else {
-                    checkbox.checked = true;
+                passwordDisplay.textContent = '••••••••••••';
+                passwordToggle.classList.remove('fa-eye-slash');
+                passwordToggle.classList.add('fa-eye');
+            }
+        }
+
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Reset form
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('passwordError').style.display = 'none';
+        }
+
+        // Handle password change form submission
+        document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const submitBtn = document.getElementById('changePasswordBtn');
+            const errorDiv = document.getElementById('passwordError');
+            const errorText = document.getElementById('passwordErrorText');
+            
+            // Hide previous errors
+            errorDiv.style.display = 'none';
+            
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                errorText.textContent = 'New passwords do not match.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Validate password length
+            if (newPassword.length < 8) {
+                errorText.textContent = 'New password must be at least 8 characters long.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 4px;"></i>Updating...';
+            
+            // Make AJAX request
+            fetch('{{ route("tenant.update-password") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                    new_password_confirmation: confirmPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success
+                    hideChangePasswordModal();
+                    
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #d1fae5; color: #065f46; padding: 16px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1001; border-left: 4px solid #10b981;';
+                    successDiv.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>' + data.success;
+                    document.body.appendChild(successDiv);
+                    
+                    setTimeout(() => {
+                        successDiv.remove();
+                    }, 5000);
+                    
+                } else if (data.error) {
+                    // Error from server
+                    errorText.textContent = data.error;
+                    errorDiv.style.display = 'block';
                 }
-            }
-        }
-
-        function toggleEmailNotifications(checkbox) {
-            if (checkbox.checked) {
-                alert('Email notifications have been enabled.');
-            } else {
-                alert('Email notifications have been disabled.');
-            }
-        }
-
-        function toggleSMSNotifications(checkbox) {
-            if (checkbox.checked) {
-                alert('SMS notifications have been enabled.');
-            } else {
-                alert('SMS notifications have been disabled.');
-            }
-        }
-
-        function changePassword() {
-            alert('Change password form will be opened.');
-        }
-
-        function downloadData() {
-            if (confirm('This will generate a file containing all your personal data. Do you want to proceed?')) {
-                alert('Your data export is being prepared. You will receive an email with the download link shortly.');
-            }
-        }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorText.textContent = 'An error occurred while updating your password.';
+                errorDiv.style.display = 'block';
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save" style="margin-right: 4px;"></i>Update Password';
+            });
+        });
     </script>
-</body>
-</html> 
+@endsection

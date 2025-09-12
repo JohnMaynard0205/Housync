@@ -415,10 +415,10 @@
                 <a href="#" class="nav-item">
                     <i class="fas fa-message"></i> Messages
                 </a>
-                <a href="#" class="nav-item">
+                <a href="{{ route('tenant.lease') }}" class="nav-item">
                     <i class="fas fa-file-contract"></i> Lease
                 </a>
-                <a href="#" class="nav-item">
+                <a href="{{ route('tenant.profile') }}" class="nav-item">
                     <i class="fas fa-user"></i> Profile
                 </a>
             </nav>

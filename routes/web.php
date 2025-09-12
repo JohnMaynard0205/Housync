@@ -137,6 +137,10 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::post('/upload-documents', [TenantAssignmentController::class, 'storeDocuments'])->name('store-documents');
     Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
     Route::delete('/delete-document/{documentId}', [TenantAssignmentController::class, 'deleteDocument'])->name('delete-document');
+    Route::get('/profile', [TenantAssignmentController::class, 'tenantProfile'])->name('profile');
+    Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
+    Route::post('/get-password', [TenantAssignmentController::class, 'getTenantPassword'])->name('get-password');
+    Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
 });
 
 // Staff Routes
@@ -156,13 +160,7 @@ Route::get('/tenant-messages', function () {
     return view('tenant-messages');
 })->name('tenant.messages');
 
-Route::get('/tenant-lease', function () {
-    return view('tenant-lease');
-})->name('tenant.lease');
 
-Route::get('/tenant-profile', function () {
-    return view('tenant-profile');
-})->name('tenant.profile');
 
 // Units routes (need to be updated for role-based access)
 Route::middleware(['role:super_admin'])->group(function () {

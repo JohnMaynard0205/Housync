@@ -8,6 +8,7 @@ use App\Models\TenantDocument;
 use App\Services\TenantAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -734,6 +735,171 @@ class TenantAssignmentController extends Controller
             ]);
 
             return back()->with('error', 'Failed to delete tenant assignment. Please try again.');
+        }
+    }
+
+    /**
+     * Show tenant profile page
+     */
+    public function tenantProfile()
+    {
+        try {
+            $tenant = Auth::user();
+            
+            if (!$tenant) {
+                return redirect()->route('login')->with('error', 'Please log in to access your profile.');
+            }
+            
+            $assignment = $tenant->tenantAssignments()
+                ->with([
+                    'unit.apartment.landlord', 
+                    'documents',
+                    'landlord'
+                ])
+                ->where('status', 'active')
+                ->first();
+
+            // Get RFID cards if available
+            $rfidCards = collect();
+            if ($assignment && class_exists('\App\Models\RfidCard')) {
+                try {
+                    $rfidCards = \App\Models\RfidCard::where('tenant_id', $tenant->id)
+                        ->where('apartment_id', $assignment->unit->apartment->id)
+                        ->get();
+                } catch (\Exception $e) {
+                    // RFID functionality might not be fully implemented yet
+                    $rfidCards = collect();
+                }
+            }
+
+            return view('tenant-profile', compact('tenant', 'assignment', 'rfidCards'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Tenant profile error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('tenant.dashboard')->with('error', 'Unable to load profile. Please try again.');
+        }
+    }
+
+    /**
+     * Get tenant password (for profile view only)
+     */
+    public function getTenantPassword(Request $request)
+    {
+        try {
+            $tenant = Auth::user();
+            
+            // Get the tenant assignment to find the generated password
+            $assignment = $tenant->tenantAssignments()
+                ->where('status', 'active')
+                ->first();
+            
+            $password = null;
+            if ($assignment && $assignment->generated_password) {
+                // Return the generated password if available
+                $password = $assignment->generated_password;
+            } else {
+                // If no generated password, return a message
+                $password = 'No generated password available. Contact your landlord.';
+            }
+            
+            return response()->json(['password' => $password]);
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Unable to retrieve password'], 500);
+        }
+    }
+
+    /**
+     * Show tenant lease page
+     */
+    public function tenantLease()
+    {
+        try {
+            $tenant = Auth::user();
+            
+            if (!$tenant) {
+                return redirect()->route('login')->with('error', 'Please log in to access your lease information.');
+            }
+            
+            $assignment = $tenant->tenantAssignments()
+                ->with([
+                    'unit.apartment.landlord', 
+                    'documents',
+                    'landlord'
+                ])
+                ->where('status', 'active')
+                ->first();
+
+            return view('tenant-lease', compact('tenant', 'assignment'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Tenant lease error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('tenant.dashboard')->with('error', 'Unable to load lease information. Please try again.');
+        }
+    }
+
+    /**
+     * Update tenant password (only if documents are verified)
+     */
+    public function updatePassword(Request $request)
+    {
+        try {
+            $tenant = Auth::user();
+            
+            if (!$tenant) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Check if tenant's documents are verified
+            $assignment = $tenant->tenantAssignments()
+                ->where('status', 'active')
+                ->first();
+
+            if (!$assignment || !$assignment->documents_verified) {
+                return response()->json([
+                    'error' => 'Password change is only available after your documents have been verified by the landlord.'
+                ], 403);
+            }
+
+            $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|min:8|confirmed',
+            ]);
+
+            // Verify current password
+            if (!Hash::check($request->current_password, $tenant->password)) {
+                return response()->json(['error' => 'Current password is incorrect.'], 400);
+            }
+
+            // Update password
+            $tenant->update([
+                'password' => Hash::make($request->new_password)
+            ]);
+
+            // Log the password change
+            \Log::info('Tenant password updated', [
+                'tenant_id' => $tenant->id,
+                'tenant_email' => $tenant->email,
+                'updated_at' => now()
+            ]);
+
+            return response()->json(['success' => 'Password updated successfully!']);
+
+        } catch (\Exception $e) {
+            \Log::error('Password update error: ' . $e->getMessage(), [
+                'tenant_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => 'An error occurred while updating your password.'], 500);
         }
     }
 } 
