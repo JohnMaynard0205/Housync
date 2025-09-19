@@ -498,9 +498,6 @@
                     <i class="fas fa-building"></i> Properties
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-chart-bar"></i> Analytics
-                </a>
-                <a href="#" class="nav-item">
                     <i class="fas fa-cog"></i> System Settings
                 </a>
             </nav>
