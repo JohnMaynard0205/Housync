@@ -200,7 +200,7 @@
                                 <tr>
                                     <td>{{ $document->document_type_label }}</td>
                                     <td>{{ $document->file_name }}</td>
-                                    <td>{{ $document->uploaded_at->format('M d, Y H:i') }}</td>
+                                    <td>{{ $document->created_at->format('M d, Y H:i') }}</td>
                                     <td>
                                         <span class="badge bg-{{ $document->verification_status_badge_class }}">
                                             {{ ucfirst($document->verification_status) }}

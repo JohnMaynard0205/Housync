@@ -146,6 +146,9 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
 // Staff Routes
 Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/dashboard', [StaffController::class, 'staffDashboard'])->name('dashboard');
+    Route::post('/assignments/{id}/complete', [StaffController::class, 'completeAssignment'])->name('complete-assignment');
+    Route::get('/profile', [StaffController::class, 'staffProfile'])->name('profile');
+    Route::post('/update-password', [StaffController::class, 'updatePassword'])->name('update-password');
 });
 
 Route::get('/tenant-payments', function () {

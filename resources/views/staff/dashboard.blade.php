@@ -120,6 +120,14 @@
                                     <button type="button" class="btn btn-success" onclick="markAssignmentAsCompleted({{ $assignment->id }})">
                                         <i class="mdi mdi-check me-1"></i> Mark Assignment as Completed
                                     </button>
+                                @elseif($assignment->status === 'completed')
+                                    <div class="alert alert-success mb-0">
+                                        <i class="mdi mdi-check-circle me-1"></i>
+                                        This assignment has been completed successfully!
+                                        @if($assignment->assignment_end_date)
+                                            <br><small>Completed on: {{ $assignment->assignment_end_date->format('M d, Y') }}</small>
+                                        @endif
+                                    </div>
                                 @elseif($assignment->status === 'terminated')
                                     <div class="alert alert-info mb-0">
                                         <i class="mdi mdi-information me-1"></i>

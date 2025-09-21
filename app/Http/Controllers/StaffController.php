@@ -171,7 +171,7 @@ class StaffController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:active,inactive,terminated',
+            'status' => 'required|in:active,inactive,terminated,completed',
         ]);
 
         $assignment = StaffAssignment::where('landlord_id', Auth::id())
@@ -304,5 +304,141 @@ class StaffController extends Controller
             ->orderBy('priority', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    /**
+     * Complete staff assignment
+     */
+    public function completeAssignment(Request $request, $id)
+    {
+        try {
+            $staff = Auth::user();
+            
+            // Find the assignment and verify it belongs to the current staff member
+            $assignment = StaffAssignment::where('id', $id)
+                ->where('staff_id', $staff->id)
+                ->where('status', 'active')
+                ->with(['unit.apartment', 'landlord'])
+                ->first();
+
+            if (!$assignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Assignment not found or you do not have permission to complete it.'
+                ], 404);
+            }
+
+            // Update the assignment status to completed
+            $assignment->update([
+                'status' => 'completed',
+                'assignment_end_date' => now(),
+            ]);
+
+            // Log the completion for audit purposes
+            \Illuminate\Support\Facades\Log::info('Staff assignment completed', [
+                'assignment_id' => $assignment->id,
+                'staff_id' => $staff->id,
+                'staff_name' => $staff->name,
+                'unit_id' => $assignment->unit_id,
+                'unit_number' => $assignment->unit->unit_number,
+                'landlord_id' => $assignment->landlord_id,
+                'completion_date' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment marked as completed successfully! The landlord has been notified.'
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to complete staff assignment', [
+                'assignment_id' => $id,
+                'staff_id' => Auth::id(),
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete assignment. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Show staff profile page
+     */
+    public function staffProfile()
+    {
+        try {
+            $staff = Auth::user();
+            
+            if (!$staff) {
+                return redirect()->route('login')->with('error', 'Please log in to access your profile.');
+            }
+            
+            // Get staff's active assignment
+            $assignment = StaffAssignment::where('staff_id', $staff->id)
+                ->where('status', 'active')
+                ->with(['unit.apartment', 'landlord'])
+                ->first();
+
+            return view('staff.profile', compact('staff', 'assignment'));
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Staff profile error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('staff.dashboard')->with('error', 'Unable to load profile. Please try again.');
+        }
+    }
+
+    /**
+     * Update staff password (no document verification required)
+     */
+    public function updatePassword(Request $request)
+    {
+        try {
+            $staff = Auth::user();
+            
+            if (!$staff) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|min:8|confirmed',
+            ]);
+
+            // Verify current password
+            if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $staff->password)) {
+                return response()->json(['error' => 'Current password is incorrect.'], 400);
+            }
+
+            // Update password
+            $staff->update([
+                'password' => \Illuminate\Support\Facades\Hash::make($request->new_password)
+            ]);
+
+            // Log the password change
+            \Illuminate\Support\Facades\Log::info('Staff password updated', [
+                'staff_id' => $staff->id,
+                'staff_email' => $staff->email,
+                'updated_at' => now()
+            ]);
+
+            return response()->json(['success' => 'Password updated successfully!']);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Staff password update error: ' . $e->getMessage(), [
+                'staff_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => 'Failed to update password. Please try again.'], 500);
+        }
     }
 } 

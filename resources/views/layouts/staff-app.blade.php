@@ -331,7 +331,7 @@
                 <a href="#" class="nav-item">
                     <i class="fas fa-message"></i> Messages
                 </a>
-                <a href="#" class="nav-item">
+                <a href="{{ route('staff.profile') }}" class="nav-item {{ request()->routeIs('staff.profile') ? 'active' : '' }}">
                     <i class="fas fa-user"></i> Profile
                 </a>
             </nav>

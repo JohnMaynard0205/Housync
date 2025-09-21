@@ -337,7 +337,7 @@ class TenantAssignmentController extends Controller
         // Enhanced validation rules
         $request->validate([
             'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'document_types.*' => 'required|string|in:contract,id_copy,proof_of_income,other',
+            'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
         ], [
             'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
             'documents.*.max' => 'Each file must not exceed 5MB',
@@ -369,6 +369,7 @@ class TenantAssignmentController extends Controller
                         'file_path' => $filePath,
                         'file_size' => $file->getSize(),
                         'mime_type' => $file->getMimeType(),
+                        'uploaded_at' => now(),
                         'verification_status' => 'pending',
                     ]);
 
