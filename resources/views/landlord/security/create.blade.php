@@ -56,17 +56,27 @@
                         <!-- Card UID -->
                         <div class="mb-3">
                             <label for="card_uid" class="form-label required">Card UID</label>
-                            <input type="text" 
-                                   class="form-control @error('card_uid') is-invalid @enderror" 
-                                   id="card_uid" 
-                                   name="card_uid" 
-                                   value="{{ old('card_uid') }}"
-                                   placeholder="e.g., A1B2C3D4"
-                                   style="font-family: monospace;"
-                                   required>
-                            <div class="form-text">
-                                Enter the unique identifier from the RFID card. This is usually printed on the card or can be read by scanning it.
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control @error('card_uid') is-invalid @enderror" 
+                                       id="card_uid" 
+                                       name="card_uid" 
+                                       value="{{ old('card_uid') }}"
+                                       placeholder="e.g., A1B2C3D4"
+                                       style="font-family: monospace;"
+                                       required>
+                                <button type="button" 
+                                        class="btn btn-outline-primary" 
+                                        id="scan-card-btn"
+                                        title="Scan RFID card to get UID automatically">
+                                    <i class="fas fa-wifi" id="scan-icon"></i>
+                                    <span id="scan-text">Scan Card</span>
+                                </button>
                             </div>
+                            <div class="form-text">
+                                Enter the unique identifier from the RFID card manually, or click "Scan Card" to read it automatically.
+                            </div>
+                            <div id="scan-status" class="mt-2" style="display: none;"></div>
                             @error('card_uid')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -191,13 +201,13 @@
                         <div class="step">
                             <div class="step-number">1</div>
                             <div class="step-content">
-                                <strong>Physical Card:</strong> Check if the UID is printed on the RFID card itself.
+                                <strong>Scan Button:</strong> Click the "Scan Card" button above and tap your RFID card on the scanner to automatically get the UID.
                             </div>
                         </div>
                         <div class="step">
                             <div class="step-number">2</div>
                             <div class="step-content">
-                                <strong>Scan with ESP32:</strong> Use your ESP32 setup to scan the card and read the UID from the serial output.
+                                <strong>Physical Card:</strong> Check if the UID is printed on the RFID card itself.
                             </div>
                         </div>
                         <div class="step">
@@ -299,6 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tenantSelect = document.getElementById('tenant_assignment_id');
     const tenantOptions = Array.from(tenantSelect.options);
     
+    // Tenant filtering functionality
     function filterTenants() {
         const selectedApartment = apartmentSelect.value;
         
@@ -317,6 +328,165 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial filter
     filterTenants();
+    
+    // RFID Card Scanning functionality
+    const scanBtn = document.getElementById('scan-card-btn');
+    const scanIcon = document.getElementById('scan-icon');
+    const scanText = document.getElementById('scan-text');
+    const scanStatus = document.getElementById('scan-status');
+    const cardUidInput = document.getElementById('card_uid');
+    
+    let scanInterval = null;
+    let scanTimeout = null;
+    
+    scanBtn.addEventListener('click', function() {
+        startCardScan();
+    });
+    
+    function startCardScan() {
+        // Disable the button and show loading state
+        scanBtn.disabled = true;
+        scanIcon.className = 'fas fa-spinner fa-spin';
+        scanText.textContent = 'Initiating...';
+        
+        // Show status
+        showScanStatus('info', 'Initiating scan request...', true);
+        
+        // Make API request to start scanning
+        fetch('/api/rfid/scan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({
+                timeout: 15 // 15 seconds timeout
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                pollScanStatus(data.scan_id, data.timeout);
+            } else {
+                showScanStatus('danger', 'Failed to start scan: ' + (data.error || 'Unknown error'));
+                resetScanButton();
+            }
+        })
+        .catch(error => {
+            console.error('Scan initiation error:', error);
+            showScanStatus('danger', 'Network error: Unable to start scan');
+            resetScanButton();
+        });
+    }
+    
+    function pollScanStatus(scanId, timeout) {
+        scanText.textContent = 'Tap Card Now';
+        showScanStatus('warning', 'Please tap your RFID card on the scanner now...', true);
+        
+        let pollCount = 0;
+        const maxPolls = Math.ceil(timeout / 0.5); // Poll every 500ms
+        
+        scanInterval = setInterval(() => {
+            pollCount++;
+            
+            fetch(`/api/rfid/scan/${scanId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.status === 'completed' && data.card_uid) {
+                        // Success! Card was scanned
+                        cardUidInput.value = data.card_uid;
+                        showScanStatus('success', `Card scanned successfully! UID: ${data.card_uid}`);
+                        clearScanInterval();
+                        resetScanButton();
+                        
+                        // Add a subtle highlight to the input
+                        cardUidInput.classList.add('border-success');
+                        setTimeout(() => {
+                            cardUidInput.classList.remove('border-success');
+                        }, 3000);
+                        
+                    } else if (data.status === 'timeout') {
+                        showScanStatus('warning', 'Scan timed out. Please try again.');
+                        clearScanInterval();
+                        resetScanButton();
+                        
+                    } else if (data.status === 'error') {
+                        showScanStatus('danger', 'Scan error: ' + (data.error || 'Unknown error'));
+                        clearScanInterval();
+                        resetScanButton();
+                        
+                    } else if (data.status === 'waiting') {
+                        // Still waiting, update remaining time
+                        const remaining = Math.ceil(data.remaining_time || 0);
+                        showScanStatus('warning', `Waiting for card tap... (${remaining}s remaining)`, true);
+                    }
+                } else {
+                    showScanStatus('danger', 'Status check failed: ' + (data.error || 'Unknown error'));
+                    clearScanInterval();
+                    resetScanButton();
+                }
+            })
+            .catch(error => {
+                console.error('Status poll error:', error);
+                if (pollCount >= maxPolls) {
+                    showScanStatus('danger', 'Scan timeout - no response from scanner');
+                    clearScanInterval();
+                    resetScanButton();
+                }
+            });
+            
+            // Stop polling after max attempts
+            if (pollCount >= maxPolls) {
+                showScanStatus('warning', 'Scan timeout - please try again');
+                clearScanInterval();
+                resetScanButton();
+            }
+        }, 500); // Poll every 500ms
+    }
+    
+    function showScanStatus(type, message, spinner = false) {
+        const alertClass = `alert alert-${type}`;
+        const spinnerHtml = spinner ? '<i class="fas fa-spinner fa-spin me-2"></i>' : '';
+        
+        scanStatus.innerHTML = `
+            <div class="${alertClass} alert-dismissible fade show mb-0" role="alert">
+                ${spinnerHtml}${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        scanStatus.style.display = 'block';
+        
+        // Auto-hide success and info messages after 5 seconds
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => {
+                const alert = scanStatus.querySelector('.alert');
+                if (alert && alert.classList.contains(`alert-${type}`)) {
+                    scanStatus.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+    
+    function clearScanInterval() {
+        if (scanInterval) {
+            clearInterval(scanInterval);
+            scanInterval = null;
+        }
+        if (scanTimeout) {
+            clearTimeout(scanTimeout);
+            scanTimeout = null;
+        }
+    }
+    
+    function resetScanButton() {
+        scanBtn.disabled = false;
+        scanIcon.className = 'fas fa-wifi';
+        scanText.textContent = 'Scan Card';
+    }
+    
+    // Clean up intervals if user navigates away
+    window.addEventListener('beforeunload', clearScanInterval);
 });
 </script>
 @endsection

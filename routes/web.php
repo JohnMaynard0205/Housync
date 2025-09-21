@@ -232,6 +232,9 @@ Route::get('/debug', function () {
 // ESP32 API Routes (with rate limiting for security)
 Route::middleware(['throttle:60,1'])->group(function () {
     Route::post('/api/rfid/verify', [RfidController::class, 'verifyAccess'])->name('api.rfid.verify');
+    Route::post('/api/rfid/scan', [RfidController::class, 'scanCard'])->name('api.rfid.scan');
+    Route::get('/api/rfid/scan/{scanId}/status', [RfidController::class, 'scanStatus'])->name('api.rfid.scan-status');
+    Route::post('/api/rfid/scan/update', [RfidController::class, 'updateScanStatus'])->name('api.rfid.scan-update');
 });
 
 // Authentication routes

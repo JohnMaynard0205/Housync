@@ -267,4 +267,124 @@ class RfidController extends Controller
         
         return response()->json($result);
     }
+    
+    /**
+     * API endpoint to trigger card scanning and return UID
+     */
+    public function scanCard(Request $request)
+    {
+        // This endpoint will be used to communicate with ESP32 bridge
+        // to trigger a card scan and return the UID
+        
+        $timeout = $request->input('timeout', 10); // Default 10 seconds timeout
+        
+        try {
+            // Create a temporary file to store the scanned card UID
+            $tempFile = storage_path('app/temp_scan_' . uniqid() . '.json');
+            
+            // Store the scan request with timestamp
+            $scanRequest = [
+                'requested_at' => now()->toISOString(),
+                'timeout' => $timeout,
+                'status' => 'waiting',
+                'card_uid' => null,
+                'error' => null
+            ];
+            
+            file_put_contents($tempFile, json_encode($scanRequest));
+            
+            // Return the temporary file identifier for polling
+            $scanId = basename($tempFile, '.json');
+            
+            return response()->json([
+                'success' => true,
+                'scan_id' => $scanId,
+                'message' => 'Scan request initiated. Please tap your RFID card now.',
+                'timeout' => $timeout,
+                'poll_url' => route('api.rfid.scan-status', ['scanId' => $scanId])
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to initiate scan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Check the status of a card scan request
+     */
+    public function scanStatus($scanId)
+    {
+        $tempFile = storage_path('app/' . $scanId . '.json');
+        
+        if (!file_exists($tempFile)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid scan ID or scan expired'
+            ], 404);
+        }
+        
+        $scanData = json_decode(file_get_contents($tempFile), true);
+        $requestedAt = \Carbon\Carbon::parse($scanData['requested_at']);
+        
+        // Check if scan has timed out
+        if ($requestedAt->addSeconds($scanData['timeout'])->isPast()) {
+            unlink($tempFile); // Clean up
+            return response()->json([
+                'success' => false,
+                'status' => 'timeout',
+                'error' => 'Scan request timed out'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'status' => $scanData['status'],
+            'card_uid' => $scanData['card_uid'],
+            'error' => $scanData['error'],
+            'remaining_time' => max(0, $requestedAt->addSeconds($scanData['timeout'])->diffInSeconds(now()))
+        ]);
+    }
+    
+    /**
+     * Update scan status (called by ESP32 bridge)
+     */
+    public function updateScanStatus(Request $request)
+    {
+        $scanId = $request->input('scan_id');
+        $cardUid = $request->input('card_uid');
+        $error = $request->input('error');
+        
+        $tempFile = storage_path('app/' . $scanId . '.json');
+        
+        if (!file_exists($tempFile)) {
+            return response()->json(['error' => 'Invalid scan ID'], 404);
+        }
+        
+        $scanData = json_decode(file_get_contents($tempFile), true);
+        
+        if ($cardUid) {
+            $scanData['status'] = 'completed';
+            $scanData['card_uid'] = strtoupper($cardUid);
+        } else if ($error) {
+            $scanData['status'] = 'error';
+            $scanData['error'] = $error;
+        }
+        
+        $scanData['completed_at'] = now()->toISOString();
+        
+        file_put_contents($tempFile, json_encode($scanData));
+        
+        // Clean up file after 60 seconds
+        dispatch(function() use ($tempFile) {
+            sleep(60);
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        })->delay(now()->addMinutes(1));
+        
+        return response()->json(['success' => true]);
+    }
 }
