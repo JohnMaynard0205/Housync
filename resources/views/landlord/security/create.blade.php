@@ -62,21 +62,23 @@
                                        id="card_uid" 
                                        name="card_uid" 
                                        value="{{ old('card_uid') }}"
-                                       placeholder="e.g., A1B2C3D4"
+                                       placeholder="Click 'Scan RFID Card' to get UID"
                                        style="font-family: monospace;"
+                                       readonly
                                        required>
                                 <button type="button" 
-                                        class="btn btn-outline-primary" 
-                                        id="scan-card-btn"
-                                        title="Scan RFID card to get UID automatically">
-                                    <i class="fas fa-wifi" id="scan-icon"></i>
-                                    <span id="scan-text">Scan Card</span>
+                                        class="btn btn-primary" 
+                                        id="open-scan-modal-btn"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#scanCardModal"
+                                        title="Scan RFID card to get UID">
+                                    <i class="fas fa-qrcode"></i>
+                                    <span>Scan RFID Card</span>
                                 </button>
                             </div>
                             <div class="form-text">
-                                Enter the unique identifier from the RFID card manually, or click "Scan Card" to read it automatically.
+                                Click "Scan RFID Card" to open the scanner and automatically detect your card's UID.
                             </div>
-                            <div id="scan-status" class="mt-2" style="display: none;"></div>
                             @error('card_uid')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -201,19 +203,19 @@
                         <div class="step">
                             <div class="step-number">1</div>
                             <div class="step-content">
-                                <strong>Scan Button:</strong> Click the "Scan Card" button above and tap your RFID card on the scanner to automatically get the UID.
+                                <strong>Scan RFID Card:</strong> Click the "Scan RFID Card" button to open the scanner modal.
                             </div>
                         </div>
                         <div class="step">
                             <div class="step-number">2</div>
                             <div class="step-content">
-                                <strong>Physical Card:</strong> Check if the UID is printed on the RFID card itself.
+                                <strong>Start Scanning:</strong> Click "Start Scanning" in the modal and tap your RFID card on the scanner.
                             </div>
                         </div>
                         <div class="step">
                             <div class="step-number">3</div>
                             <div class="step-content">
-                                <strong>Check Access Logs:</strong> If the card has been scanned before, check the access logs for unregistered card attempts.
+                                <strong>Use UID:</strong> Once detected, click "Use This UID" to automatically fill the form field.
                             </div>
                         </div>
                     </div>
@@ -247,6 +249,57 @@
                         </li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RFID Card Scanning Modal -->
+<div class="modal fade" id="scanCardModal" tabindex="-1" aria-labelledby="scanCardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scanCardModalLabel">
+                    <i class="fas fa-qrcode me-2"></i>Scan RFID Card
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="scan-animation" class="mb-4">
+                    <div class="scan-icon-container">
+                        <i class="fas fa-wifi scan-icon" id="modal-scan-icon"></i>
+                    </div>
+                </div>
+                
+                <h6 id="scan-instruction" class="mb-3">Click "Start Scanning" to begin</h6>
+                
+                <div id="scan-result" class="alert alert-success" style="display: none;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Card Detected!</strong><br>
+                    <span class="card-uid-display" id="detected-uid"></span>
+                </div>
+                
+                <div id="scan-error" class="alert alert-danger" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="error-message"></span>
+                </div>
+                
+                <div id="scan-progress" class="progress mb-3" style="display: none;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: 0%" 
+                         id="scan-progress-bar">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="start-scan-btn">
+                    <i class="fas fa-play me-2"></i>Start Scanning
+                </button>
+                <button type="button" class="btn btn-success" id="use-scanned-uid-btn" style="display: none;">
+                    <i class="fas fa-check me-2"></i>Use This UID
+                </button>
             </div>
         </div>
     </div>
@@ -299,6 +352,69 @@
         box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         border: 1px solid rgba(0, 0, 0, 0.125);
     }
+    
+    /* RFID Scan Modal Styles */
+    .scan-icon-container {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    .scan-icon {
+        font-size: 2rem;
+        color: white;
+        transition: transform 0.3s ease;
+    }
+    
+    .scan-icon.scanning {
+        animation: pulse-scan 1.5s infinite;
+    }
+    
+    @keyframes pulse-scan {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .card-uid-display {
+        font-family: 'Courier New', monospace;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #155724;
+        background: rgba(212, 237, 218, 0.5);
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+    
+    #scanCardModal .modal-content {
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    }
+    
+    #scanCardModal .modal-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 1rem 1rem 0 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .progress {
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 0.5rem;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, #007bff, #0056b3);
+        border-radius: 0.5rem;
+    }
 </style>
 @endsection
 
@@ -329,28 +445,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial filter
     filterTenants();
     
-    // RFID Card Scanning functionality
-    const scanBtn = document.getElementById('scan-card-btn');
-    const scanIcon = document.getElementById('scan-icon');
-    const scanText = document.getElementById('scan-text');
-    const scanStatus = document.getElementById('scan-status');
+    // RFID Card Scanning Modal functionality
     const cardUidInput = document.getElementById('card_uid');
+    const startScanBtn = document.getElementById('start-scan-btn');
+    const useScannedUidBtn = document.getElementById('use-scanned-uid-btn');
+    const modalScanIcon = document.getElementById('modal-scan-icon');
+    const scanInstruction = document.getElementById('scan-instruction');
+    const scanResult = document.getElementById('scan-result');
+    const scanError = document.getElementById('scan-error');
+    const scanProgress = document.getElementById('scan-progress');
+    const scanProgressBar = document.getElementById('scan-progress-bar');
+    const detectedUid = document.getElementById('detected-uid');
+    const errorMessage = document.getElementById('error-message');
     
     let scanInterval = null;
-    let scanTimeout = null;
+    let currentScannedUid = null;
     
-    scanBtn.addEventListener('click', function() {
-        startCardScan();
+    // Start scan button click handler
+    startScanBtn.addEventListener('click', function() {
+        startModalScan();
     });
     
-    function startCardScan() {
-        // Disable the button and show loading state
-        scanBtn.disabled = true;
-        scanIcon.className = 'fas fa-spinner fa-spin';
-        scanText.textContent = 'Initiating...';
+    // Use scanned UID button click handler
+    useScannedUidBtn.addEventListener('click', function() {
+        if (currentScannedUid) {
+            cardUidInput.value = currentScannedUid;
+            cardUidInput.classList.add('border-success');
+            setTimeout(() => {
+                cardUidInput.classList.remove('border-success');
+            }, 3000);
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('scanCardModal'));
+            modal.hide();
+        }
+    });
+    
+    // Reset modal when it's closed
+    document.getElementById('scanCardModal').addEventListener('hidden.bs.modal', function() {
+        resetModal();
+    });
+    
+    function startModalScan() {
+        // Reset modal state
+        resetModal();
         
-        // Show status
-        showScanStatus('info', 'Initiating scan request...', true);
+        // Update UI to scanning state
+        startScanBtn.style.display = 'none';
+        modalScanIcon.className = 'fas fa-spinner fa-spin scan-icon scanning';
+        scanInstruction.textContent = 'Initiating scan request...';
+        scanProgress.style.display = 'block';
         
         // Make API request to start scanning
         fetch('/api/rfid/scan', {
@@ -366,22 +510,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                pollScanStatus(data.scan_id, data.timeout);
+                pollModalScanStatus(data.scan_id, data.timeout);
             } else {
-                showScanStatus('danger', 'Failed to start scan: ' + (data.error || 'Unknown error'));
-                resetScanButton();
+                showModalError('Failed to start scan: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Scan initiation error:', error);
-            showScanStatus('danger', 'Network error: Unable to start scan');
-            resetScanButton();
+            showModalError('Network error: Unable to start scan');
         });
     }
     
-    function pollScanStatus(scanId, timeout) {
-        scanText.textContent = 'Tap Card Now';
-        showScanStatus('warning', 'Please tap your RFID card on the scanner now...', true);
+    function pollModalScanStatus(scanId, timeout) {
+        modalScanIcon.className = 'fas fa-wifi scan-icon scanning';
+        scanInstruction.textContent = 'Please tap your RFID card on the scanner now...';
         
         let pollCount = 0;
         const maxPolls = Math.ceil(timeout / 0.5); // Poll every 500ms
@@ -389,104 +531,104 @@ document.addEventListener('DOMContentLoaded', function() {
         scanInterval = setInterval(() => {
             pollCount++;
             
+            // Update progress bar
+            const progress = (pollCount / maxPolls) * 100;
+            scanProgressBar.style.width = progress + '%';
+            
             fetch(`/api/rfid/scan/${scanId}/status`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     if (data.status === 'completed' && data.card_uid) {
                         // Success! Card was scanned
-                        cardUidInput.value = data.card_uid;
-                        showScanStatus('success', `Card scanned successfully! UID: ${data.card_uid}`);
-                        clearScanInterval();
-                        resetScanButton();
-                        
-                        // Add a subtle highlight to the input
-                        cardUidInput.classList.add('border-success');
-                        setTimeout(() => {
-                            cardUidInput.classList.remove('border-success');
-                        }, 3000);
+                        showModalSuccess(data.card_uid);
+                        clearModalScanInterval();
                         
                     } else if (data.status === 'timeout') {
-                        showScanStatus('warning', 'Scan timed out. Please try again.');
-                        clearScanInterval();
-                        resetScanButton();
+                        showModalError('Scan timed out. Please try again.');
+                        clearModalScanInterval();
                         
                     } else if (data.status === 'error') {
-                        showScanStatus('danger', 'Scan error: ' + (data.error || 'Unknown error'));
-                        clearScanInterval();
-                        resetScanButton();
+                        showModalError('Scan error: ' + (data.error || 'Unknown error'));
+                        clearModalScanInterval();
                         
                     } else if (data.status === 'waiting') {
                         // Still waiting, update remaining time
                         const remaining = Math.ceil(data.remaining_time || 0);
-                        showScanStatus('warning', `Waiting for card tap... (${remaining}s remaining)`, true);
+                        scanInstruction.textContent = `Please tap your RFID card now... (${remaining}s remaining)`;
                     }
                 } else {
-                    showScanStatus('danger', 'Status check failed: ' + (data.error || 'Unknown error'));
-                    clearScanInterval();
-                    resetScanButton();
+                    showModalError('Status check failed: ' + (data.error || 'Unknown error'));
+                    clearModalScanInterval();
                 }
             })
             .catch(error => {
                 console.error('Status poll error:', error);
                 if (pollCount >= maxPolls) {
-                    showScanStatus('danger', 'Scan timeout - no response from scanner');
-                    clearScanInterval();
-                    resetScanButton();
+                    showModalError('Scan timeout - no response from scanner');
+                    clearModalScanInterval();
                 }
             });
             
             // Stop polling after max attempts
             if (pollCount >= maxPolls) {
-                showScanStatus('warning', 'Scan timeout - please try again');
-                clearScanInterval();
-                resetScanButton();
+                showModalError('Scan timeout - please try again');
+                clearModalScanInterval();
             }
         }, 500); // Poll every 500ms
     }
     
-    function showScanStatus(type, message, spinner = false) {
-        const alertClass = `alert alert-${type}`;
-        const spinnerHtml = spinner ? '<i class="fas fa-spinner fa-spin me-2"></i>' : '';
+    function showModalSuccess(cardUid) {
+        currentScannedUid = cardUid;
         
-        scanStatus.innerHTML = `
-            <div class="${alertClass} alert-dismissible fade show mb-0" role="alert">
-                ${spinnerHtml}${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        scanStatus.style.display = 'block';
-        
-        // Auto-hide success and info messages after 5 seconds
-        if (type === 'success' || type === 'info') {
-            setTimeout(() => {
-                const alert = scanStatus.querySelector('.alert');
-                if (alert && alert.classList.contains(`alert-${type}`)) {
-                    scanStatus.style.display = 'none';
-                }
-            }, 5000);
-        }
+        // Update UI
+        modalScanIcon.className = 'fas fa-check-circle scan-icon';
+        scanInstruction.textContent = 'Card successfully detected!';
+        scanProgress.style.display = 'none';
+        scanResult.style.display = 'block';
+        detectedUid.textContent = cardUid;
+        useScannedUidBtn.style.display = 'inline-block';
     }
     
-    function clearScanInterval() {
+    function showModalError(message) {
+        // Update UI
+        modalScanIcon.className = 'fas fa-exclamation-triangle scan-icon';
+        scanInstruction.textContent = 'Scan failed';
+        scanProgress.style.display = 'none';
+        scanError.style.display = 'block';
+        errorMessage.textContent = message;
+        startScanBtn.style.display = 'inline-block';
+        startScanBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Try Again';
+    }
+    
+    function resetModal() {
+        // Clear intervals
+        clearModalScanInterval();
+        
+        // Reset UI elements
+        modalScanIcon.className = 'fas fa-wifi scan-icon';
+        scanInstruction.textContent = 'Click "Start Scanning" to begin';
+        scanResult.style.display = 'none';
+        scanError.style.display = 'none';
+        scanProgress.style.display = 'none';
+        scanProgressBar.style.width = '0%';
+        startScanBtn.style.display = 'inline-block';
+        startScanBtn.innerHTML = '<i class="fas fa-play me-2"></i>Start Scanning';
+        useScannedUidBtn.style.display = 'none';
+        
+        // Clear variables
+        currentScannedUid = null;
+    }
+    
+    function clearModalScanInterval() {
         if (scanInterval) {
             clearInterval(scanInterval);
             scanInterval = null;
         }
-        if (scanTimeout) {
-            clearTimeout(scanTimeout);
-            scanTimeout = null;
-        }
-    }
-    
-    function resetScanButton() {
-        scanBtn.disabled = false;
-        scanIcon.className = 'fas fa-wifi';
-        scanText.textContent = 'Scan Card';
     }
     
     // Clean up intervals if user navigates away
-    window.addEventListener('beforeunload', clearScanInterval);
+    window.addEventListener('beforeunload', clearModalScanInterval);
 });
 </script>
 @endsection
