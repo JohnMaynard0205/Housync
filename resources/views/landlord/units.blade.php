@@ -785,9 +785,226 @@
 
     <script>
         function editUnit(unitId) {
-            // Implement edit unit functionality
-            alert('Edit unit: ' + unitId + '\nThis would open the edit unit form.');
+            // Show the edit modal
+            const modal = new bootstrap.Modal(document.getElementById('editUnitModal'));
+            const modalTitle = document.getElementById('editUnitModalLabel');
+            const modalContent = document.getElementById('editUnitContent');
+            const saveBtn = document.getElementById('saveUnitBtn');
+            const form = document.getElementById('editUnitForm');
+            
+            // Reset modal content
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading unit details...</p>
+                </div>
+            `;
+            saveBtn.style.display = 'none';
+            
+            // Show modal
+            modal.show();
+            
+            // Fetch unit data
+            fetch(`/landlord/units/${unitId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    modalTitle.textContent = `Edit Unit ${data.unit_number}`;
+                    form.action = `/landlord/units/${unitId}`;
+                    
+                    // Generate form content
+                    modalContent.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_unit_number" class="form-label">Unit Number *</label>
+                                    <input type="text" class="form-control" id="edit_unit_number" name="unit_number" value="${data.unit_number}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_unit_type" class="form-label">Unit Type *</label>
+                                    <select class="form-control" id="edit_unit_type" name="unit_type" required>
+                                        <option value="studio" ${data.unit_type === 'studio' ? 'selected' : ''}>Studio</option>
+                                        <option value="one_bedroom" ${data.unit_type === 'one_bedroom' ? 'selected' : ''}>One Bedroom</option>
+                                        <option value="two_bedroom" ${data.unit_type === 'two_bedroom' ? 'selected' : ''}>Two Bedroom</option>
+                                        <option value="three_bedroom" ${data.unit_type === 'three_bedroom' ? 'selected' : ''}>Three Bedroom</option>
+                                        <option value="penthouse" ${data.unit_type === 'penthouse' ? 'selected' : ''}>Penthouse</option>
+                                        <option value="duplex" ${data.unit_type === 'duplex' ? 'selected' : ''}>Duplex</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_rent_amount" class="form-label">Monthly Rent (₱) *</label>
+                                    <input type="number" class="form-control" id="edit_rent_amount" name="rent_amount" value="${data.rent_amount}" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_status" class="form-label">Status *</label>
+                                    <select class="form-control" id="edit_status" name="status" required>
+                                        <option value="available" ${data.status === 'available' ? 'selected' : ''}>Available</option>
+                                        <option value="occupied" ${data.status === 'occupied' ? 'selected' : ''}>Occupied</option>
+                                        <option value="maintenance" ${data.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_leasing_type" class="form-label">Leasing Type *</label>
+                                    <select class="form-control" id="edit_leasing_type" name="leasing_type" required>
+                                        <option value="separate" ${data.leasing_type === 'separate' ? 'selected' : ''}>Separate (Utilities not included)</option>
+                                        <option value="inclusive" ${data.leasing_type === 'inclusive' ? 'selected' : ''}>Inclusive (Utilities included)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_floor_area" class="form-label">Floor Area (sq ft)</label>
+                                    <input type="number" class="form-control" id="edit_floor_area" name="floor_area" value="${data.floor_area || ''}" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_bedrooms" class="form-label">Bedrooms *</label>
+                                    <input type="number" class="form-control" id="edit_bedrooms" name="bedrooms" value="${data.bedrooms}" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_bathrooms" class="form-label">Bathrooms *</label>
+                                    <input type="number" class="form-control" id="edit_bathrooms" name="bathrooms" value="${data.bathrooms}" min="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="edit_is_furnished" name="is_furnished" value="1" ${data.is_furnished ? 'checked' : ''}>
+                                <label class="form-check-label" for="edit_is_furnished">
+                                    Furnished Unit
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Amenities</label>
+                            <div class="row">
+                                ${generateAmenitiesCheckboxes(data.amenities || [])}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="edit_description" name="description" rows="3">${data.description || ''}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit_notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="edit_notes" name="notes" rows="2">${data.notes || ''}</textarea>
+                        </div>
+                    `;
+                    
+                    // Show save button
+                    saveBtn.style.display = 'inline-block';
+                })
+                .catch(error => {
+                    console.error('Error loading unit details:', error);
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Error loading unit details. Please try again.
+                        </div>
+                    `;
+                });
         }
+        
+        function generateAmenitiesCheckboxes(amenities) {
+            const allAmenities = [
+                { value: 'aircon', label: 'Air Conditioning' },
+                { value: 'heating', label: 'Heating' },
+                { value: 'balcony', label: 'Balcony' },
+                { value: 'parking', label: 'Parking' },
+                { value: 'gym', label: 'Gym Access' },
+                { value: 'pool', label: 'Pool Access' },
+                { value: 'wifi', label: 'WiFi' },
+                { value: 'laundry', label: 'Laundry' }
+            ];
+            
+            return allAmenities.map(amenity => {
+                const checked = amenities.includes(amenity.value) ? 'checked' : '';
+                return `
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="edit_amenity_${amenity.value}" name="amenities[]" value="${amenity.value}" ${checked}>
+                            <label class="form-check-label" for="edit_amenity_${amenity.value}">
+                                ${amenity.label}
+                            </label>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Handle form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const editForm = document.getElementById('editUnitForm');
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const submitBtn = document.getElementById('saveUnitBtn');
+                    const originalText = submitBtn.innerHTML;
+                    
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Close modal
+                            bootstrap.Modal.getInstance(document.getElementById('editUnitModal')).hide();
+                            
+                            // Show success message and reload page
+                            alert('Unit updated successfully!');
+                            location.reload();
+                        } else {
+                            // Show error message
+                            alert(data.message || 'An error occurred while updating the unit.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating the unit.');
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    });
+                });
+            }
+        });
 
         function viewUnitDetails(unitId) {
             // Show the modal
@@ -1001,6 +1218,36 @@
                         <i class="fas fa-edit"></i> Edit Unit
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Unit Modal -->
+    <div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="editUnitModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUnitModalLabel">Edit Unit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editUnitForm" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body" id="editUnitContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading unit details...</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveUnitBtn" style="display: none;">
+                            <i class="fas fa-save"></i> Update Unit
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

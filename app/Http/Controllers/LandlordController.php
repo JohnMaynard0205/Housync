@@ -212,6 +212,80 @@ class LandlordController extends Controller
         return redirect()->route('landlord.units', $apartmentId)->with('success', 'Unit created successfully.');
     }
 
+    public function updateUnit(Request $request, $id)
+    {
+        $unit = Unit::whereHas('apartment', function($query) {
+            $query->where('landlord_id', Auth::id());
+        })->findOrFail($id);
+
+        try {
+            $request->validate([
+                'unit_number' => 'required|string|max:50|unique:units,unit_number,' . $unit->id,
+                'unit_type' => 'required|string|max:100',
+                'rent_amount' => 'required|numeric|min:0',
+                'status' => 'required|in:available,occupied,maintenance',
+                'leasing_type' => 'required|in:separate,inclusive',
+                'description' => 'nullable|string|max:1000',
+                'floor_area' => 'nullable|numeric|min:0',
+                'bedrooms' => 'required|integer|min:0',
+                'bathrooms' => 'required|integer|min:1',
+                'is_furnished' => 'nullable|boolean',
+                'amenities' => 'nullable|array',
+                'amenities.*' => 'string',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        }
+
+        try {
+            $unit->update([
+                'unit_number' => $request->unit_number,
+                'unit_type' => $request->unit_type,
+                'rent_amount' => $request->rent_amount,
+                'status' => $request->status,
+                'leasing_type' => $request->leasing_type,
+                'description' => $request->description,
+                'floor_area' => $request->floor_area,
+                'bedrooms' => $request->bedrooms,
+                'bathrooms' => $request->bathrooms,
+                'is_furnished' => $request->boolean('is_furnished'),
+                'amenities' => $request->amenities ?? [],
+                'notes' => $request->notes,
+            ]);
+
+            // Return JSON response for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Unit updated successfully.',
+                    'unit' => $unit->fresh()
+                ]);
+            }
+
+            return redirect()->route('landlord.units')->with('success', 'Unit updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error updating unit: ' . $e->getMessage());
+            
+            // Return JSON error response for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update unit. Please try again.'
+                ], 500);
+            }
+            
+            return back()->with('error', 'Failed to update unit. Please try again.');
+        }
+    }
+
     public function register()
     {
         return view('landlord.register');

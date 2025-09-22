@@ -61,6 +61,9 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::post('/apartments/{apartmentId}/units', [LandlordController::class, 'storeUnit'])->name('store-unit')->whereNumber('apartmentId');
     Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
     
+    // Unit Update Route (for AJAX modal)
+    Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
+    
     // Tenant Assignment Routes
     Route::get('/tenant-assignments', [TenantAssignmentController::class, 'index'])->name('tenant-assignments');
     Route::get('/units/{unitId}/assign-tenant', [TenantAssignmentController::class, 'create'])->name('assign-tenant');
