@@ -14,4 +14,4 @@ cmds = [
 #cmds = ['php artisan migrate --force']
 
 [start]
-cmd = 'php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan migrate --force --no-interaction || true && php -d display_errors=1 -d variables_order=EGPCS -S 0.0.0.0:$PORT -t public public/index.php'
+cmd = 'php artisan optimize:clear && php artisan migrate --force --no-interaction && php -d display_errors=1 -d variables_order=EGPCS -S 0.0.0.0:$PORT -t public public/index.php'
