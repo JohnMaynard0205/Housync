@@ -269,39 +269,36 @@ class RfidController extends Controller
     }
     
     /**
-     * API endpoint to trigger card scanning and return UID
+     * API endpoint to trigger card scanning and return UID directly
      */
     public function scanCard(Request $request)
     {
-        // This endpoint will be used to communicate with ESP32 bridge
-        // to trigger a card scan and return the UID
-        
-        $timeout = $request->input('timeout', 10); // Default 10 seconds timeout
+        $timeout = $request->input('timeout', 15); // Default 15 seconds timeout
         
         try {
-            // Create a temporary file to store the scanned card UID
-            $tempFile = storage_path('app/temp_scan_' . uniqid() . '.json');
+            // Create a unique scan request
+            $scanId = 'temp_scan_' . uniqid();
+            $tempFile = storage_path('app/' . $scanId . '.json');
             
-            // Store the scan request with timestamp
+            // Store the scan request
             $scanRequest = [
+                'scan_id' => $scanId,
                 'requested_at' => now()->toISOString(),
                 'timeout' => $timeout,
                 'status' => 'waiting',
                 'card_uid' => null,
-                'error' => null
+                'error' => null,
+                'direct_mode' => true // Flag for direct Card UID extraction
             ];
             
             file_put_contents($tempFile, json_encode($scanRequest));
             
-            // Return the temporary file identifier for polling
-            $scanId = basename($tempFile, '.json');
-            
             return response()->json([
                 'success' => true,
                 'scan_id' => $scanId,
-                'message' => 'Scan request initiated. Please tap your RFID card now.',
+                'message' => 'Ready to scan. Please tap your RFID card now.',
                 'timeout' => $timeout,
-                'poll_url' => route('api.rfid.scan-status', ['scanId' => $scanId])
+                'direct_mode' => true
             ]);
             
         } catch (\Exception $e) {
@@ -311,6 +308,333 @@ class RfidController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * API endpoint for receiving RFID data from ESP32Reader.php
+     */
+    public function scanCardDirect(Request $request)
+    {
+        try {
+            $cardUID = strtoupper($request->input('cardUID'));
+            $timestamp = $request->input('timestamp');
+            $readerLocation = $request->input('reader_location', 'main_entrance');
+            $deviceId = $request->input('device_id', 'esp32_reader');
+            $scanType = $request->input('scan_type', 'access_attempt'); // 'access_attempt' or 'card_registration'
+            
+            if (!$cardUID) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Card UID is required'
+                ], 400);
+            }
+            
+            // Process the card
+            $rfidCard = RfidCard::where('card_uid', $cardUID)->first();
+            
+            $result = [
+                'success' => true,
+                'card_uid' => $cardUID,
+                'message' => 'Card UID received successfully!',
+                'timestamp' => $timestamp ?: now()->toISOString(),
+                'scan_type' => $scanType
+            ];
+            
+            if (!$rfidCard) {
+                // New card - not in database yet
+                $result['card_status'] = 'new_card';
+                $result['message'] = 'New card detected - ready for assignment';
+                
+                // Only log as access attempt if it's actually an access attempt
+                if ($scanType === 'access_attempt') {
+                    $result['access_granted'] = false;
+                    $result['denial_reason'] = 'card_not_found';
+                    
+                    // Log the access attempt
+                    AccessLog::create([
+                        'card_uid' => $cardUID,
+                        'rfid_card_id' => null,
+                        'tenant_assignment_id' => null,
+                        'apartment_id' => null,
+                        'access_result' => 'denied',
+                        'denial_reason' => 'card_not_found',
+                        'access_time' => now(),
+                        'reader_location' => $readerLocation,
+                        'raw_data' => $request->all()
+                    ]);
+                }
+            } else {
+                // Existing card - check access
+                $result['card_status'] = 'registered_card';
+                
+                if ($rfidCard->canGrantAccess()) {
+                    $result['access_granted'] = true;
+                    $result['tenant_name'] = $rfidCard->tenantAssignment->tenant->name;
+                    $result['message'] = 'Access granted';
+                } else {
+                    $result['access_granted'] = false;
+                    $result['denial_reason'] = $rfidCard->getAccessDenialReason();
+                    $result['message'] = 'Access denied: ' . $result['denial_reason'];
+                }
+                
+                // Always log for registered cards
+                AccessLog::create([
+                    'card_uid' => $cardUID,
+                    'rfid_card_id' => $rfidCard->id,
+                    'tenant_assignment_id' => $rfidCard->tenant_assignment_id,
+                    'apartment_id' => $rfidCard->apartment_id,
+                    'access_result' => $result['access_granted'] ? 'granted' : 'denied',
+                    'denial_reason' => $result['denial_reason'] ?? null,
+                    'access_time' => now(),
+                    'reader_location' => $readerLocation,
+                    'raw_data' => $request->all()
+                ]);
+            }
+            
+            return response()->json($result);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Processing failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Test endpoint for ESP32Reader.php connection
+     */
+    public function testConnection(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Laravel API is responding',
+            'timestamp' => now()->toISOString(),
+            'endpoint' => '/api/rfid/scan/direct'
+        ]);
+    }
+
+    /**
+     * Get the latest Card UID from ESP32Reader.php
+     */
+    public function getLatestCardUID(Request $request)
+    {
+        try {
+            $latestCardFile = base_path('storage/app/latest_card.json');
+            
+            if (!file_exists($latestCardFile)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No card has been scanned yet. Please tap a card on the ESP32 reader first.',
+                    'instructions' => 'Make sure ESP32Reader.php is running and tap an RFID card.'
+                ], 404);
+            }
+            
+            $latestCardData = json_decode(file_get_contents($latestCardFile), true);
+            
+            if (!$latestCardData || !isset($latestCardData['card_uid'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid card data found.'
+                ], 500);
+            }
+            
+            // Check if the card data is recent (within last 60 seconds)
+            $scannedAt = strtotime($latestCardData['scanned_at']);
+            $age = time() - $scannedAt;
+            
+            if ($age > 60) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Last scanned card is too old. Please tap a new card on the ESP32 reader.',
+                    'last_scan' => $latestCardData['scanned_at'],
+                    'age_seconds' => $age
+                ], 410);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'card_uid' => $latestCardData['card_uid'],
+                'message' => 'Latest Card UID retrieved successfully',
+                'scanned_at' => $latestCardData['scanned_at'],
+                'age_seconds' => $age
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get latest Card UID: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Simple Card UID generator for testing
+     */
+    public function generateCardUID(Request $request)
+    {
+        try {
+            // Generate a random 8-character hex UID for testing
+            $cardUID = strtoupper(substr(md5(uniqid()), 0, 8));
+            
+            return response()->json([
+                'success' => true,
+                'card_uid' => $cardUID,
+                'message' => 'Card UID generated successfully (TEST MODE)',
+                'timestamp' => now()->toISOString(),
+                'test_mode' => true
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to generate Card UID: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Card UID directly from ESP32Reader.php
+     * This method communicates with ESP32Reader.php to get a Card UID on demand
+     */
+    public function getCardUIDFromESP32Reader(Request $request)
+    {
+        try {
+            $timeout = $request->input('timeout', 15);
+            $comPort = $request->input('com_port', 'COM7');
+            
+            // Create a scan request file that ESP32Reader.php will monitor
+            $scanId = 'web_scan_' . uniqid();
+            $requestFile = storage_path('app/scan_requests/' . $scanId . '.json');
+            
+            // Ensure directory exists
+            $requestDir = dirname($requestFile);
+            if (!is_dir($requestDir)) {
+                mkdir($requestDir, 0755, true);
+            }
+            
+            // Create scan request
+            $scanRequest = [
+                'scan_id' => $scanId,
+                'type' => 'web_request',
+                'com_port' => $comPort,
+                'timeout' => $timeout,
+                'requested_at' => now()->toISOString(),
+                'status' => 'pending',
+                'card_uid' => null,
+                'error' => null
+            ];
+            
+            file_put_contents($requestFile, json_encode($scanRequest, JSON_PRETTY_PRINT));
+            
+            return response()->json([
+                'success' => true,
+                'scan_id' => $scanId,
+                'message' => 'Scan request created. ESP32Reader.php will process it.',
+                'timeout' => $timeout
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create scan request: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Check scan request status from ESP32Reader.php
+     */
+    public function checkScanRequestStatus($scanId)
+    {
+        try {
+            $requestFile = storage_path('app/scan_requests/' . $scanId . '.json');
+            
+            if (!file_exists($requestFile)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Scan request not found or expired'
+                ], 404);
+            }
+            
+            $scanData = json_decode(file_get_contents($requestFile), true);
+            
+            if (!$scanData) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid scan data'
+                ], 500);
+            }
+            
+            // Check if timed out
+            $requestedAt = \Carbon\Carbon::parse($scanData['requested_at']);
+            $timeout = $scanData['timeout'];
+            
+            if ($requestedAt->addSeconds($timeout)->isPast()) {
+                // Clean up expired file
+                unlink($requestFile);
+                return response()->json([
+                    'success' => false,
+                    'status' => 'timeout',
+                    'error' => 'Scan request timed out'
+                ]);
+            }
+            
+            // Calculate remaining time
+            $remaining = max(0, $requestedAt->addSeconds($timeout)->diffInSeconds(now()));
+            
+            return response()->json([
+                'success' => true,
+                'status' => $scanData['status'],
+                'card_uid' => $scanData['card_uid'],
+                'error' => $scanData['error'],
+                'remaining_time' => $remaining
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Status check failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Request immediate Card UID scan from ESP32Reader.php
+     */
+    public function requestCardScan(Request $request)
+    {
+        try {
+            // Create a scan request file that ESP32Reader.php will detect
+            $scanId = 'scan_request_' . uniqid();
+            $tempFile = storage_path('app/' . $scanId . '.json');
+            
+            $scanRequest = [
+                'scan_id' => $scanId,
+                'requested_at' => now()->toISOString(),
+                'timeout' => 15,
+                'status' => 'waiting',
+                'card_uid' => null,
+                'error' => null,
+                'request_type' => 'web_interface'
+            ];
+            
+            file_put_contents($tempFile, json_encode($scanRequest));
+            
+            return response()->json([
+                'success' => true,
+                'scan_id' => $scanId,
+                'message' => 'Scan request created. Please tap your RFID card now.',
+                'timeout' => 15
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create scan request: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
     
     /**
      * Check the status of a card scan request

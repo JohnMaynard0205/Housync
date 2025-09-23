@@ -111,7 +111,7 @@ void loop() {
 }
 
 void sendToSerial(String cardUID) {
-  // Create JSON payload for the bridge (based on your working code)
+  // Create JSON payload for the bridge
   StaticJsonDocument<200> doc;
   doc["cardUID"] = cardUID;
   doc["timestamp"] = String(millis());

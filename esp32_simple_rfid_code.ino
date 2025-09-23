@@ -115,6 +115,7 @@ void sendToSerial(String cardUID) {
   doc["timestamp"] = String(millis());
   doc["reader_location"] = "main_entrance";
   doc["device_id"] = "esp32_serial";
+  doc["scan_mode"] = manualScanMode ? "manual" : "automatic";
   
   String jsonPayload;
   serializeJson(doc, jsonPayload);
