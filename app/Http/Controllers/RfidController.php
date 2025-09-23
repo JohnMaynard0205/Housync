@@ -438,11 +438,12 @@ class RfidController extends Controller
                 ], 500);
             }
             
-            // Check if the card data is recent (within last 60 seconds)
+            // Check if the card data is recent (within last 10 minutes for better UX)
             $scannedAt = strtotime($latestCardData['scanned_at']);
             $age = time() - $scannedAt;
             
-            if ($age > 60) {
+            // Allow cards scanned within the last 10 minutes (600 seconds)
+            if ($age > 600) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Last scanned card is too old. Please tap a new card on the ESP32 reader.',
@@ -500,7 +501,7 @@ class RfidController extends Controller
     {
         try {
             $timeout = $request->input('timeout', 15);
-            $comPort = $request->input('com_port', 'COM7');
+            $comPort = $request->input('com_port', 'COM3');
             
             // Create a scan request file that ESP32Reader.php will monitor
             $scanId = 'web_scan_' . uniqid();

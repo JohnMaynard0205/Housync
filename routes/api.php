@@ -22,6 +22,9 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::post('/rfid/scan/direct', [RfidController::class, 'scanCardDirect'])->name('api.rfid.scan-direct');
     Route::get('/rfid/latest-uid', [RfidController::class, 'getLatestCardUID'])->name('api.rfid.latest-uid'); // NEW: Get latest UID from ESP32Reader.php
     Route::post('/rfid/generate-uid', [RfidController::class, 'generateCardUID'])->name('api.rfid.generate-uid'); // Fallback: Simple UID generator
+    // Web-triggered scanning (request + status polling)
+    Route::post('/rfid/scan/request', [RfidController::class, 'getCardUIDFromESP32Reader'])->name('api.rfid.scan.request');
+    Route::get('/rfid/scan/status/{scanId}', [RfidController::class, 'checkScanRequestStatus'])->name('api.rfid.scan.status');
     Route::post('/rfid/test', [RfidController::class, 'testConnection'])->name('api.rfid.test');
     Route::get('/system-info', function() {
         return response()->json([

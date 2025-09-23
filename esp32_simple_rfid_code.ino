@@ -12,10 +12,7 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 // Variables
 String lastCardUID = "";
 unsigned long lastReadTime = 0;
-const unsigned long READ_DELAY = 2000; // 2 seconds between reads
-
-// Simple manual scan support
-bool manualScanMode = false;
+const unsigned long READ_DELAY = 1500; // 1.5 seconds between reads (faster for automatic scanning)
 
 void setup() {
   Serial.begin(115200);
@@ -37,19 +34,15 @@ void setup() {
 }
 
 void loop() {
-  // Check for manual scan commands
+  // Check for commands (keeping PING for testing)
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     command.trim();
     
-    if (command == "SCAN_REQUEST") {
-      manualScanMode = true;
-      Serial.println("SCAN_REQUEST_ACTIVE");
-      Serial.println("Please tap your RFID card now...");
-    } else if (command == "PING") {
+    if (command == "PING") {
       Serial.println("PONG");
     } else if (command == "STATUS") {
-      Serial.println("STATUS: " + String(manualScanMode ? "WAITING_FOR_CARD" : "IDLE"));
+      Serial.println("STATUS: AUTOMATIC_SCANNING");
     }
   }
   
@@ -90,12 +83,6 @@ void loop() {
   // Send JSON data to serial bridge
   sendToSerial(cardUID);
   
-  // If this was a manual scan, reset the flag
-  if (manualScanMode) {
-    manualScanMode = false;
-    Serial.println("SCAN_COMPLETED");
-  }
-  
   // Update variables
   lastCardUID = cardUID;
   lastReadTime = currentTime;
@@ -115,7 +102,7 @@ void sendToSerial(String cardUID) {
   doc["timestamp"] = String(millis());
   doc["reader_location"] = "main_entrance";
   doc["device_id"] = "esp32_serial";
-  doc["scan_mode"] = manualScanMode ? "manual" : "automatic";
+  doc["scan_mode"] = "automatic";
   
   String jsonPayload;
   serializeJson(doc, jsonPayload);
