@@ -328,6 +328,21 @@ class RfidController extends Controller
                 ], 400);
             }
             
+            // Determine entry state (IN/OUT) for single-scanner toggle
+            // Rule: If last scan for this card was IN, next is OUT; otherwise IN
+            $lastLog = \App\Models\AccessLog::where('card_uid', $cardUID)
+                ->orderBy('access_time', 'desc')
+                ->first();
+            $lastEntryState = null;
+            if ($lastLog) {
+                // Try to read from explicit field first, then from raw_data JSON
+                $lastEntryState = $lastLog->entry_state ?? null;
+                if (!$lastEntryState && is_array($lastLog->raw_data ?? null)) {
+                    $lastEntryState = $lastLog->raw_data['entry_state'] ?? null;
+                }
+            }
+            $entryState = ($lastEntryState === 'in') ? 'out' : 'in';
+
             // Process the card
             $rfidCard = RfidCard::where('card_uid', $cardUID)->first();
             
@@ -336,7 +351,8 @@ class RfidController extends Controller
                 'card_uid' => $cardUID,
                 'message' => 'Card UID received successfully!',
                 'timestamp' => $timestamp ?: now()->toISOString(),
-                'scan_type' => $scanType
+                'scan_type' => $scanType,
+                'entry_state' => $entryState
             ];
             
             if (!$rfidCard) {
@@ -359,7 +375,10 @@ class RfidController extends Controller
                         'denial_reason' => 'card_not_found',
                         'access_time' => now(),
                         'reader_location' => $readerLocation,
-                        'raw_data' => $request->all()
+                        'raw_data' => array_merge($request->all(), [
+                            'entry_state' => $entryState,
+                            'device_id' => $deviceId
+                        ])
                     ]);
                 }
             } else {
@@ -369,7 +388,7 @@ class RfidController extends Controller
                 if ($rfidCard->canGrantAccess()) {
                     $result['access_granted'] = true;
                     $result['tenant_name'] = $rfidCard->tenantAssignment->tenant->name;
-                    $result['message'] = 'Access granted';
+                    $result['message'] = 'Access granted (' . strtoupper($entryState) . ')';
                 } else {
                     $result['access_granted'] = false;
                     $result['denial_reason'] = $rfidCard->getAccessDenialReason();
@@ -386,7 +405,10 @@ class RfidController extends Controller
                     'denial_reason' => $result['denial_reason'] ?? null,
                     'access_time' => now(),
                     'reader_location' => $readerLocation,
-                    'raw_data' => $request->all()
+                    'raw_data' => array_merge($request->all(), [
+                        'entry_state' => $entryState,
+                        'device_id' => $deviceId
+                    ])
                 ]);
             }
             
