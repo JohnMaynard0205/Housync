@@ -15,22 +15,9 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: url('/images/login-background.jpg') center center / cover no-repeat;
-            background-attachment: fixed;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
             overflow-x: hidden;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: -1;
         }
 
         .container {
