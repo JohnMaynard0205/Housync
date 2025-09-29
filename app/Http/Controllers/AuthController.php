@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use App\Models\TenantProfile;
 
 class AuthController extends Controller
 {
@@ -90,6 +91,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'role' => 'tenant',
             'status' => 'active',
+        ]);
+
+        // Create tenant profile
+        TenantProfile::create([
+            'user_id' => $user->id,
         ]);
 
         Auth::login($user);
