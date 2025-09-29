@@ -460,7 +460,7 @@
                 </div>
                 @endif
 
-                <form method="POST" action="{{ isset($apartment) ? route('landlord.store-unit', $apartment->id) : route('landlord.create-unit') }}">
+                <form method="POST" action="{{ isset($apartment) ? route('landlord.store-unit', $apartment->id) : route('landlord.create-unit') }}" enctype="multipart/form-data">
                     @csrf
                     
                     <!-- Basic Information -->
@@ -610,6 +610,21 @@
                             <div class="amenity-item">
                                 <input type="checkbox" id="amenity_laundry" name="amenities[]" value="laundry" {{ in_array('laundry', old('amenities', [])) ? 'checked' : '' }}>
                                 <label for="amenity_laundry">Laundry</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photos -->
+                    <div class="form-section">
+                        <h3 class="section-title">Photos</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Cover Image</label>
+                                <input type="file" name="cover_image" accept="image/*" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Gallery (up to 12)</label>
+                                <input type="file" name="gallery[]" accept="image/*" multiple class="form-control">
                             </div>
                         </div>
                     </div>

@@ -588,7 +588,7 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('landlord.store-apartment') }}" class="form-container">
+                <form method="POST" action="{{ route('landlord.store-apartment') }}" class="form-container" enctype="multipart/form-data">
                     @csrf
                     
                     <!-- Basic Information -->
@@ -747,6 +747,26 @@
                             @error('description')
                                 <div class="form-error">{{ $message }}</div>
                             @enderror
+                        </div>
+                    </div>
+
+                    <!-- Property Photos -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-image"></i>
+                            Photos
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Cover Image</label>
+                                <input type="file" name="cover_image" accept="image/*" class="form-control">
+                                <p class="form-help">JPEG/PNG up to 3MB</p>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Gallery (up to 8)</label>
+                                <input type="file" name="gallery[]" accept="image/*" multiple class="form-control">
+                                <p class="form-help">Add more photos to attract tenants</p>
+                            </div>
                         </div>
                     </div>
 

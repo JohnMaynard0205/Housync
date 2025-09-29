@@ -19,7 +19,11 @@
         .section-title { font-size:18px; font-weight:700; margin: 12px 0 16px; }
         .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px; }
         .card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04); }
-        .thumb { aspect-ratio: 4/3; background: #f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12px; }
+        .thumb { aspect-ratio: 4/3; background: #f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12px; overflow:hidden; }
+        .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+        .dots { position:absolute; right:8px; bottom:8px; display:flex; gap:6px; }
+        .dot { width:8px; height:8px; border-radius:999px; background:rgba(255,255,255,.6); }
+        .dot.active { background:#fff; }
         .card-body { padding:12px; }
         .title { font-weight:600; margin-bottom:4px; }
         .addr { color:#6b7280; font-size:12px; margin-bottom:8px; }
@@ -56,7 +60,26 @@
                     $starting = $available ? $units->min('rent_amount') : null;
                 @endphp
                 <div class="card">
-                    <div class="thumb">No image</div>
+                    @php
+                        $images = [];
+                        if (data_get($apt, 'cover_image')) {
+                            $images[] = asset('storage/'.data_get($apt, 'cover_image'));
+                        }
+                        foreach ((array) data_get($apt, 'gallery', []) as $g) { $images[] = asset('storage/'.$g); }
+                        // Fallback: try unit covers
+                        if (!$images) {
+                            foreach ($units as $u) {
+                                if (data_get($u, 'cover_image')) { $images[] = asset('storage/'.data_get($u,'cover_image')); break; }
+                            }
+                        }
+                    @endphp
+                    <div class="thumb" data-images='@json($images)'>
+                        @if(!empty($images))
+                            <img src="{{ $images[0] }}" alt="{{ data_get($apt,'name') }}">
+                        @else
+                            No image
+                        @endif
+                    </div>
                     <div class="card-body">
                         <div class="title">{{ data_get($apt, 'name') }}</div>
                         <div class="addr">{{ data_get($apt, 'address') }}</div>
@@ -74,6 +97,22 @@
             {{ $properties->links() }}
         </div>
     </div>
+
+    <script>
+        // Simple auto-rotating image carousel per card using data-images
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.thumb').forEach(function(th) {
+                const images = JSON.parse(th.getAttribute('data-images') || '[]');
+                if (!images || images.length <= 1) return;
+                const imgEl = th.querySelector('img');
+                let idx = 0;
+                setInterval(() => {
+                    idx = (idx + 1) % images.length;
+                    if (imgEl) imgEl.src = images[idx];
+                }, 3000);
+            });
+        });
+    </script>
 </body>
 </html>
 
