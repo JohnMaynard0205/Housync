@@ -181,7 +181,6 @@
                     
                     <div class="auth-footer">
                         <p>Already have an account? <a href="{{ route('login') }}">Sign in here</a></p>
-                        <p>Looking to rent? <a href="{{ route('register') }}">Register as Tenant</a></p>
                     </div>
                 </div>
             </div>

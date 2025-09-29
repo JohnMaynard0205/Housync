@@ -11,7 +11,8 @@ use Illuminate\Support\Str;
 class TenantAssignmentService
 {
     /**
-     * Assign a tenant to a unit and create their account
+     * Assign a tenant to a unit. Requires the tenant to already have an account.
+     * Removes auto-generation of tenant credentials.
      */
     public function assignTenantToUnit($unitId, $tenantData, $landlordId)
     {
@@ -22,20 +23,14 @@ class TenantAssignmentService
                 throw new \Exception('Unit is not available for assignment.');
             }
 
-            // Generate email and password
-            $email = $this->generateTenantEmail($tenantData['name']);
-            $password = $this->generatePassword();
-
-            // Create tenant user account
-            $tenant = User::create([
-                'name' => $tenantData['name'],
-                'email' => $email,
-                'password' => Hash::make($password),
-                'role' => 'tenant',
-                'status' => 'active',
-                'phone' => $tenantData['phone'] ?? null,
-                'address' => $tenantData['address'] ?? null,
-            ]);
+            // Find existing tenant by email
+            if (empty($tenantData['email'])) {
+                throw new \Exception('Tenant email is required. Ask the tenant to register first.');
+            }
+            $tenant = User::where('email', $tenantData['email'])->where('role', 'tenant')->first();
+            if (!$tenant) {
+                throw new \Exception('No tenant account found for this email. Please have the tenant register.');
+            }
 
             // Create tenant assignment
             $assignment = TenantAssignment::create([
@@ -48,7 +43,7 @@ class TenantAssignmentService
                 'security_deposit' => $tenantData['security_deposit'] ?? 0,
                 'status' => 'active',
                 'notes' => $tenantData['notes'] ?? null,
-                'generated_password' => $password, // Store the generated password temporarily
+                'generated_password' => null,
             ]);
 
             // Update unit status
@@ -61,10 +56,7 @@ class TenantAssignmentService
                 'success' => true,
                 'tenant' => $tenant,
                 'assignment' => $assignment,
-                'credentials' => [
-                    'email' => $email,
-                    'password' => $password,
-                ],
+                'credentials' => null,
             ];
 
         } catch (\Exception $e) {
@@ -75,30 +67,7 @@ class TenantAssignmentService
         }
     }
 
-    /**
-     * Generate a unique email for the tenant
-     */
-    private function generateTenantEmail($name)
-    {
-        $baseName = Str::slug($name);
-        $email = $baseName . '@housesync.tenant';
-        
-        $counter = 1;
-        while (User::where('email', $email)->exists()) {
-            $email = $baseName . $counter . '@housesync.tenant';
-            $counter++;
-        }
-        
-        return $email;
-    }
-
-    /**
-     * Generate a secure password
-     */
-    private function generatePassword()
-    {
-        return Str::random(8);
-    }
+    // Removed email/password generators; tenants self-register now.
 
     /**
      * Get tenant assignments for a landlord
