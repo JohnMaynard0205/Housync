@@ -37,6 +37,8 @@ Route::middleware(['role:super_admin'])->prefix('super-admin')->name('super-admi
     Route::get('/pending-landlords', [SuperAdminController::class, 'pendingLandlords'])->name('pending-landlords');
     Route::post('/approve-landlord/{id}', [SuperAdminController::class, 'approveLandlord'])->name('approve-landlord');
     Route::post('/reject-landlord/{id}', [SuperAdminController::class, 'rejectLandlord'])->name('reject-landlord');
+    Route::get('/landlords/{id}/documents', [SuperAdminController::class, 'reviewLandlordDocuments'])->name('landlord-docs');
+    Route::post('/landlord-documents/{docId}/verify', [SuperAdminController::class, 'verifyLandlordDocument'])->name('verify-landlord-document');
     Route::get('/users/create', [SuperAdminController::class, 'createUser'])->name('create-user');
     Route::post('/users', [SuperAdminController::class, 'storeUser'])->name('store-user');
     Route::get('/users/{id}/edit', [SuperAdminController::class, 'editUser'])->name('edit-user');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\LandlordProfile;
+use App\Models\LandlordDocument;
 use App\Models\Apartment;
 use App\Models\Unit;
 use Illuminate\Http\Request;
@@ -301,6 +302,11 @@ class LandlordController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:500',
             'business_info' => 'required|string|max:1000',
+            // Require at least one document, recommend specific types
+            'documents' => 'required|array|min:1',
+            'documents.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'document_types' => 'required|array|same_length:documents',
+            'document_types.*' => 'required|string|in:business_permit,mayors_permit,bir_certificate,barangay_clearance,lease_contract_sample,valid_id,other',
         ]);
 
         $landlord = User::create([
@@ -321,6 +327,24 @@ class LandlordController extends Controller
             'address' => $request->address,
             'business_info' => $request->business_info,
         ]);
+
+        // Store uploaded documents for review (pending verification)
+        foreach ($request->file('documents') as $index => $file) {
+            $docType = $request->document_types[$index] ?? 'other';
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('landlord-documents', $fileName, 'public');
+
+            LandlordDocument::create([
+                'landlord_id' => $landlord->id,
+                'document_type' => $docType,
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $filePath,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'uploaded_at' => now(),
+                'verification_status' => 'pending',
+            ]);
+        }
 
         return redirect()->route('landlord.pending')->with('success', 'Registration submitted successfully. Please wait for admin approval.');
     }

@@ -8,6 +8,7 @@ use App\Models\TenantProfile;
 use App\Models\StaffProfile;
 use App\Models\SuperAdminProfile;
 use App\Models\Apartment;
+use App\Models\LandlordDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -59,7 +60,7 @@ class SuperAdminController extends Controller
 
     public function pendingLandlords()
     {
-        $pendingLandlords = User::pendingLandlords()->with('approvedBy')->latest()->paginate(15);
+        $pendingLandlords = User::pendingLandlords()->with(['approvedBy', 'landlordDocuments'])->latest()->paginate(15);
         return view('super-admin.pending-landlords', compact('pendingLandlords'));
     }
 
@@ -74,6 +75,31 @@ class SuperAdminController extends Controller
         $landlord->approve(Auth::id());
 
         return back()->with('success', 'Landlord approved successfully.');
+    }
+
+    public function reviewLandlordDocuments($id)
+    {
+        $landlord = User::where('role', 'landlord')->findOrFail($id);
+        $documents = $landlord->landlordDocuments()->latest()->get();
+        return view('super-admin.review-landlord-docs', compact('landlord', 'documents'));
+    }
+
+    public function verifyLandlordDocument(Request $request, $docId)
+    {
+        $request->validate([
+            'status' => 'required|in:verified,rejected',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $doc = LandlordDocument::findOrFail($docId);
+        $doc->update([
+            'verification_status' => $request->status,
+            'verified_at' => now(),
+            'verified_by' => Auth::id(),
+            'verification_notes' => $request->notes,
+        ]);
+
+        return back()->with('success', 'Document updated.');
     }
 
     public function rejectLandlord(Request $request, $id)
