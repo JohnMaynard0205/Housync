@@ -48,15 +48,58 @@
     </div>
     <div class="container">
         <div class="section-title">Available properties</div>
+
+        <!-- Filters -->
+        <form method="GET" action="{{ route('explore') }}" style="margin:12px 0 20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:12px; align-items:end;">
+            <div>
+                <label style="display:block; font-size:12px; color:#6b7280; margin-bottom:4px;">City</label>
+                <input type="text" name="city" value="{{ request('city') }}" placeholder="e.g., Manila" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; color:#6b7280; margin-bottom:4px;">Min Price</label>
+                <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="0" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; color:#6b7280; margin-bottom:4px;">Max Price</label>
+                <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="20000" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; color:#6b7280; margin-bottom:4px;">Bedrooms</label>
+                <select name="bedrooms" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+                    <option value="">Any</option>
+                    <option value="0" {{ request('bedrooms')==='0' ? 'selected' : '' }}>Studio</option>
+                    <option value="1" {{ request('bedrooms')==='1' ? 'selected' : '' }}>1+</option>
+                    <option value="2" {{ request('bedrooms')==='2' ? 'selected' : '' }}>2+</option>
+                    <option value="3" {{ request('bedrooms')==='3' ? 'selected' : '' }}>3+</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="pill" style="width:100%; text-align:center;">Filter</button>
+            </div>
+        </form>
         <div class="grid">
             @forelse($properties as $apt)
                 @php
                     $units = collect(data_get($apt, 'units', []));
                     $available = $units->count();
                     $starting = $available ? $units->min('rent_amount') : null;
+                    $images = [];
+                    if (data_get($apt, 'cover_image')) $images[] = asset('storage/'.data_get($apt, 'cover_image'));
+                    foreach ((array) data_get($apt, 'gallery', []) as $g) { $images[] = asset('storage/'.$g); }
+                    if (!$images) {
+                        foreach ($units as $u) {
+                            if (data_get($u, 'cover_image')) { $images[] = asset('storage/'.data_get($u,'cover_image')); break; }
+                        }
+                    }
                 @endphp
                 <div class="card">
-                    <div class="thumb">No image</div>
+                    <div class="thumb">
+                        @if(!empty($images))
+                            <img src="{{ $images[0] }}" alt="{{ data_get($apt,'name') }}" style="width:100%; height:100%; object-fit:cover; display:block;">
+                        @else
+                            No image
+                        @endif
+                    </div>
                     <div class="card-body">
                         <div class="title">{{ data_get($apt, 'name') }}</div>
                         <div class="addr">{{ data_get($apt, 'address') }}</div>

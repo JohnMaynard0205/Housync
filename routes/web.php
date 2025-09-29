@@ -10,6 +10,7 @@ use App\Http\Controllers\TenantAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\RfidController;
 use App\Models\Apartment;
+use App\Models\Unit;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -25,9 +26,33 @@ Route::post('/register', [AuthController::class, 'register'])->name('register.po
 
 // Public Explore page (landing-like listings)
 Route::get('/explore', function () {
-    $properties = Apartment::with(['units' => function ($q) {
+    $query = Apartment::with(['units' => function ($q) {
         $q->where('status', 'available')->orderBy('rent_amount');
-    }])->latest()->paginate(12);
+    }])->latest();
+
+    // City filter (simple contains match on address)
+    if (request('city')) {
+        $city = request('city');
+        $query->where('address', 'like', "%{$city}%");
+    }
+
+    // Price + bedrooms via related units
+    $query->when(request('min_price') || request('max_price') || request('bedrooms') !== null, function ($q) {
+        $q->whereHas('units', function ($uq) {
+            $uq->where('status', 'available');
+            if (request('min_price') !== null && request('min_price') !== '') {
+                $uq->where('rent_amount', '>=', (float) request('min_price'));
+            }
+            if (request('max_price') !== null && request('max_price') !== '') {
+                $uq->where('rent_amount', '<=', (float) request('max_price'));
+            }
+            if (request('bedrooms') !== null && request('bedrooms') !== '') {
+                $uq->where('bedrooms', '>=', (int) request('bedrooms'));
+            }
+        });
+    });
+
+    $properties = $query->paginate(12)->withQueryString();
     return view('explore', compact('properties'));
 })->name('explore');
 
