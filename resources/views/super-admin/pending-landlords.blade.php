@@ -608,6 +608,9 @@
                                         </td>
                                         <td>
                                             <div class="btn-group">
+                                                <button class="btn btn-primary btn-sm" onclick="showDocumentsModal({{ $landlord->id }}, '{{ $landlord->name }}')">
+                                                    <i class="fas fa-file-alt"></i> View Docs
+                                                </button>
                                                 <form method="POST" action="{{ route('super-admin.approve-landlord', $landlord->id) }}" style="display: inline;">
                                                     @csrf
                                                     <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this landlord?')">
@@ -647,6 +650,22 @@
         </div>
     </div>
 
+    <!-- Documents Modal -->
+    <div id="documentsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Landlord Documents</h3>
+                <button type="button" class="close" onclick="closeDocumentsModal()">&times;</button>
+            </div>
+            <div id="documentsContent">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #3b82f6;"></i>
+                    <p style="margin-top: 1rem;">Loading documents...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Reject Modal -->
     <div id="rejectModal" class="modal">
         <div class="modal-content">
@@ -675,6 +694,52 @@
     </div>
 
     <script>
+        function showDocumentsModal(landlordId, landlordName) {
+            document.getElementById('documentsModal').style.display = 'block';
+            
+            // Show loading state
+            document.getElementById('documentsContent').innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #3b82f6;"></i>
+                    <p style="margin-top: 1rem;">Loading documents...</p>
+                </div>
+            `;
+            
+            // Fetch documents via AJAX
+            fetch(`/super-admin/landlords/${landlordId}/documents`)
+                .then(response => response.text())
+                .then(html => {
+                    // Extract the documents content from the response
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const documentsSection = doc.querySelector('.documents-section');
+                    
+                    if (documentsSection) {
+                        document.getElementById('documentsContent').innerHTML = documentsSection.outerHTML;
+                    } else {
+                        document.getElementById('documentsContent').innerHTML = `
+                            <div style="text-align: center; padding: 2rem;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
+                                <p style="margin-top: 1rem;">No documents found for this landlord.</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading documents:', error);
+                    document.getElementById('documentsContent').innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: #ef4444;"></i>
+                            <p style="margin-top: 1rem;">Error loading documents. Please try again.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function closeDocumentsModal() {
+            document.getElementById('documentsModal').style.display = 'none';
+        }
+
         function showRejectModal(landlordId, landlordName) {
             document.getElementById('rejectModal').style.display = 'block';
             document.getElementById('rejectForm').action = '/super-admin/reject-landlord/' + landlordId;
@@ -688,8 +753,13 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('rejectModal');
-            if (event.target == modal) {
+            const documentsModal = document.getElementById('documentsModal');
+            const rejectModal = document.getElementById('rejectModal');
+            
+            if (event.target == documentsModal) {
+                closeDocumentsModal();
+            }
+            if (event.target == rejectModal) {
                 closeRejectModal();
             }
         }
