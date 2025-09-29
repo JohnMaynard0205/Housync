@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LandlordProfile;
 use App\Models\Apartment;
 use App\Models\Unit;
 use Illuminate\Http\Request;
@@ -308,6 +309,14 @@ class LandlordController extends Controller
             'password' => Hash::make($request->password),
             'role' => 'landlord',
             'status' => 'pending',
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'business_info' => $request->business_info,
+        ]);
+
+        // Create landlord profile for role-specific data
+        LandlordProfile::create([
+            'user_id' => $landlord->id,
             'phone' => $request->phone,
             'address' => $request->address,
             'business_info' => $request->business_info,

@@ -94,6 +94,27 @@ class User extends Authenticatable
         return $this->hasMany(RfidCard::class, 'landlord_id');
     }
 
+    // Profiles
+    public function landlordProfile()
+    {
+        return $this->hasOne(LandlordProfile::class);
+    }
+
+    public function tenantProfile()
+    {
+        return $this->hasOne(TenantProfile::class);
+    }
+
+    public function staffProfile()
+    {
+        return $this->hasOne(StaffProfile::class);
+    }
+
+    public function superAdminProfile()
+    {
+        return $this->hasOne(SuperAdminProfile::class);
+    }
+
     // Tenant assignments
     public function tenantAssignments()
     {
