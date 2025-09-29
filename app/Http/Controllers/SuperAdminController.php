@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LandlordProfile;
+use App\Models\TenantProfile;
+use App\Models\StaffProfile;
+use App\Models\SuperAdminProfile;
 use App\Models\Apartment;
+use App\Models\LandlordDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -55,7 +60,7 @@ class SuperAdminController extends Controller
 
     public function pendingLandlords()
     {
-        $pendingLandlords = User::pendingLandlords()->with('approvedBy')->latest()->paginate(15);
+        $pendingLandlords = User::pendingLandlords()->with(['approvedBy', 'landlordDocuments'])->latest()->paginate(15);
         return view('super-admin.pending-landlords', compact('pendingLandlords'));
     }
 
@@ -70,6 +75,31 @@ class SuperAdminController extends Controller
         $landlord->approve(Auth::id());
 
         return back()->with('success', 'Landlord approved successfully.');
+    }
+
+    public function reviewLandlordDocuments($id)
+    {
+        $landlord = User::where('role', 'landlord')->findOrFail($id);
+        $documents = $landlord->landlordDocuments()->latest()->get();
+        return view('super-admin.review-landlord-docs', compact('landlord', 'documents'));
+    }
+
+    public function verifyLandlordDocument(Request $request, $docId)
+    {
+        $request->validate([
+            'status' => 'required|in:verified,rejected',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $doc = LandlordDocument::findOrFail($docId);
+        $doc->update([
+            'verification_status' => $request->status,
+            'verified_at' => now(),
+            'verified_by' => Auth::id(),
+            'verification_notes' => $request->notes,
+        ]);
+
+        return back()->with('success', 'Document updated.');
     }
 
     public function rejectLandlord(Request $request, $id)
@@ -117,8 +147,41 @@ class SuperAdminController extends Controller
             'status' => $request->role === 'landlord' ? 'pending' : 'active',
         ]);
 
-        if ($request->role === 'landlord' && $request->approve_immediately) {
-            $user->approve(Auth::id());
+        // Create role-specific profile
+        switch ($request->role) {
+            case 'landlord':
+                LandlordProfile::create([
+                    'user_id' => $user->id,
+                    'phone' => $request->phone,
+                    'address' => $request->address,
+                    'business_info' => $request->business_info,
+                ]);
+                if ($request->approve_immediately) {
+                    $user->approve(Auth::id());
+                }
+                break;
+            case 'tenant':
+                TenantProfile::create([
+                    'user_id' => $user->id,
+                    'phone' => $request->phone,
+                    'address' => $request->address,
+                ]);
+                break;
+            case 'staff':
+                StaffProfile::create([
+                    'user_id' => $user->id,
+                    'phone' => $request->phone,
+                    'address' => $request->address,
+                    'staff_type' => $request->staff_type,
+                ]);
+                break;
+            case 'super_admin':
+                SuperAdminProfile::create([
+                    'user_id' => $user->id,
+                    'phone' => $request->phone,
+                    'address' => $request->address,
+                ]);
+                break;
         }
 
         return redirect()->route('super-admin.users')->with('success', 'User created successfully.');

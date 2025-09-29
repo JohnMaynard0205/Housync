@@ -134,7 +134,7 @@ return [
     |
     */
 
-    'firebase_sync_enabled' => env('FIREBASE_SYNC_ENABLED', true),
+    'firebase_sync_enabled' => env('FIREBASE_SYNC_ENABLED', false),
     'firebase_sync_in_tests' => env('FIREBASE_SYNC_IN_TESTS', false),
 
 ];

@@ -222,14 +222,7 @@
                             <label for="notes" class="form-label">Additional Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
                         </div>
-                        <div class="alert alert-info mt-3">
-                            <h6 class="alert-heading">Workflow</h6>
-                            <ul class="mb-0">
-                                <li>A new tenant account will be automatically created</li>
-                                <li>Login credentials will be generated and shown after assignment</li>
-                                <li>The tenant will receive access to their dashboard</li>
-                            </ul>
-                        </div>
+                        
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -901,9 +894,8 @@ if (assignTenantForm && unitSelect && assignTenantSubmit) {
         console.log('Unit selected:', this.value, 'isReassigning:', window.isReassigning); // Debug log
         if (this.value) {
             if (!window.isReassigning) {
-                const baseAction = "/landlord/units/";
-                const fullAction = baseAction + this.value + "/assign-tenant";
-                assignTenantForm.action = fullAction;
+                const fullAction = `/landlord/units/${this.value}/assign-tenant`;
+                assignTenantForm.action = fullAction; // still posts to POST assign route
                 console.log('Form action set to:', fullAction); // Debug log
             } else {
                 console.log('Reassigning mode - keeping existing form action:', assignTenantForm.action); // Debug log

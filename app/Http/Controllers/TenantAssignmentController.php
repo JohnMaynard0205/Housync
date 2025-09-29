@@ -33,31 +33,12 @@ class TenantAssignmentController extends Controller
 
         return view('landlord.tenant-assignments', compact('assignments', 'stats', 'filters'));
     }
-
-    /**
-     * Show form to assign tenant to unit
-     */
-    public function create($unitId)
-    {
-        $unit = Unit::whereHas('apartment', function($query) {
-            $query->where('landlord_id', Auth::id());
-        })->with('apartment')->findOrFail($unitId);
-
-        if ($unit->status !== 'available') {
-            return back()->with('error', 'This unit is not available for assignment.');
-        }
-
-        return view('landlord.assign-tenant', compact('unit'));
-    }
-
-    /**
-     * Assign tenant to unit
-     */
+    
     public function store(Request $request, $unitId)
     {
         // Enhanced validation rules
         $request->validate([
-            'name' => 'required|string|max:255|regex:/^[a-zA-Z\s\-\'\.]+$/',
+            'email' => 'required|email',
             'phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'address' => 'nullable|string|max:500',
             'lease_start_date' => 'required|date|after_or_equal:today',
@@ -66,7 +47,6 @@ class TenantAssignmentController extends Controller
             'security_deposit' => 'nullable|numeric|min:0|max:50000',
             'notes' => 'nullable|string|max:1000',
         ], [
-            'name.regex' => 'Name can only contain letters, spaces, hyphens, apostrophes, and periods',
             'phone.regex' => 'Please enter a valid phone number',
             'lease_end_date.before' => 'Lease cannot exceed 2 years',
             'rent_amount.min' => 'Rent must be at least ₱1,000',
@@ -89,8 +69,7 @@ class TenantAssignmentController extends Controller
                 Log::info('Tenant assigned successfully', [
                     'landlord_id' => Auth::id(),
                     'unit_id' => $unitId,
-                    'tenant_name' => $request->name,
-                    'tenant_email' => $result['credentials']['email'] ?? 'N/A',
+                    'tenant_email' => $request->email,
                     'lease_start_date' => $request->lease_start_date,
                     'lease_end_date' => $request->lease_end_date,
                     'rent_amount' => $request->rent_amount,
@@ -98,8 +77,7 @@ class TenantAssignmentController extends Controller
                 ]);
 
                 return redirect()->route('landlord.tenant-assignments')
-                    ->with('success', 'Tenant assigned successfully!')
-                    ->with('credentials', $result['credentials']);
+                    ->with('success', 'Tenant assigned successfully!');
             } else {
                 return back()->withInput()->with('error', $result['message']);
             }

@@ -77,7 +77,7 @@
                         </div>
                     @endif
 
-                    <form class="landlord-form" method="POST" action="{{ route('landlord.register.store') }}">
+                    <form class="landlord-form" method="POST" action="{{ route('landlord.register.store') }}" enctype="multipart/form-data">
                         @csrf
                         
                         <div class="form-section-title">
@@ -118,6 +118,32 @@
                         <div class="form-section-title">
                             <h3><i class="fas fa-lock"></i> Account Security</h3>
                         </div>
+                        <div class="form-section-title">
+                            <h3><i class="fas fa-file-upload"></i> Business Documents (Required)</h3>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Upload Required Documents</label>
+                            <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px;">Accepted: JPG, JPEG, PNG, PDF. Max 5MB each.</p>
+                            <div id="doc-list">
+                                <div class="doc-row" style="display:flex; gap:12px; margin-bottom:10px;">
+                                    <select name="document_types[]" required style="flex:0 0 260px; padding: 10px; border: 2px solid #e1e8ed; border-radius: 10px; background:#f8f9fa;">
+                                        <option value="">Select document type</option>
+                                        <option value="business_permit">Business Permit</option>
+                                        <option value="mayors_permit">Mayor's Permit</option>
+                                        <option value="bir_certificate">BIR Certificate</option>
+                                        <option value="barangay_clearance">Barangay Clearance</option>
+                                        <option value="lease_contract_sample">Sample Lease Contract</option>
+                                        <option value="valid_id">Valid ID</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <input type="file" name="documents[]" required accept=".pdf,.jpg,.jpeg,.png" style="flex:1; padding:10px; border:2px solid #e1e8ed; border-radius:10px; background:#f8f9fa;" />
+                                </div>
+                            </div>
+                            <button type="button" onclick="addDocRow()" class="submit-btn" style="width:auto; margin-top:8px; padding:10px 14px;">
+                                <i class="fas fa-plus"></i> Add another document
+                            </button>
+                        </div>
                         
                         <div class="form-row">
                             <div class="form-group">
@@ -155,7 +181,6 @@
                     
                     <div class="auth-footer">
                         <p>Already have an account? <a href="{{ route('login') }}">Sign in here</a></p>
-                        <p>Looking to rent? <a href="{{ route('register') }}">Register as Tenant</a></p>
                     </div>
                 </div>
             </div>
@@ -573,6 +598,27 @@
                 toggle.classList.remove('fa-eye-slash');
                 toggle.classList.add('fa-eye');
             }
+        }
+
+        function addDocRow() {
+            const list = document.getElementById('doc-list');
+            const row = document.createElement('div');
+            row.className = 'doc-row';
+            row.style.cssText = 'display:flex; gap:12px; margin-bottom:10px;';
+            row.innerHTML = `
+                <select name="document_types[]" required style="flex:0 0 260px; padding: 10px; border: 2px solid #e1e8ed; border-radius: 10px; background:#f8f9fa;">
+                    <option value="">Select document type</option>
+                    <option value="business_permit">Business Permit</option>
+                    <option value="mayors_permit">Mayor's Permit</option>
+                    <option value="bir_certificate">BIR Certificate</option>
+                    <option value="barangay_clearance">Barangay Clearance</option>
+                    <option value="lease_contract_sample">Sample Lease Contract</option>
+                    <option value="valid_id">Valid ID</option>
+                    <option value="other">Other</option>
+                </select>
+                <input type="file" name="documents[]" required accept=".pdf,.jpg,.jpeg,.png" style="flex:1; padding:10px; border:2px solid #e1e8ed; border-radius:10px; background:#f8f9fa;" />
+            `;
+            list.appendChild(row);
         }
     </script>
 </body>

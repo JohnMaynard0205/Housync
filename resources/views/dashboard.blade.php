@@ -344,7 +344,6 @@
         });
     </script>
     
-    <!-- Firebase App Check Scripts -->
-    @include('partials.firebase-scripts')
+    
 </body>
 </html> 

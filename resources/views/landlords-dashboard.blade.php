@@ -328,6 +328,6 @@
         @endif
     </div>
     
-    @include('partials.firebase-scripts')
+    
 </body>
 </html> 
