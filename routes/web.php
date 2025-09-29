@@ -68,7 +68,7 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     
     // Tenant Assignment Routes
     Route::get('/tenant-assignments', [TenantAssignmentController::class, 'index'])->name('tenant-assignments');
-    Route::get('/units/{unitId}/assign-tenant', [TenantAssignmentController::class, 'create'])->name('assign-tenant');
+    // Standalone assign-tenant page removed; use modal in tenant-assignments instead
     Route::post('/units/{unitId}/assign-tenant', [TenantAssignmentController::class, 'store'])->name('store-tenant-assignment');
     Route::get('/tenant-assignments/{id}', [TenantAssignmentController::class, 'show'])->name('assignment-details');
     Route::put('/tenant-assignments/{id}/status', [TenantAssignmentController::class, 'updateStatus'])->name('update-assignment-status');

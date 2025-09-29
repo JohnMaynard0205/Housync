@@ -1157,7 +1157,7 @@
                                 <h6 class="fw-bold mb-3">Quick Actions</h6>
                                 <div class="d-flex gap-2 flex-wrap">
                                     ${data.status === 'available' ? `
-                                        <a href="/landlord/units/${data.id}/assign-tenant" class="btn btn-success btn-sm">
+                                        <a href="/landlord/tenant-assignments?unit_id=${data.id}" class="btn btn-success btn-sm">
                                             <i class="fas fa-user-plus"></i> Assign Tenant
                                         </a>
                                     ` : ''}

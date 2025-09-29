@@ -34,21 +34,7 @@ class TenantAssignmentController extends Controller
         return view('landlord.tenant-assignments', compact('assignments', 'stats', 'filters'));
     }
 
-    /**
-     * Show form to assign tenant to unit
-     */
-    public function create($unitId)
-    {
-        $unit = Unit::whereHas('apartment', function($query) {
-            $query->where('landlord_id', Auth::id());
-        })->with('apartment')->findOrFail($unitId);
-
-        if ($unit->status !== 'available') {
-            return back()->with('error', 'This unit is not available for assignment.');
-        }
-
-        return view('landlord.assign-tenant', compact('unit'));
-    }
+    // Standalone create() page removed; assignment happens via modal on tenant-assignments
 
     /**
      * Assign tenant to unit
