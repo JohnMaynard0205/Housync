@@ -126,6 +126,41 @@ class AccessLog extends Model
         };
     }
 
+    /**
+     * Entry state derived from raw_data['entry_state'] if available ("in"|"out").
+     */
+    public function getEntryStateAttribute(): ?string
+    {
+        $raw = $this->raw_data;
+        if (is_array($raw) && isset($raw['entry_state'])) {
+            $state = strtolower((string) $raw['entry_state']);
+            return in_array($state, ['in', 'out'], true) ? $state : null;
+        }
+        return null;
+    }
+
+    /**
+     * Display result: for granted entries show IN/OUT when available; otherwise fallback to result.
+     */
+    public function getDisplayResultAttribute(): string
+    {
+        if ($this->access_result === 'granted' && $this->entry_state) {
+            return strtoupper($this->entry_state);
+        }
+        return ucfirst($this->access_result);
+    }
+
+    /**
+     * Badge class matching display result (IN/OUT) when available.
+     */
+    public function getDisplayBadgeClassAttribute(): string
+    {
+        if ($this->access_result === 'granted' && $this->entry_state) {
+            return $this->entry_state === 'in' ? 'success' : 'primary';
+        }
+        return $this->result_badge_class;
+    }
+
     public function getDenialReasonDisplayAttribute()
     {
         return match($this->denial_reason) {

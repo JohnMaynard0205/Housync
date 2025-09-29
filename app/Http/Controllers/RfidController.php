@@ -126,7 +126,7 @@ class RfidController extends Controller
                 'notes' => $request->notes,
             ]);
             
-            return redirect()->route('landlord.security.index', ['apartment_id' => $request->apartment_id])
+            return redirect()->route('landlord.security', ['apartment_id' => $request->apartment_id])
                            ->with('success', 'RFID card assigned successfully!');
                            
         } catch (\Exception $e) {
@@ -488,6 +488,40 @@ class RfidController extends Controller
                 'error' => 'Failed to get latest Card UID: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Return recent access logs (JSON) for dynamic UI refresh
+     */
+    public function recentLogsJson(Request $request)
+    {
+        $apartmentId = $request->get('apartment_id');
+        $limit = (int)($request->get('limit', 10));
+        $limit = max(1, min(50, $limit));
+
+        $logs = \App\Models\AccessLog::with(['rfidCard', 'tenantAssignment.tenant', 'apartment'])
+            ->when($apartmentId, fn($q) => $q->where('apartment_id', $apartmentId))
+            ->orderBy('access_time', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $data = $logs->map(function($log){
+            return [
+                'id' => $log->id,
+                'access_time' => $log->access_time?->toIso8601String(),
+                'access_time_human' => $log->access_time?->format('M j, g:i A'),
+                'card_uid' => $log->card_uid,
+                'tenant_name' => $log->tenant_name,
+                'result_badge_class' => $log->display_badge_class ?? $log->result_badge_class,
+                'result_text' => $log->display_result ?? ucfirst($log->access_result),
+                'denial_reason' => $log->denial_reason_display,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'logs' => $data,
+        ]);
     }
 
     /**

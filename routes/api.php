@@ -25,6 +25,8 @@ Route::middleware(['throttle:60,1'])->group(function () {
     // Web-triggered scanning (request + status polling)
     Route::post('/rfid/scan/request', [RfidController::class, 'getCardUIDFromESP32Reader'])->name('api.rfid.scan.request');
     Route::get('/rfid/scan/status/{scanId}', [RfidController::class, 'checkScanRequestStatus'])->name('api.rfid.scan.status');
+    // Recent logs JSON for dynamic UI
+    Route::get('/rfid/recent-logs', [RfidController::class, 'recentLogsJson'])->name('api.rfid.recent-logs');
     Route::post('/rfid/test', [RfidController::class, 'testConnection'])->name('api.rfid.test');
     Route::get('/system-info', function() {
         return response()->json([

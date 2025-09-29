@@ -208,8 +208,8 @@
                 </a>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm">
+                <div class="table-responsive" id="recent-logs-container">
+                    <table class="table table-sm" id="recent-logs-table">
                         <thead>
                             <tr>
                                 <th>Time</th>
@@ -219,23 +219,13 @@
                                 <th>Reason</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="recent-logs-body">
                             @foreach($recentLogs as $log)
                                 <tr>
-                                    <td>
-                                        <small>{{ $log->access_time->format('M j, g:i A') }}</small>
-                                    </td>
-                                    <td>
-                                        <code class="small">{{ $log->card_uid }}</code>
-                                    </td>
-                                    <td>
-                                        <small>{{ $log->tenant_name }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $log->result_badge_class }}">
-                                            {{ ucfirst($log->access_result) }}
-                                        </span>
-                                    </td>
+                                    <td><small>{{ $log->access_time->format('M j, g:i A') }}</small></td>
+                                    <td><code class="small">{{ $log->card_uid }}</code></td>
+                                    <td><small>{{ $log->tenant_name }}</small></td>
+                                    <td><span class="badge bg-{{ $log->display_badge_class }}">{{ $log->display_result }}</span></td>
                                     <td>
                                         @if($log->denial_reason)
                                             <small class="text-muted">{{ $log->denial_reason_display }}</small>
@@ -253,6 +243,45 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bodyEl = document.getElementById('recent-logs-body');
+    if (!bodyEl) return;
+    const apartmentId = @json($apartmentId);
+
+    function renderRows(logs) {
+        const rows = logs.map(l => `
+            <tr>
+                <td><small>${l.access_time_human || ''}</small></td>
+                <td><code class="small">${l.card_uid || ''}</code></td>
+                <td><small>${l.tenant_name || ''}</small></td>
+                <td><span class="badge bg-${l.result_badge_class || 'secondary'}">${l.result_text || ''}</span></td>
+                <td>${l.denial_reason ? `<small class="text-muted">${l.denial_reason}</small>` : '<small class="text-success">Access granted</small>'}</td>
+            </tr>`).join('');
+        bodyEl.innerHTML = rows;
+    }
+
+    async function refreshLogs() {
+        try {
+            const params = new URLSearchParams();
+            if (apartmentId) params.set('apartment_id', apartmentId);
+            params.set('limit', 10);
+            const res = await fetch(`/api/rfid/recent-logs?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.logs)) {
+                renderRows(data.logs);
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    // Initial and interval refresh (every 2s)
+    refreshLogs();
+    setInterval(refreshLogs, 2000);
+});
+</script>
+@endpush
 
 @section('styles')
 <style>

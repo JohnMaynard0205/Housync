@@ -12,7 +12,10 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 // Variables
 String lastCardUID = "";
 unsigned long lastReadTime = 0;
-const unsigned long READ_DELAY = 1500; // 1.5 seconds between reads (faster for automatic scanning)
+const unsigned long READ_DELAY = 2000; // 2 second minimum between any reads
+bool waitForCardRemoval = false; // require card to be removed before next read
+unsigned long cardRemovedTime = 0; // track when card was removed
+const unsigned long REMOVAL_DELAY = 1000; // 1 second after card removal before allowing next scan
 
 void setup() {
   Serial.begin(115200);
@@ -34,6 +37,25 @@ void setup() {
 }
 
 void loop() {
+  // Require card removal between reads to allow IN/OUT toggling on repeated taps
+  if (waitForCardRemoval) {
+    // If no card is present anymore, start removal timer
+    if (!rfid.PICC_IsNewCardPresent()) {
+      if (cardRemovedTime == 0) {
+        cardRemovedTime = millis(); // start removal timer
+        Serial.println("📤 Card removed, waiting before next scan...");
+      } else if (millis() - cardRemovedTime >= REMOVAL_DELAY) {
+        // Card has been removed long enough
+        waitForCardRemoval = false;
+        cardRemovedTime = 0;
+        Serial.println("✅ Ready for next scan");
+      }
+    } else {
+      cardRemovedTime = 0; // reset timer if card is still present
+    }
+    return; // don't process while waiting
+  }
+
   // Check for commands (keeping PING for testing)
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
@@ -72,10 +94,7 @@ void loop() {
   }
   cardUID.toUpperCase();
   
-  // Check if it's the same card (avoid duplicate reads)
-  if (cardUID == lastCardUID) {
-    return;
-  }
+  // We allow the same UID again as long as card was removed in between
   
   // Debug output
   Serial.println("🔑 Card detected: " + cardUID);
@@ -86,6 +105,7 @@ void loop() {
   // Update variables
   lastCardUID = cardUID;
   lastReadTime = currentTime;
+  waitForCardRemoval = true; // must remove card before next read
   
   // Halt PICC
   rfid.PICC_HaltA();

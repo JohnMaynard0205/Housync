@@ -47,6 +47,8 @@ class Unit extends Model
         'is_furnished',
         'amenities',
         'notes',
+        'cover_image',
+        'gallery',
     ];
 
     protected $casts = [
@@ -54,6 +56,7 @@ class Unit extends Model
         'floor_area' => 'decimal:2',
         'is_furnished' => 'boolean',
         'amenities' => 'array',
+        'gallery' => 'array',
         'tenant_count' => 'integer',
         'max_occupants' => 'integer',
         'floor_number' => 'integer',

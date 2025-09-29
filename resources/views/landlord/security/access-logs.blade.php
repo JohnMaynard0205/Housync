@@ -221,8 +221,8 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ $log->result_badge_class }}">
-                                            {{ ucfirst($log->access_result) }}
+                                        <span class="badge bg-{{ $log->display_badge_class }}">
+                                            {{ $log->display_result }}
                                         </span>
                                     </td>
                                     <td>

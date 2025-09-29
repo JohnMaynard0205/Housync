@@ -63,9 +63,23 @@ class LandlordController extends Controller
             'contact_phone' => 'nullable|string|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
 
         try {
+            $coverPath = null;
+            if ($request->hasFile('cover_image')) {
+                $coverPath = $request->file('cover_image')->store('apartment-covers', 'public');
+            }
+
+            $galleryPaths = [];
+            if ($request->hasFile('gallery')) {
+                foreach ($request->file('gallery') as $file) {
+                    $galleryPaths[] = $file->store('apartment-gallery', 'public');
+                }
+            }
+
             $apartment = Auth::user()->apartments()->create([
                 'name' => $request->name,
                 'address' => $request->address,
@@ -76,6 +90,8 @@ class LandlordController extends Controller
                 'contact_email' => $request->contact_email,
                 'amenities' => $request->amenities ?? [],
                 'status' => 'active',
+                'cover_image' => $coverPath,
+                'gallery' => $galleryPaths ?: null,
             ]);
 
             return redirect()->route('landlord.apartments')->with('success', 'Apartment created successfully.');
@@ -194,7 +210,20 @@ class LandlordController extends Controller
             'is_furnished' => 'boolean',
             'amenities' => 'nullable|array',
             'notes' => 'nullable|string|max:500',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
+
+        $coverPath = null;
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('unit-covers', 'public');
+        }
+        $galleryPaths = [];
+        if ($request->hasFile('gallery')) {
+            foreach ($request->file('gallery') as $file) {
+                $galleryPaths[] = $file->store('unit-gallery', 'public');
+            }
+        }
 
         $apartment->units()->create([
             'unit_number' => $request->unit_number,
@@ -209,6 +238,8 @@ class LandlordController extends Controller
             'is_furnished' => $request->boolean('is_furnished'),
             'amenities' => $request->amenities ?? [],
             'notes' => $request->notes,
+            'cover_image' => $coverPath,
+            'gallery' => $galleryPaths ?: null,
         ]);
 
         return redirect()->route('landlord.units', $apartmentId)->with('success', 'Unit created successfully.');

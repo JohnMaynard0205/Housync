@@ -17,6 +17,10 @@ class ESP32Reader
     private $handle;
     private $running = false;
     private $lastScanRequestCheck = 0;
+    // De-duplication for rapid repeated lines from serial
+    private $lastProcessedUid = null;
+    private $lastProcessedAt = 0; // unix timestamp seconds
+    private $dedupeWindowSeconds = 10; // suppress repeats within 10 seconds - only allow one scan per card per 10s
 
     public function __construct ($port = 'COM3', $baudrate = 115200, $laravelUrl = 'http://localhost:8000')
     {
@@ -152,13 +156,24 @@ class ESP32Reader
                     if ($responseData['card_status'] === 'new_card') {
                         echo "Status: New card detected (ready for assignment)\n";
                     } elseif ($responseData['card_status'] === 'registered_card') {
+                        $entryState = isset($responseData['entry_state']) ? strtoupper($responseData['entry_state']) : null; // IN/OUT
                         if (isset($responseData['access_granted']) && $responseData['access_granted']) {
-                            echo "Access: GRANTED\n";
+                            // Show IN/OUT instead of GRANTED
+                            if ($entryState === 'IN' || $entryState === 'OUT') {
+                                echo "Entry: {$entryState}\n";
+                            } else {
+                                echo "Access: GRANTED\n"; // fallback
+                            }
                             if (isset($responseData['tenant_name'])) {
                                 echo "Tenant: {$responseData['tenant_name']}\n";
                             }
                         } else {
-                            echo "Access: DENIED\n";
+                            // Denied case: include intended entry state if available
+                            if ($entryState === 'IN' || $entryState === 'OUT') {
+                                echo "Entry: {$entryState} (DENIED)\n";
+                            } else {
+                                echo "Access: DENIED\n";
+                            }
                             if (isset($responseData['denial_reason'])) {
                                 echo "   Reason: {$responseData['denial_reason']}\n";
                             }
@@ -320,7 +335,7 @@ class ESP32Reader
         
         // Case 1: Pure JSON data (starts with {)
         if (substr(trim($data), 0, 1) === '{') {
-            echo "📋 Found pure JSON data\n";
+            echo "Found pure JSON data\n";
             // Data is already JSON, use as-is
         }
         // Case 2: Prefixed JSON (📤 Sent to bridge: {...})
@@ -328,7 +343,7 @@ class ESP32Reader
             $jsonStart = strpos($data, '{');
             if ($jsonStart !== false) {
                 $data = substr($data, $jsonStart);
-                echo "🔍 Extracted JSON from prefixed message\n";
+                echo "Extracted JSON from prefixed message\n";
             }
         }
         // Case 3: Card detected message (🔑 Card detected: 036E8DE4)
@@ -341,7 +356,7 @@ class ESP32Reader
                 'reader_location' => 'main_entrance',
                 'device_id' => 'esp32_serial'
             ]);
-            echo "🎯 Extracted UID from debug message: $extractedUID\n";
+            echo "Extracted UID from debug message: $extractedUID\n";
         }
         // Case 4: Filter out other messages
         else {
@@ -354,7 +369,7 @@ class ESP32Reader
             
             foreach ($ignoredMessages as $ignored) {
                 if (strpos($data, $ignored) !== false) {
-                    echo "⏭️  Ignoring: " . substr($originalData, 0, 50) . "...\n";
+                    echo "Ignoring: " . substr($originalData, 0, 50) . "...\n";
                     return false;
                 }
             }
@@ -385,6 +400,14 @@ class ESP32Reader
         }
 
         if ($cardUID) {
+            // Dedupe: suppress rapid duplicate submissions of the same UID
+            $now = time();
+            if ($this->lastProcessedUid === $cardUID && ($now - $this->lastProcessedAt) < $this->dedupeWindowSeconds) {
+                echo "🚫 Duplicate UID within {$this->dedupeWindowSeconds}s window, ignoring: $cardUID (last scan was " . ($now - $this->lastProcessedAt) . "s ago)\n";
+                return false;
+            }
+            $this->lastProcessedUid = $cardUID;
+            $this->lastProcessedAt = $now;
             echo "Processing RFID card: $cardUID\n";
             
             // Store the latest card UID for web interface access

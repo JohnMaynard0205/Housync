@@ -218,8 +218,8 @@
                                                 <small class="text-muted">{{ $log->access_time->format('g:i:s A') }}</small>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $log->result_badge_class }}">
-                                                    {{ ucfirst($log->access_result) }}
+                                                <span class="badge bg-{{ $log->display_badge_class }}">
+                                                    {{ $log->display_result }}
                                                 </span>
                                             </td>
                                             <td>
