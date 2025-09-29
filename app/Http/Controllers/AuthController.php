@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use App\Models\Apartment;
 use App\Models\TenantProfile;
 
 class AuthController extends Controller
@@ -17,7 +18,12 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        return view('login');
+        // Show a landing panel with a few latest properties and available units
+        $properties = Apartment::with(['units' => function ($q) {
+            $q->where('status', 'available');
+        }])->latest()->take(8)->get();
+
+        return view('login', compact('properties'));
     }
 
     /**

@@ -411,6 +411,19 @@
             }
         }
 
+        /* Properties landing */
+        .properties-landing { position: relative; z-index: 2; padding: 32px; color: #fff; }
+        .landing-header h3 { font-size: 24px; margin-bottom: 4px; }
+        .landing-header p { opacity: .9; margin-bottom: 16px; }
+        .properties-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 8px; }
+        .property-card { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 12px; padding: 12px; backdrop-filter: blur(6px); }
+        .property-title { font-weight: 600; }
+        .property-address { font-size: 12px; opacity: .9; margin-bottom: 8px; }
+        .property-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .badge.available { background: rgba(46, 204, 113, .2); color: #2ecc71; padding: 3px 8px; border-radius: 999px; font-size: 12px; }
+        .price { font-size: 12px; font-weight: 600; }
+        .view-link { font-size: 12px; color: #fff; text-decoration: underline; }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .auth-wrapper {
@@ -485,37 +498,38 @@
                 </div>
             </div>
             
-            <!-- Right side - Illustration -->
+            <!-- Right side - Properties Landing -->
             <div class="illustration-section">
-                <div class="illustration-container">
-                    <!-- Isometric illustration elements -->
-                    <div class="iso-platform platform-1">
-                        <div class="person person-1"></div>
-                        <div class="chart chart-1"></div>
+                <div class="properties-landing">
+                    <div class="landing-header">
+                        <h3>Browse Properties</h3>
+                        <p>See available units and starting prices</p>
                     </div>
-                    <div class="iso-platform platform-2">
-                        <div class="person person-2"></div>
-                        <div class="chart chart-2"></div>
-                    </div>
-                    <div class="iso-platform platform-3">
-                        <div class="person person-3"></div>
-                        <div class="device device-1"></div>
-                    </div>
-                    <div class="iso-platform platform-4">
-                        <div class="person person-4"></div>
-                        <div class="chart chart-3"></div>
-                    </div>
-                    <div class="iso-platform platform-5">
-                        <div class="person person-5"></div>
-                        <div class="chart chart-4"></div>
-                    </div>
-                    <div class="floating-elements">
-                        <div class="cube cube-1"></div>
-                        <div class="cube cube-2"></div>
-                        <div class="cube cube-3"></div>
-                        <div class="cube cube-4"></div>
-                        <div class="cube cube-5"></div>
-                        <div class="cube cube-6"></div>
+                    <div class="properties-grid">
+                        @forelse(($properties ?? []) as $apt)
+                            @php
+                                $units = collect(data_get($apt, 'units', []));
+                                $availableCount = $units->count();
+                                $starting = $availableCount > 0 ? $units->min('rent_amount') : null;
+                            @endphp
+                            <div class="property-card">
+                                <div class="property-title">{{ data_get($apt, 'name') }}</div>
+                                <div class="property-address">{{ data_get($apt, 'address') }}</div>
+                                <div class="property-stats">
+                                    <span class="badge available">{{ $availableCount }} available</span>
+                                    @if($starting)
+                                        <span class="price">Starts at ₱{{ number_format($starting, 2) }}</span>
+                                    @else
+                                        <span class="price">No vacancies</span>
+                                    @endif
+                                </div>
+                                <a href="#" class="view-link" onclick="alert('Please log in or register to view more details.'); return false;">View details</a>
+                            </div>
+                        @empty
+                            <div class="no-properties">
+                                <p>No properties to show yet.</p>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
