@@ -33,12 +33,7 @@ class TenantAssignmentController extends Controller
 
         return view('landlord.tenant-assignments', compact('assignments', 'stats', 'filters'));
     }
-
-    // Standalone create() page removed; assignment happens via modal on tenant-assignments
-
-    /**
-     * Assign tenant to unit
-     */
+    
     public function store(Request $request, $unitId)
     {
         // Enhanced validation rules
