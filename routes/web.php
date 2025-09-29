@@ -9,6 +9,7 @@ use App\Http\Controllers\LandlordController;
 use App\Http\Controllers\TenantAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\RfidController;
+use App\Models\Apartment;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -21,6 +22,14 @@ Route::get('/register', function () {
     return view('register');
 })->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
+// Public Explore page (landing-like listings)
+Route::get('/explore', function () {
+    $properties = Apartment::with(['units' => function ($q) {
+        $q->where('status', 'available')->orderBy('rent_amount');
+    }])->latest()->paginate(12);
+    return view('explore', compact('properties'));
+})->name('explore');
 
 // Landlord Registration (public)
 Route::get('/landlord/register', [LandlordController::class, 'register'])->name('landlord.register');

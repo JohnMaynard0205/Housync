@@ -423,6 +423,8 @@
         .badge.available { background: rgba(46, 204, 113, .2); color: #2ecc71; padding: 3px 8px; border-radius: 999px; font-size: 12px; }
         .price { font-size: 12px; font-weight: 600; }
         .view-link { font-size: 12px; color: #fff; text-decoration: underline; }
+        .cta-explore { color:#fff; background: rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.35); padding:8px 12px; border-radius:999px; text-decoration:none; font-size:12px; }
+        .cta-explore:hover { background: rgba(255,255,255,.3); }
 
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -502,8 +504,13 @@
             <div class="illustration-section">
                 <div class="properties-landing">
                     <div class="landing-header">
-                        <h3>Browse Properties</h3>
-                        <p>See available units and starting prices</p>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                            <div>
+                                <h3>Browse Properties</h3>
+                                <p>See available units and starting prices</p>
+                            </div>
+                            <a href="{{ route('explore') }}" class="cta-explore">Explore all</a>
+                        </div>
                     </div>
                     <div class="properties-grid">
                         @forelse(($properties ?? []) as $apt)
