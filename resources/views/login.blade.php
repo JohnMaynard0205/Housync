@@ -412,19 +412,12 @@
         }
 
         /* Properties landing */
-        .properties-landing { position: relative; z-index: 2; padding: 32px; color: #fff; }
-        .landing-header h3 { font-size: 24px; margin-bottom: 4px; }
-        .landing-header p { opacity: .9; margin-bottom: 16px; }
-        .properties-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 8px; }
-        .property-card { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 12px; padding: 12px; backdrop-filter: blur(6px); }
-        .property-title { font-weight: 600; }
-        .property-address { font-size: 12px; opacity: .9; margin-bottom: 8px; }
-        .property-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .badge.available { background: rgba(46, 204, 113, .2); color: #2ecc71; padding: 3px 8px; border-radius: 999px; font-size: 12px; }
-        .price { font-size: 12px; font-weight: 600; }
-        .view-link { font-size: 12px; color: #fff; text-decoration: underline; }
-        .cta-explore { color:#fff; background: rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.35); padding:8px 12px; border-radius:999px; text-decoration:none; font-size:12px; }
-        .cta-explore:hover { background: rgba(255,255,255,.3); }
+        .properties-landing { position: relative; z-index: 2; padding: 32px; color: #fff; height: 100%; }
+        .cta-hero { position:absolute; left:50%; top:60%; transform: translate(-50%, -50%); text-align:center; }
+        .cta-hero h2 { font-size: 36px; font-weight: 800; letter-spacing: .2px; margin-bottom: 8px; }
+        .cta-hero p { opacity:.95; margin-bottom: 20px; font-size: 14px; }
+        .cta-primary { display:inline-block; padding: 12px 18px; border-radius: 999px; color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.18); backdrop-filter: blur(6px); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+        .cta-primary:hover { background: rgba(255,255,255,.25); }
 
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -500,43 +493,13 @@
                 </div>
             </div>
             
-            <!-- Right side - Properties Landing -->
+            <!-- Right side - CTA Landing -->
             <div class="illustration-section">
                 <div class="properties-landing">
-                    <div class="landing-header">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-                            <div>
-                                <h3>Browse Properties</h3>
-                                <p>See available units and starting prices</p>
-                            </div>
-                            <a href="{{ route('explore') }}" class="cta-explore">Explore all</a>
-                        </div>
-                    </div>
-                    <div class="properties-grid">
-                        @forelse(($properties ?? []) as $apt)
-                            @php
-                                $units = collect(data_get($apt, 'units', []));
-                                $availableCount = $units->count();
-                                $starting = $availableCount > 0 ? $units->min('rent_amount') : null;
-                            @endphp
-                            <div class="property-card">
-                                <div class="property-title">{{ data_get($apt, 'name') }}</div>
-                                <div class="property-address">{{ data_get($apt, 'address') }}</div>
-                                <div class="property-stats">
-                                    <span class="badge available">{{ $availableCount }} available</span>
-                                    @if($starting)
-                                        <span class="price">Starts at ₱{{ number_format($starting, 2) }}</span>
-                                    @else
-                                        <span class="price">No vacancies</span>
-                                    @endif
-                                </div>
-                                <a href="#" class="view-link" onclick="alert('Please log in or register to view more details.'); return false;">View details</a>
-                            </div>
-                        @empty
-                            <div class="no-properties">
-                                <p>No properties to show yet.</p>
-                            </div>
-                        @endforelse
+                    <div class="cta-hero">
+                        <h2>Find your next home.</h2>
+                        <p>Browse verified properties with real-time availability.</p>
+                        <a href="{{ route('explore') }}" class="cta-primary">Explore listings</a>
                     </div>
                 </div>
             </div>
