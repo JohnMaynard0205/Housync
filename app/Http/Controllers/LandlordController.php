@@ -336,7 +336,19 @@ class LandlordController extends Controller
             // Require at least one document, recommend specific types
             'documents' => 'required|array|min:1',
             'documents.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'document_types' => 'required|array|same_length:documents',
+            'document_types' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) use ($request) {
+                    $documents = $request->file('documents', []);
+                    if (!is_array($documents)) {
+                        $documents = [];
+                    }
+                    if (count($value) !== count($documents)) {
+                        $fail('The number of selected document types must match the number of uploaded documents.');
+                    }
+                },
+            ],
             'document_types.*' => 'required|string|in:business_permit,mayors_permit,bir_certificate,barangay_clearance,lease_contract_sample,valid_id,other',
         ]);
 
