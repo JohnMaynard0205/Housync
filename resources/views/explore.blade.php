@@ -97,28 +97,9 @@
                     }
                 @endphp
                 <div class="card">
-<<<<<<< HEAD
-                    <div class="thumb">
-                        @if(!empty($images))
-                            <img src="{{ $images[0] }}" alt="{{ data_get($apt,'name') }}" style="width:100%; height:100%; object-fit:cover; display:block;">
-=======
-                    @php
-                        $images = [];
-                        if (data_get($apt, 'cover_image')) {
-                            $images[] = asset('storage/'.data_get($apt, 'cover_image'));
-                        }
-                        foreach ((array) data_get($apt, 'gallery', []) as $g) { $images[] = asset('storage/'.$g); }
-                        // Fallback: try unit covers
-                        if (!$images) {
-                            foreach ($units as $u) {
-                                if (data_get($u, 'cover_image')) { $images[] = asset('storage/'.data_get($u,'cover_image')); break; }
-                            }
-                        }
-                    @endphp
                     <div class="thumb" data-images='@json($images)'>
                         @if(!empty($images))
-                            <img src="{{ $images[0] }}" alt="{{ data_get($apt,'name') }}">
->>>>>>> 07257cf24c9d1ec3387014393264c54a1b135a6a
+                            <img src="{{ $images[0] }}" alt="{{ data_get($apt,'name') }}" style="width:100%; height:100%; object-fit:cover; display:block;">
                         @else
                             No image
                         @endif
