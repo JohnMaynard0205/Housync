@@ -126,6 +126,10 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('delete-staff');
     Route::get('/staff/{id}/credentials', [StaffController::class, 'getCredentials'])->name('get-staff-credentials');
     
+    // Tenant History Routes
+    Route::get('/tenant-history', [LandlordController::class, 'tenantHistory'])->name('tenant-history');
+    Route::get('/tenant-history/export-csv', [LandlordController::class, 'exportTenantHistoryCSV'])->name('tenant-history.export-csv');
+    
     // RFID Security Management Routes
     Route::get('/security', [RfidController::class, 'index'])->name('security');
     Route::get('/security/cards/create', [RfidController::class, 'create'])->name('security.create-card');

@@ -7,6 +7,7 @@ use App\Models\LandlordProfile;
 use App\Models\LandlordDocument;
 use App\Models\Apartment;
 use App\Models\Unit;
+use App\Models\TenantAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -410,6 +411,175 @@ class LandlordController extends Controller
                 $q->where('landlord_id', $landlordId);
             })->get();
         return view('landlord.tenants', compact('tenants'));
+    }
+
+    /**
+     * Show tenant history with filtering options
+     */
+    public function tenantHistory(Request $request)
+    {
+        $landlordId = Auth::id();
+        
+        // Build the query for tenant assignments
+        $query = TenantAssignment::where('landlord_id', $landlordId)
+            ->with(['tenant', 'unit.apartment']);
+        
+        // Apply filters
+        if ($request->filled('property_id')) {
+            $query->whereHas('unit.apartment', function($q) use ($request) {
+                $q->where('id', $request->property_id);
+            });
+        }
+        
+        if ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+        
+        if ($request->filled('tenant_name')) {
+            $searchTerm = $request->tenant_name;
+            $query->whereHas('tenant', function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->filled('date_from')) {
+            $query->where('lease_start_date', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $query->where('lease_end_date', '<=', $request->date_to);
+        }
+        
+        // Order by most recent first
+        $assignments = $query->orderBy('lease_start_date', 'desc')->paginate(20);
+        
+        // Get all apartments for filter dropdown
+        $apartments = Auth::user()->apartments()->orderBy('name')->get();
+        
+        // Get all units for filter dropdown
+        $units = Unit::whereHas('apartment', function($q) use ($landlordId) {
+            $q->where('landlord_id', $landlordId);
+        })->with('apartment')->orderBy('unit_number')->get();
+        
+        // Calculate statistics
+        $stats = [
+            'total_assignments' => TenantAssignment::where('landlord_id', $landlordId)->count(),
+            'active_assignments' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'active')->count(),
+            'terminated_assignments' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'terminated')->count(),
+            'total_revenue' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'active')->sum('rent_amount'),
+        ];
+        
+        return view('landlord.tenant-history', compact('assignments', 'apartments', 'units', 'stats'));
+    }
+
+    /**
+     * Export tenant history to CSV
+     */
+    public function exportTenantHistoryCSV(Request $request)
+    {
+        $landlordId = Auth::id();
+        
+        // Build the query with same filters as tenant history
+        $query = TenantAssignment::where('landlord_id', $landlordId)
+            ->with(['tenant', 'unit.apartment']);
+        
+        // Apply filters
+        if ($request->filled('property_id')) {
+            $query->whereHas('unit.apartment', function($q) use ($request) {
+                $q->where('id', $request->property_id);
+            });
+        }
+        
+        if ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+        
+        if ($request->filled('tenant_name')) {
+            $searchTerm = $request->tenant_name;
+            $query->whereHas('tenant', function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->filled('date_from')) {
+            $query->where('lease_start_date', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $query->where('lease_end_date', '<=', $request->date_to);
+        }
+        
+        $assignments = $query->orderBy('lease_start_date', 'desc')->get();
+        
+        // Generate CSV
+        $filename = 'tenant-history-' . date('Y-m-d') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+        
+        $callback = function() use ($assignments) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'Tenant Name',
+                'Email',
+                'Phone',
+                'Property Name',
+                'Unit Number',
+                'Bedrooms',
+                'Move-in Date',
+                'Move-out Date',
+                'Lease Duration (months)',
+                'Rent Amount',
+                'Security Deposit',
+                'Status',
+                'Payment Status',
+                'Notes'
+            ]);
+            
+            // Add data rows
+            foreach ($assignments as $assignment) {
+                $leaseStartDate = \Carbon\Carbon::parse($assignment->lease_start_date);
+                $leaseEndDate = \Carbon\Carbon::parse($assignment->lease_end_date);
+                $leaseDuration = $leaseStartDate->diffInMonths($leaseEndDate);
+                
+                // Determine payment status based on documents
+                $paymentStatus = $assignment->documents_verified ? 'Verified' : ($assignment->documents_uploaded ? 'Pending Verification' : 'Pending Documents');
+                
+                fputcsv($file, [
+                    $assignment->tenant->name ?? 'N/A',
+                    $assignment->tenant->email ?? 'N/A',
+                    $assignment->tenant->phone ?? 'N/A',
+                    $assignment->unit->apartment->name ?? 'N/A',
+                    $assignment->unit->unit_number ?? 'N/A',
+                    $assignment->unit->bedrooms ?? 'N/A',
+                    $assignment->lease_start_date ? $assignment->lease_start_date->format('M d, Y') : 'N/A',
+                    $assignment->lease_end_date ? $assignment->lease_end_date->format('M d, Y') : 'N/A',
+                    $leaseDuration,
+                    '₱' . number_format($assignment->rent_amount, 2),
+                    '₱' . number_format($assignment->security_deposit, 2),
+                    ucfirst($assignment->status),
+                    $paymentStatus,
+                    $assignment->notes ?? ''
+                ]);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
     }
 
     // API endpoints for apartment management

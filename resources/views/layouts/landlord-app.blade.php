@@ -148,6 +148,9 @@
                 <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item {{ request()->routeIs('landlord.tenant-assignments') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Tenant Assignments
                 </a>
+                <a href="{{ route('landlord.tenant-history') }}" class="nav-item {{ request()->routeIs('landlord.tenant-history') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i> Tenant History
+                </a>
                 <a href="{{ route('landlord.staff') }}" class="nav-item {{ request()->routeIs('landlord.staff*') ? 'active' : '' }}">
                     <i class="fas fa-tools"></i> Staff
                 </a>
