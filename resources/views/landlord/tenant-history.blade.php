@@ -98,20 +98,20 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
                         <h4 class="header-title mb-0">
                             <i class="mdi mdi-filter-variant me-1"></i> Filter History
                         </h4>
-                        <div class="btn-group">
+                        <div class="btn-group d-flex d-md-inline-flex">
                             <button type="button" class="btn btn-sm btn-success" onclick="exportCSV()">
-                                <i class="mdi mdi-file-excel me-1"></i> Export CSV
+                                <i class="mdi mdi-file-excel me-1"></i> <span class="d-none d-sm-inline">Export</span> CSV
                             </button>
                         </div>
                     </div>
 
                     <form method="GET" action="{{ route('landlord.tenant-history') }}" id="filterForm">
                         <div class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Property</label>
                                 <select name="property_id" class="form-select" id="propertyFilter">
                                     <option value="">All Properties</option>
@@ -124,7 +124,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Unit</label>
                                 <select name="unit_id" class="form-select" id="unitFilter">
                                     <option value="">All Units</option>
@@ -138,14 +138,14 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Tenant Name</label>
                                 <input type="text" name="tenant_name" class="form-control" 
                                     placeholder="Search by name or email" 
                                     value="{{ request('tenant_name') }}">
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select">
                                     <option value="">All Status</option>
@@ -155,25 +155,25 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Move-in From</label>
                                 <input type="date" name="date_from" class="form-control" 
                                     value="{{ request('date_from') }}">
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label">Move-out To</label>
                                 <input type="date" name="date_to" class="form-control" 
                                     value="{{ request('date_to') }}">
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary">
+                            <div class="col-12 col-lg-6">
+                                <label class="form-label d-none d-lg-block">&nbsp;</label>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <button type="submit" class="btn btn-primary flex-grow-1 flex-sm-grow-0">
                                         <i class="mdi mdi-magnify me-1"></i> Apply Filters
                                     </button>
-                                    <a href="{{ route('landlord.tenant-history') }}" class="btn btn-secondary">
+                                    <a href="{{ route('landlord.tenant-history') }}" class="btn btn-secondary flex-grow-1 flex-sm-grow-0">
                                         <i class="mdi mdi-refresh me-1"></i> Clear Filters
                                     </a>
                                 </div>
@@ -413,6 +413,94 @@
         padding: 0.35rem 0.65rem;
         font-size: 0.75rem;
         font-weight: 500;
+    }
+
+    /* Responsive Enhancements */
+    @media (max-width: 991px) {
+        .page-title {
+            font-size: 1.25rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+        
+        .col-xl-3 {
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .table-responsive {
+            border: 0;
+        }
+        
+        .table > :not(caption) > * > * {
+            padding: 0.5rem 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .page-title-box {
+            padding: 1rem;
+        }
+        
+        .header-title {
+            font-size: 0.875rem;
+        }
+
+        /* Stack stat cards vertically */
+        .row > div[class*="col-"] {
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .table thead {
+            display: none;
+        }
+        
+        .table,
+        .table tbody,
+        .table tr,
+        .table td {
+            display: block;
+            width: 100%;
+        }
+        
+        .table tr {
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+        }
+        
+        .table td {
+            text-align: right;
+            padding-left: 50%;
+            position: relative;
+            border: none;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0.75rem;
+            width: 45%;
+            text-align: left;
+            font-weight: 600;
+            color: #6c757d;
+        }
+        
+        .badge {
+            font-size: 0.625rem;
+            padding: 0.25rem 0.5rem;
+        }
     }
 </style>
 

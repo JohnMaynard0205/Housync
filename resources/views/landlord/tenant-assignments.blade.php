@@ -111,7 +111,7 @@
             <div class="card">
                 <div class="card-body">
                     <form method="GET" action="{{ route('landlord.tenant-assignments') }}" class="row g-3 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label for="status" class="form-label">Status</label>
                             <select name="status" id="status" class="form-select">
                                 <option value="">All Status</option>
@@ -120,7 +120,7 @@
                                 <option value="terminated" {{ request('status') == 'terminated' ? 'selected' : '' }}>Terminated</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label for="documents_uploaded" class="form-label">Documents Uploaded</label>
                             <select name="documents_uploaded" id="documents_uploaded" class="form-select">
                                 <option value="">All</option>
@@ -128,7 +128,7 @@
                                 <option value="0" {{ request('documents_uploaded') == '0' ? 'selected' : '' }}>No</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label for="documents_verified" class="form-label">Documents Verified</label>
                             <select name="documents_verified" id="documents_verified" class="form-select">
                                 <option value="">All</option>
@@ -136,10 +136,15 @@
                                 <option value="0" {{ request('documents_verified') == '0' ? 'selected' : '' }}>No</option>
                             </select>
                         </div>
-                        <div class="col-md-3 d-flex gap-2 align-items-end">
-                            <button type="submit" class="btn btn-primary">Filter</button>
-                            <a href="{{ route('landlord.tenant-assignments') }}" class="btn btn-secondary">Clear</a>
-                            <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#assignTenantModal">
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <label class="form-label d-none d-lg-block">&nbsp;</label>
+                            <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch">
+                                <button type="submit" class="btn btn-primary flex-grow-1 flex-sm-grow-0">Filter</button>
+                                <a href="{{ route('landlord.tenant-assignments') }}" class="btn btn-secondary flex-grow-1 flex-sm-grow-0">Clear</a>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-primary w-100 w-sm-auto" type="button" data-bs-toggle="modal" data-bs-target="#assignTenantModal">
                                 <i class="mdi mdi-account-plus me-1"></i> Assign Tenant
                             </button>
                         </div>
