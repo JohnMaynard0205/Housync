@@ -604,6 +604,6 @@
         });
     </script>
     
-    @include('partials.firebase-scripts')
+    
 </body>
 </html> 

@@ -35,11 +35,14 @@ class Apartment extends Model
         'contact_phone',
         'contact_email',
         'status',
+        'cover_image',
+        'gallery',
     ];
 
     protected $casts = [
         'amenities' => 'array',
         'total_units' => 'integer',
+        'gallery' => 'array',
     ];
 
     // Relationships

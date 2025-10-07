@@ -144,6 +144,10 @@
                             <i class="mdi mdi-key me-1"></i> View Credentials
                         </a>
 
+                        <a href="{{ route('landlord.tenant-history', ['tenant_name' => $assignment->tenant->email]) }}" class="btn btn-outline-info">
+                            <i class="mdi mdi-history me-1"></i> View Tenant History
+                        </a>
+
                         <a href="{{ route('landlord.tenant-assignments') }}" class="btn btn-outline-secondary">
                             <i class="mdi mdi-arrow-left me-1"></i> Back to Assignments
                         </a>

@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         * {
             margin: 0;
@@ -373,8 +374,46 @@
             vertical-align: middle;
         }
 
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            background: #10b981;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle:hover {
+            background: #059669;
+        }
+
+        .mobile-menu-toggle i {
+            font-size: 1.25rem;
+        }
+
+        /* Mobile overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
@@ -386,6 +425,57 @@
 
             .main-content {
                 margin-left: 0;
+                padding: 5rem 1.5rem 1.5rem;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 5rem 1rem 1rem;
+            }
+
+            .user-profile {
+                display: none;
+            }
+
+            .content-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .page-title-box {
+                padding: 1rem;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .mobile-menu-toggle {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .page-title {
+                font-size: 1.25rem;
             }
         }
     </style>
@@ -393,8 +483,16 @@
 </head>
 <body>
     <div class="dashboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h2>Tenant Portal</h2>
                 <p>Welcome, {{ auth()->user()->name }}</p>
@@ -439,6 +537,49 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            function toggleMobileMenu() {
+                sidebar.classList.toggle('show');
+                sidebarOverlay.classList.toggle('show');
+                
+                // Change icon
+                const icon = mobileMenuToggle.querySelector('i');
+                if (sidebar.classList.contains('show')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', toggleMobileMenu);
+            }
+            
+            // Close mobile menu when clicking on a nav item
+            const navItems = sidebar.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    if (window.innerWidth <= 1024 && sidebar.classList.contains('show')) {
+                        toggleMobileMenu();
+                    }
+                });
+            });
+        });
+    </script>
+    
     @stack('scripts')
 </body>
 </html> 

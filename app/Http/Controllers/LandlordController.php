@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LandlordProfile;
+use App\Models\LandlordDocument;
 use App\Models\Apartment;
 use App\Models\Unit;
+use App\Models\TenantAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -61,9 +64,23 @@ class LandlordController extends Controller
             'contact_phone' => 'nullable|string|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
 
         try {
+            $coverPath = null;
+            if ($request->hasFile('cover_image')) {
+                $coverPath = $request->file('cover_image')->store('apartment-covers', 'public');
+            }
+
+            $galleryPaths = [];
+            if ($request->hasFile('gallery')) {
+                foreach ($request->file('gallery') as $file) {
+                    $galleryPaths[] = $file->store('apartment-gallery', 'public');
+                }
+            }
+
             $apartment = Auth::user()->apartments()->create([
                 'name' => $request->name,
                 'address' => $request->address,
@@ -74,6 +91,8 @@ class LandlordController extends Controller
                 'contact_email' => $request->contact_email,
                 'amenities' => $request->amenities ?? [],
                 'status' => 'active',
+                'cover_image' => $coverPath,
+                'gallery' => $galleryPaths ?: null,
             ]);
 
             return redirect()->route('landlord.apartments')->with('success', 'Apartment created successfully.');
@@ -192,7 +211,20 @@ class LandlordController extends Controller
             'is_furnished' => 'boolean',
             'amenities' => 'nullable|array',
             'notes' => 'nullable|string|max:500',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
+
+        $coverPath = null;
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('unit-covers', 'public');
+        }
+        $galleryPaths = [];
+        if ($request->hasFile('gallery')) {
+            foreach ($request->file('gallery') as $file) {
+                $galleryPaths[] = $file->store('unit-gallery', 'public');
+            }
+        }
 
         $apartment->units()->create([
             'unit_number' => $request->unit_number,
@@ -207,6 +239,8 @@ class LandlordController extends Controller
             'is_furnished' => $request->boolean('is_furnished'),
             'amenities' => $request->amenities ?? [],
             'notes' => $request->notes,
+            'cover_image' => $coverPath,
+            'gallery' => $galleryPaths ?: null,
         ]);
 
         return redirect()->route('landlord.units', $apartmentId)->with('success', 'Unit created successfully.');
@@ -300,6 +334,23 @@ class LandlordController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:500',
             'business_info' => 'required|string|max:1000',
+            // Require at least one document, recommend specific types
+            'documents' => 'required|array|min:1',
+            'documents.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'document_types' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) use ($request) {
+                    $documents = $request->file('documents', []);
+                    if (!is_array($documents)) {
+                        $documents = [];
+                    }
+                    if (count($value) !== count($documents)) {
+                        $fail('The number of selected document types must match the number of uploaded documents.');
+                    }
+                },
+            ],
+            'document_types.*' => 'required|string|in:business_permit,mayors_permit,bir_certificate,barangay_clearance,lease_contract_sample,valid_id,other',
         ]);
 
         $landlord = User::create([
@@ -312,6 +363,32 @@ class LandlordController extends Controller
             'address' => $request->address,
             'business_info' => $request->business_info,
         ]);
+
+        // Create landlord profile for role-specific data
+        LandlordProfile::create([
+            'user_id' => $landlord->id,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'business_info' => $request->business_info,
+        ]);
+
+        // Store uploaded documents for review (pending verification)
+        foreach ($request->file('documents') as $index => $file) {
+            $docType = $request->document_types[$index] ?? 'other';
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('landlord-documents', $fileName, 'public');
+
+            LandlordDocument::create([
+                'landlord_id' => $landlord->id,
+                'document_type' => $docType,
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $filePath,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'uploaded_at' => now(),
+                'verification_status' => 'pending',
+            ]);
+        }
 
         return redirect()->route('landlord.pending')->with('success', 'Registration submitted successfully. Please wait for admin approval.');
     }
@@ -334,6 +411,175 @@ class LandlordController extends Controller
                 $q->where('landlord_id', $landlordId);
             })->get();
         return view('landlord.tenants', compact('tenants'));
+    }
+
+    /**
+     * Show tenant history with filtering options
+     */
+    public function tenantHistory(Request $request)
+    {
+        $landlordId = Auth::id();
+        
+        // Build the query for tenant assignments
+        $query = TenantAssignment::where('landlord_id', $landlordId)
+            ->with(['tenant', 'unit.apartment']);
+        
+        // Apply filters
+        if ($request->filled('property_id')) {
+            $query->whereHas('unit.apartment', function($q) use ($request) {
+                $q->where('id', $request->property_id);
+            });
+        }
+        
+        if ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+        
+        if ($request->filled('tenant_name')) {
+            $searchTerm = $request->tenant_name;
+            $query->whereHas('tenant', function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->filled('date_from')) {
+            $query->where('lease_start_date', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $query->where('lease_end_date', '<=', $request->date_to);
+        }
+        
+        // Order by most recent first
+        $assignments = $query->orderBy('lease_start_date', 'desc')->paginate(20);
+        
+        // Get all apartments for filter dropdown
+        $apartments = Auth::user()->apartments()->orderBy('name')->get();
+        
+        // Get all units for filter dropdown
+        $units = Unit::whereHas('apartment', function($q) use ($landlordId) {
+            $q->where('landlord_id', $landlordId);
+        })->with('apartment')->orderBy('unit_number')->get();
+        
+        // Calculate statistics
+        $stats = [
+            'total_assignments' => TenantAssignment::where('landlord_id', $landlordId)->count(),
+            'active_assignments' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'active')->count(),
+            'terminated_assignments' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'terminated')->count(),
+            'total_revenue' => TenantAssignment::where('landlord_id', $landlordId)->where('status', 'active')->sum('rent_amount'),
+        ];
+        
+        return view('landlord.tenant-history', compact('assignments', 'apartments', 'units', 'stats'));
+    }
+
+    /**
+     * Export tenant history to CSV
+     */
+    public function exportTenantHistoryCSV(Request $request)
+    {
+        $landlordId = Auth::id();
+        
+        // Build the query with same filters as tenant history
+        $query = TenantAssignment::where('landlord_id', $landlordId)
+            ->with(['tenant', 'unit.apartment']);
+        
+        // Apply filters
+        if ($request->filled('property_id')) {
+            $query->whereHas('unit.apartment', function($q) use ($request) {
+                $q->where('id', $request->property_id);
+            });
+        }
+        
+        if ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+        
+        if ($request->filled('tenant_name')) {
+            $searchTerm = $request->tenant_name;
+            $query->whereHas('tenant', function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->filled('date_from')) {
+            $query->where('lease_start_date', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $query->where('lease_end_date', '<=', $request->date_to);
+        }
+        
+        $assignments = $query->orderBy('lease_start_date', 'desc')->get();
+        
+        // Generate CSV
+        $filename = 'tenant-history-' . date('Y-m-d') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+        
+        $callback = function() use ($assignments) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'Tenant Name',
+                'Email',
+                'Phone',
+                'Property Name',
+                'Unit Number',
+                'Bedrooms',
+                'Move-in Date',
+                'Move-out Date',
+                'Lease Duration (months)',
+                'Rent Amount',
+                'Security Deposit',
+                'Status',
+                'Payment Status',
+                'Notes'
+            ]);
+            
+            // Add data rows
+            foreach ($assignments as $assignment) {
+                $leaseStartDate = \Carbon\Carbon::parse($assignment->lease_start_date);
+                $leaseEndDate = \Carbon\Carbon::parse($assignment->lease_end_date);
+                $leaseDuration = $leaseStartDate->diffInMonths($leaseEndDate);
+                
+                // Determine payment status based on documents
+                $paymentStatus = $assignment->documents_verified ? 'Verified' : ($assignment->documents_uploaded ? 'Pending Verification' : 'Pending Documents');
+                
+                fputcsv($file, [
+                    $assignment->tenant->name ?? 'N/A',
+                    $assignment->tenant->email ?? 'N/A',
+                    $assignment->tenant->phone ?? 'N/A',
+                    $assignment->unit->apartment->name ?? 'N/A',
+                    $assignment->unit->unit_number ?? 'N/A',
+                    $assignment->unit->bedrooms ?? 'N/A',
+                    $assignment->lease_start_date ? $assignment->lease_start_date->format('M d, Y') : 'N/A',
+                    $assignment->lease_end_date ? $assignment->lease_end_date->format('M d, Y') : 'N/A',
+                    $leaseDuration,
+                    '₱' . number_format($assignment->rent_amount, 2),
+                    '₱' . number_format($assignment->security_deposit, 2),
+                    ucfirst($assignment->status),
+                    $paymentStatus,
+                    $assignment->notes ?? ''
+                ]);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
     }
 
     // API endpoints for apartment management
