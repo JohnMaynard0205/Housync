@@ -24,37 +24,9 @@ Route::get('/register', function () {
 })->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 
-// Public Explore page (landing-like listings)
-Route::get('/explore', function () {
-    $query = Apartment::with(['units' => function ($q) {
-        $q->where('status', 'available')->orderBy('rent_amount');
-    }])->latest();
-
-    // City filter (simple contains match on address)
-    if (request('city')) {
-        $city = request('city');
-        $query->where('address', 'like', "%{$city}%");
-    }
-
-    // Price + bedrooms via related units
-    $query->when(request('min_price') || request('max_price') || request('bedrooms') !== null, function ($q) {
-        $q->whereHas('units', function ($uq) {
-            $uq->where('status', 'available');
-            if (request('min_price') !== null && request('min_price') !== '') {
-                $uq->where('rent_amount', '>=', (float) request('min_price'));
-            }
-            if (request('max_price') !== null && request('max_price') !== '') {
-                $uq->where('rent_amount', '<=', (float) request('max_price'));
-            }
-            if (request('bedrooms') !== null && request('bedrooms') !== '') {
-                $uq->where('bedrooms', '>=', (int) request('bedrooms'));
-            }
-        });
-    });
-
-    $properties = $query->paginate(12)->withQueryString();
-    return view('explore', compact('properties'));
-})->name('explore');
+// Public Explore page (landing-like listings) - New Property System
+Route::get('/explore', [App\Http\Controllers\ExploreController::class, 'index'])->name('explore.index');
+Route::get('/property/{slug}', [App\Http\Controllers\ExploreController::class, 'show'])->name('property.show');
 
 // Landlord Registration (public)
 Route::get('/landlord/register', [LandlordController::class, 'register'])->name('landlord.register');
