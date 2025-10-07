@@ -40,8 +40,9 @@ class ApartmentObserver
 
                 // Update image if unit doesn't have its own
                 if (empty($unit->cover_image) && !empty($apartment->cover_image)) {
+                    $normalized = $this->normalizeImagePath($apartment->cover_image);
                     $property->update([
-                        'image_path' => $apartment->cover_image,
+                        'image_path' => $normalized,
                     ]);
                 }
             }
@@ -101,6 +102,29 @@ class ApartmentObserver
         }
 
         return 'Metro Manila';
+    }
+    /**
+     * Normalize stored image path to be storage-disk relative (no leading storage/ or public/)
+     */
+    protected function normalizeImagePath($path)
+    {
+        if (empty($path)) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            return ltrim(substr($path, strlen('storage/')), '/');
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return ltrim(substr($path, strlen('public/')), '/');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return ltrim($path, '/');
     }
 }
 

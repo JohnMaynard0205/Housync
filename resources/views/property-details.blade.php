@@ -90,8 +90,9 @@
         <div class="row">
             <div class="col-lg-8">
                 <!-- Property Image -->
-                @if($property->image_path && file_exists(public_path($property->image_path)))
-                    <img src="{{ asset($property->image_path) }}" alt="{{ $property->title }}" class="property-image-main mb-4">
+                @php($img = $property->image_url)
+                @if($img)
+                    <img src="{{ $img }}" alt="{{ $property->title }}" class="property-image-main mb-4">
                 @else
                     <div class="property-image-placeholder mb-4">
                         <div class="text-center">

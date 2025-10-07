@@ -2,8 +2,9 @@
     <div class="properties-grid">
         @foreach($properties as $property)
             <a href="{{ route('property.show', $property->slug) }}" class="property-card">
-                @if($property->image_path && file_exists(public_path($property->image_path)))
-                    <img src="{{ asset($property->image_path) }}" alt="{{ $property->title }}" class="property-image">
+                @php($img = $property->image_url)
+                @if($img)
+                    <img src="{{ $img }}" alt="{{ $property->title }}" class="property-image">
                 @else
                     <div class="property-image-placeholder">
                         <div>

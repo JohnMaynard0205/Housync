@@ -93,7 +93,8 @@ class UnitObserver
                 'bedrooms' => $unit->bedrooms,
                 'bathrooms' => $unit->bathrooms,
                 'area' => $unit->floor_area,
-                'image_path' => $unit->cover_image ?: $apartment->cover_image,
+                // Store raw storage-relative path (e.g., unit-covers/abc.jpg)
+                'image_path' => $this->normalizeImagePath($unit->cover_image ?: $apartment->cover_image),
                 'availability_status' => $availabilityStatus,
                 'landlord_id' => $apartment->landlord_id,
                 'is_featured' => false,
@@ -209,6 +210,34 @@ class UnitObserver
             // If no amenities, clear them
             $property->amenities()->detach();
         }
+    }
+
+    /**
+     * Normalize stored image path to be storage-disk relative (no leading storage/ or public/)
+     */
+    protected function normalizeImagePath($path)
+    {
+        if (empty($path)) {
+            return null;
+        }
+
+        // If path already includes storage/ prefix, strip it
+        if (str_starts_with($path, 'storage/')) {
+            return ltrim(substr($path, strlen('storage/')), '/');
+        }
+
+        // If starts with public/ (some apps store that), strip it
+        if (str_starts_with($path, 'public/')) {
+            return ltrim(substr($path, strlen('public/')), '/');
+        }
+
+        // If it is a full URL, just return as-is (model accessor will pass it through)
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        // Otherwise, assume already disk-relative such as unit-covers/xyz.jpg
+        return ltrim($path, '/');
     }
 }
 

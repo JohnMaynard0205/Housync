@@ -62,12 +62,24 @@ class Property extends Model
      */
     public function getImageUrlAttribute()
     {
-        if ($this->image_path && file_exists(public_path($this->image_path))) {
-            return asset($this->image_path);
+        if (empty($this->image_path)) {
+            return null;
         }
-        
-        // Return placeholder image
-        return asset('images/placeholder-property.jpg');
+
+        $path = $this->image_path;
+
+        // Absolute URL already
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        // Already pointing to public storage
+        if (Str::startsWith($path, ['storage/'])) {
+            return asset($path);
+        }
+
+        // Default: files stored on public disk → storage/<path>
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**
