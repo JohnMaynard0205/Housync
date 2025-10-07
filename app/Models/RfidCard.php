@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @property int $id
  * @property string $card_uid
- * @property int|null $tenant_assignment_id
  * @property int $landlord_id
  * @property int $apartment_id
  * @property string|null $card_name
@@ -25,7 +24,6 @@ class RfidCard extends Model
 
     protected $fillable = [
         'card_uid',
-        'tenant_assignment_id',
         'landlord_id',
         'apartment_id',
         'card_name',
@@ -41,9 +39,22 @@ class RfidCard extends Model
     ];
 
     // Relationships
+    public function tenantRfidAssignments()
+    {
+        return $this->hasMany(TenantRfidAssignment::class);
+    }
+
+    public function activeTenantAssignment()
+    {
+        return $this->hasOne(TenantRfidAssignment::class)
+                    ->where('status', 'active')
+                    ->with('tenantAssignment');
+    }
+
+    // Legacy method for backward compatibility
     public function tenantAssignment()
     {
-        return $this->belongsTo(TenantAssignment::class);
+        return $this->activeTenantAssignment()?->tenantAssignment();
     }
 
     public function landlord()
@@ -131,16 +142,12 @@ class RfidCard extends Model
             return false;
         }
 
-        if (!$this->tenant_assignment_id) {
+        $activeAssignment = $this->activeTenantAssignment;
+        if (!$activeAssignment) {
             return false;
         }
 
-        $assignment = $this->tenantAssignment;
-        if (!$assignment || !$assignment->isActive()) {
-            return false;
-        }
-
-        return true;
+        return $activeAssignment->canGrantAccess();
     }
 
     // Get access denial reason
@@ -158,15 +165,11 @@ class RfidCard extends Model
             return 'card_expired';
         }
 
-        if (!$this->tenant_assignment_id) {
+        $activeAssignment = $this->activeTenantAssignment;
+        if (!$activeAssignment) {
             return 'card_not_assigned';
         }
 
-        $assignment = $this->tenantAssignment;
-        if (!$assignment || !$assignment->isActive()) {
-            return 'tenant_inactive';
-        }
-
-        return null;
+        return $activeAssignment->getAccessDenialReason();
     }
 }

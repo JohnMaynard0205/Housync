@@ -78,7 +78,27 @@ class TenantAssignment extends Model
 
     public function rfidCards()
     {
-        return $this->hasMany(RfidCard::class);
+        return $this->hasManyThrough(
+            RfidCard::class,
+            TenantRfidAssignment::class,
+            'tenant_assignment_id', // Foreign key on tenant_rfid_assignments table
+            'id', // Foreign key on rfid_cards table
+            'id', // Local key on tenant_assignments table
+            'rfid_card_id' // Local key on tenant_rfid_assignments table
+        );
+    }
+
+    public function tenantRfidAssignments()
+    {
+        return $this->hasMany(TenantRfidAssignment::class);
+    }
+
+    public function activeRfidCards()
+    {
+        return $this->rfidCards()->whereHas('tenantRfidAssignments', function($query) {
+            $query->where('tenant_assignment_id', $this->id)
+                  ->where('status', 'active');
+        });
     }
 
     public function accessLogs()

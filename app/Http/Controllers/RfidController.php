@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RfidCard;
 use App\Models\AccessLog;
 use App\Models\TenantAssignment;
+use App\Models\TenantRfidAssignment;
 use App\Models\Apartment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class RfidController extends Controller
         }
         
         // Get RFID cards for the selected apartment
-        $cards = RfidCard::with(['tenantAssignment.tenant', 'apartment'])
+        $cards = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant', 'apartment'])
                          ->forLandlord($user->id);
         
         if ($apartmentId) {
@@ -114,9 +115,11 @@ class RfidController extends Controller
         }
         
         try {
+            DB::beginTransaction();
+            
+            // Create the RFID card
             $rfidCard = RfidCard::create([
                 'card_uid' => strtoupper($request->card_uid),
-                'tenant_assignment_id' => $request->tenant_assignment_id,
                 'landlord_id' => $user->id,
                 'apartment_id' => $request->apartment_id,
                 'card_name' => $request->card_name,
@@ -126,10 +129,23 @@ class RfidController extends Controller
                 'notes' => $request->notes,
             ]);
             
+            // Create the tenant assignment
+            TenantRfidAssignment::create([
+                'rfid_card_id' => $rfidCard->id,
+                'tenant_assignment_id' => $request->tenant_assignment_id,
+                'assigned_at' => now(),
+                'expires_at' => $request->expires_at,
+                'status' => 'active',
+                'notes' => 'Initial assignment',
+            ]);
+            
+            DB::commit();
+            
             return redirect()->route('landlord.security', ['apartment_id' => $request->apartment_id])
                            ->with('success', 'RFID card assigned successfully!');
                            
         } catch (\Exception $e) {
+            DB::rollback();
             return back()->withErrors(['error' => 'Failed to assign RFID card: ' . $e->getMessage()]);
         }
     }
@@ -141,7 +157,7 @@ class RfidController extends Controller
     {
         $user = Auth::user();
         
-        $card = RfidCard::with(['tenantAssignment.tenant', 'apartment'])
+        $card = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant', 'apartment'])
                        ->where('landlord_id', $user->id)
                        ->findOrFail($id);
         
@@ -233,7 +249,7 @@ class RfidController extends Controller
             return response()->json(['error' => 'Card UID required'], 400);
         }
         
-        $rfidCard = RfidCard::with(['tenantAssignment.tenant'])->where('card_uid', $cardUid)->first();
+        $rfidCard = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant'])->where('card_uid', $cardUid)->first();
         
         $result = [
             'card_uid' => $cardUid,
@@ -247,7 +263,7 @@ class RfidController extends Controller
             $result['denial_reason'] = 'card_not_found';
         } elseif ($rfidCard->canGrantAccess()) {
             $result['access_granted'] = true;
-            $result['tenant_name'] = $rfidCard->tenantAssignment->tenant->name;
+            $result['tenant_name'] = $rfidCard->activeTenantAssignment->tenantAssignment->tenant->name;
         } else {
             $result['denial_reason'] = $rfidCard->getAccessDenialReason();
         }
@@ -256,7 +272,7 @@ class RfidController extends Controller
         AccessLog::create([
             'card_uid' => $cardUid,
             'rfid_card_id' => $rfidCard?->id,
-            'tenant_assignment_id' => $rfidCard?->tenant_assignment_id,
+            'tenant_assignment_id' => $rfidCard?->activeTenantAssignment?->tenant_assignment_id,
             'apartment_id' => $rfidCard?->apartment_id,
             'access_result' => $result['access_granted'] ? 'granted' : 'denied',
             'denial_reason' => $result['denial_reason'],
@@ -387,7 +403,7 @@ class RfidController extends Controller
                 
                 if ($rfidCard->canGrantAccess()) {
                     $result['access_granted'] = true;
-                    $result['tenant_name'] = $rfidCard->tenantAssignment->tenant->name;
+                    $result['tenant_name'] = $rfidCard->activeTenantAssignment->tenantAssignment->tenant->name;
                     $result['message'] = 'Access granted (' . strtoupper($entryState) . ')';
                 } else {
                     $result['access_granted'] = false;
@@ -399,7 +415,7 @@ class RfidController extends Controller
                 AccessLog::create([
                     'card_uid' => $cardUID,
                     'rfid_card_id' => $rfidCard->id,
-                    'tenant_assignment_id' => $rfidCard->tenant_assignment_id,
+                    'tenant_assignment_id' => $rfidCard->activeTenantAssignment?->tenant_assignment_id,
                     'apartment_id' => $rfidCard->apartment_id,
                     'access_result' => $result['access_granted'] ? 'granted' : 'denied',
                     'denial_reason' => $result['denial_reason'] ?? null,
