@@ -78,6 +78,14 @@ class Property extends Model
             return asset($path);
         }
 
+        // If path begins with public/ or images/, normalize to asset()
+        if (Str::startsWith($path, ['public/'])) {
+            return asset(ltrim(Str::after($path, 'public/'), '/'));
+        }
+        if (Str::startsWith($path, ['images/'])) {
+            return asset($path);
+        }
+
         // Default: files stored on public disk → storage/<path>
         return asset('storage/' . ltrim($path, '/'));
     }

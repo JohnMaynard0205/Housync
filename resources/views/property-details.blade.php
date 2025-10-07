@@ -173,8 +173,9 @@
                     @foreach($relatedProperties as $related)
                         <div class="col-md-3 mb-4">
                             <a href="{{ route('property.show', $related->slug) }}" class="related-property-card">
-                                @if($related->image_path)
-                                    <img src="{{ asset($related->image_path) }}" alt="{{ $related->title }}" style="width: 100%; height: 200px; object-fit: cover;">
+                                @php($relatedImg = $related->image_url)
+                                @if($relatedImg)
+                                    <img src="{{ $relatedImg }}" alt="{{ $related->title }}" style="width: 100%; height: 200px; object-fit: cover;">
                                 @else
                                     <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">
                                         <div>No Image</div>
