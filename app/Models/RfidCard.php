@@ -61,6 +61,7 @@ class RfidCard extends Model
         return $this->hasMany(AccessLog::class);
     }
 
+    //--
     // Scopes
     public function scopeActive($query)
     {
@@ -98,12 +99,12 @@ class RfidCard extends Model
     {
         return $this->expires_at && $this->expires_at->isPast();
     }
-
+//--
     public function isCompromised()
     {
         return in_array($this->status, ['lost', 'stolen']);
     }
-
+//--
     public function getStatusBadgeClassAttribute()
     {
         return match($this->status) {

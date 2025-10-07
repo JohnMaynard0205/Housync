@@ -207,6 +207,7 @@ class ESP32Reader
         } else {
             echo "Laravel API returned error: " . ($responseData['message'] ?? 'Unknown error') . "\n";
             return false;
+            //--
         }
     }
 
