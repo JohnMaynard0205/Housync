@@ -25,7 +25,7 @@ Route::get('/register', function () {
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 
 // Public Explore page (landing-like listings) - New Property System
-Route::get('/explore', [App\Http\Controllers\ExploreController::class, 'index'])->name('explore.index');
+Route::get('/explore', [App\Http\Controllers\ExploreController::class, 'index'])->name('explore');
 Route::get('/property/{slug}', [App\Http\Controllers\ExploreController::class, 'show'])->name('property.show');
 
 // Landlord Registration (public)

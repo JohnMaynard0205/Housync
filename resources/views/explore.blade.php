@@ -498,7 +498,7 @@
                 $('#loadingOverlay').addClass('active');
 
                 $.ajax({
-                    url: '{{ route("explore.index") }}',
+                    url: '{{ route("explore") }}',
                     method: 'GET',
                     data: formData,
                     success: function(response) {

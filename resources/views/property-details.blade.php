@@ -75,7 +75,7 @@
 <body>
     <div class="property-header">
         <div class="container">
-            <a href="{{ route('explore.index') }}" class="btn btn-outline-primary mb-3">
+            <a href="{{ route('explore') }}" class="btn btn-outline-primary mb-3">
                 <i class="fas fa-arrow-left me-1"></i> Back to Explore
             </a>
             <h1>{{ $property->title }}</h1>
