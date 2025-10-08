@@ -42,10 +42,39 @@ class LandlordController extends Controller
         return view('landlord.dashboard', compact('stats', 'apartments', 'recentUnits'));
     }
 
-    public function apartments()
+    public function apartments(Request $request)
     {
-        $apartments = Auth::user()->apartments()->with('units')->latest()->paginate(10);
-        return view('landlord.apartments', compact('apartments'));
+        $query = Auth::user()->apartments()->with('units');
+        
+        // Sorting
+        $sortBy = $request->get('sort', 'name'); // Default: alphabetical by name
+        
+        switch ($sortBy) {
+            case 'name':
+                $query->orderBy('name');
+                break;
+            case 'units':
+                $query->withCount('units')->orderByDesc('units_count');
+                break;
+            case 'occupancy':
+                // Sort by occupancy rate (will handle in view)
+                $query->orderBy('name');
+                break;
+            case 'newest':
+                $query->latest();
+                break;
+            default:
+                $query->orderBy('name');
+        }
+        
+        $apartments = $query->paginate(15);
+        
+        // Calculate stats
+        $totalUnits = $apartments->sum(function($apt) { return $apt->units->count(); });
+        $occupiedUnits = $apartments->sum(function($apt) { return $apt->units->where('status', 'occupied')->count(); });
+        $monthlyRevenue = $apartments->sum(function($apt) { return $apt->units->where('status', 'occupied')->sum('rent_amount'); });
+        
+        return view('landlord.apartments', compact('apartments', 'totalUnits', 'occupiedUnits', 'monthlyRevenue'));
     }
 
     public function createApartment()
@@ -66,6 +95,15 @@ class LandlordController extends Controller
             'amenities' => 'nullable|array',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
             'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            // Auto-generation fields
+            'auto_generate_units' => 'nullable|boolean',
+            'default_unit_type' => 'nullable|string|max:100',
+            'default_rent' => 'nullable|numeric|min:0',
+            'num_floors' => 'nullable|integer|min:1',
+            'units_per_floor' => 'nullable|integer|min:1',
+            'default_bedrooms' => 'nullable|integer|min:0',
+            'default_bathrooms' => 'nullable|integer|min:1',
+            'numbering_pattern' => 'nullable|string|in:floor_based,sequential,letter_number',
         ]);
 
         try {
@@ -95,10 +133,103 @@ class LandlordController extends Controller
                 'gallery' => $galleryPaths ?: null,
             ]);
 
-            return redirect()->route('landlord.apartments')->with('success', 'Apartment created successfully.');
+            // Auto-generate units if requested
+            if ($request->auto_generate_units) {
+                $this->autoGenerateUnits($apartment, $request);
+            }
+
+            $successMessage = $request->auto_generate_units 
+                ? "Apartment created successfully with {$request->total_units} units!" 
+                : 'Apartment created successfully.';
+
+            return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
             \Log::error('Error creating apartment: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to create apartment. Please try again.');
+        }
+    }
+
+    /**
+     * Auto-generate units for an apartment
+     */
+    private function autoGenerateUnits($apartment, $request)
+    {
+        $totalUnits = $request->total_units;
+        $numFloors = $request->num_floors ?? 1;
+        $unitsPerFloor = $request->units_per_floor ?? ceil($totalUnits / $numFloors);
+        $numberingPattern = $request->numbering_pattern ?? 'floor_based';
+        
+        $defaultData = [
+            'unit_type' => $request->default_unit_type ?? '2-Bedroom',
+            'rent_amount' => $request->default_rent ?? 15000,
+            'bedrooms' => $request->default_bedrooms ?? 2,
+            'bathrooms' => $request->default_bathrooms ?? 1,
+            'status' => 'available',
+            'leasing_type' => 'separate',
+            'tenant_count' => 0,
+            'max_occupants' => ($request->default_bedrooms ?? 2) * 2,
+        ];
+
+        $unitsCreated = 0;
+        $currentFloor = 1;
+        $unitOnFloor = 1;
+
+        for ($i = 1; $i <= $totalUnits; $i++) {
+            // Generate unit number based on pattern
+            $unitNumber = $this->generateUnitNumber($i, $currentFloor, $unitOnFloor, $numberingPattern);
+
+            // Create the unit
+            $apartment->units()->create([
+                'unit_number' => $unitNumber,
+                'unit_type' => $defaultData['unit_type'],
+                'rent_amount' => $defaultData['rent_amount'],
+                'status' => $defaultData['status'],
+                'leasing_type' => $defaultData['leasing_type'],
+                'bedrooms' => $defaultData['bedrooms'],
+                'bathrooms' => $defaultData['bathrooms'],
+                'tenant_count' => $defaultData['tenant_count'],
+                'max_occupants' => $defaultData['max_occupants'],
+                'floor_number' => $currentFloor,
+                'description' => "Auto-generated unit",
+                'amenities' => $request->amenities ?? [],
+                'is_furnished' => false,
+            ]);
+
+            $unitsCreated++;
+
+            // Move to next floor if needed
+            if ($unitOnFloor >= $unitsPerFloor && $currentFloor < $numFloors) {
+                $currentFloor++;
+                $unitOnFloor = 1;
+            } else {
+                $unitOnFloor++;
+            }
+        }
+
+        \Log::info("Auto-generated {$unitsCreated} units for apartment: {$apartment->name}");
+    }
+
+    /**
+     * Generate unit number based on pattern
+     */
+    private function generateUnitNumber($index, $floor, $unitOnFloor, $pattern)
+    {
+        switch ($pattern) {
+            case 'floor_based':
+                // Format: 101, 102, 201, 202, etc.
+                return ($floor * 100) + $unitOnFloor;
+                
+            case 'sequential':
+                // Format: Unit 1, Unit 2, Unit 3, etc.
+                return "Unit {$index}";
+                
+            case 'letter_number':
+                // Format: A1, A2, B1, B2, etc.
+                $letter = chr(64 + $floor); // A, B, C, etc.
+                return "{$letter}{$unitOnFloor}";
+                
+            default:
+                return ($floor * 100) + $unitOnFloor;
         }
     }
 
@@ -122,9 +253,14 @@ class LandlordController extends Controller
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
             'status' => 'required|in:active,inactive,maintenance',
+            'auto_generate_additional' => 'nullable|boolean',
+            'auto_create_missing' => 'nullable|boolean',
         ]);
 
         try {
+            $currentUnitCount = $apartment->units()->count();
+            $newTotalUnits = $request->total_units;
+
             $apartment->update([
                 'name' => $request->name,
                 'address' => $request->address,
@@ -137,11 +273,91 @@ class LandlordController extends Controller
                 'status' => $request->status,
             ]);
 
-            return redirect()->route('landlord.apartments')->with('success', 'Apartment updated successfully.');
+            $unitsCreated = 0;
+
+            // Auto-create missing units if there was a discrepancy
+            if ($request->auto_create_missing && $currentUnitCount < $apartment->total_units) {
+                $unitsToCreate = $apartment->total_units - $currentUnitCount;
+                $this->autoGenerateAdditionalUnits($apartment, $unitsToCreate, $currentUnitCount);
+                $unitsCreated = $unitsToCreate;
+            }
+            // Auto-generate additional units if total was increased
+            elseif ($request->auto_generate_additional && $newTotalUnits > $currentUnitCount) {
+                $additionalUnits = $newTotalUnits - $currentUnitCount;
+                $this->autoGenerateAdditionalUnits($apartment, $additionalUnits, $currentUnitCount);
+                $unitsCreated = $additionalUnits;
+            }
+
+            $successMessage = $unitsCreated > 0 
+                ? "Apartment updated successfully and {$unitsCreated} units auto-generated!" 
+                : 'Apartment updated successfully.';
+
+            return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
             \Log::error('Error updating apartment: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to update apartment. Please try again.');
         }
+    }
+
+    /**
+     * Auto-generate additional units for an existing apartment
+     */
+    private function autoGenerateAdditionalUnits($apartment, $numUnitsToCreate, $startingIndex = 0)
+    {
+        $currentMaxFloor = $apartment->units()->max('floor_number') ?? 0;
+        $existingUnits = $apartment->units()->count();
+        
+        // Use sensible defaults
+        $defaultData = [
+            'unit_type' => '2-Bedroom',
+            'rent_amount' => 15000,
+            'bedrooms' => 2,
+            'bathrooms' => 1,
+            'status' => 'available',
+            'leasing_type' => 'separate',
+            'tenant_count' => 0,
+            'max_occupants' => 4,
+        ];
+
+        $unitsCreated = 0;
+        $currentFloor = $currentMaxFloor > 0 ? $currentMaxFloor : 1;
+        $unitOnFloor = 1;
+
+        for ($i = 1; $i <= $numUnitsToCreate; $i++) {
+            $globalIndex = $existingUnits + $i;
+            
+            // Simple floor-based numbering
+            $unitNumber = ($currentFloor * 100) + $unitOnFloor;
+
+            // Create the unit
+            $apartment->units()->create([
+                'unit_number' => $unitNumber,
+                'unit_type' => $defaultData['unit_type'],
+                'rent_amount' => $defaultData['rent_amount'],
+                'status' => $defaultData['status'],
+                'leasing_type' => $defaultData['leasing_type'],
+                'bedrooms' => $defaultData['bedrooms'],
+                'bathrooms' => $defaultData['bathrooms'],
+                'tenant_count' => $defaultData['tenant_count'],
+                'max_occupants' => $defaultData['max_occupants'],
+                'floor_number' => $currentFloor,
+                'description' => "Auto-generated unit",
+                'amenities' => $apartment->amenities ?? [],
+                'is_furnished' => false,
+            ]);
+
+            $unitsCreated++;
+            $unitOnFloor++;
+
+            // Move to next floor every 10 units (configurable)
+            if ($unitOnFloor > 10) {
+                $currentFloor++;
+                $unitOnFloor = 1;
+            }
+        }
+
+        \Log::info("Auto-generated {$unitsCreated} additional units for apartment: {$apartment->name}");
+        return $unitsCreated;
     }
 
     public function deleteApartment($id)
@@ -164,20 +380,59 @@ class LandlordController extends Controller
         }
     }
 
-    public function units($apartmentId = null)
+    public function units(Request $request, $apartmentId = null)
     {
         $landlord = Auth::user();
         
+        // Sorting
+        $sortBy = $request->get('sort', 'property_unit'); // Default: by property then unit number
+        
         if ($apartmentId) {
             $apartment = $landlord->apartments()->findOrFail($apartmentId);
-            $units = $apartment->units()->with('apartment')->latest()->paginate(15);
+            $query = $apartment->units()->with('apartment');
         } else {
-            $units = Unit::whereHas('apartment', function($query) use ($landlord) {
-                $query->where('landlord_id', $landlord->id);
-            })->with('apartment')->latest()->paginate(15);
+            $query = Unit::whereHas('apartment', function($q) use ($landlord) {
+                $q->where('landlord_id', $landlord->id);
+            })->with('apartment');
         }
-
-        $apartments = $landlord->apartments()->get();
+        
+        // Apply sorting
+        switch ($sortBy) {
+            case 'property_unit':
+                // Sort by property name, then unit number (alphanumeric)
+                $query->join('apartments', 'units.apartment_id', '=', 'apartments.id')
+                      ->orderBy('apartments.name')
+                      ->orderBy('units.unit_number')
+                      ->select('units.*');
+                break;
+            case 'property':
+                // Sort by property name only
+                $query->join('apartments', 'units.apartment_id', '=', 'apartments.id')
+                      ->orderBy('apartments.name')
+                      ->select('units.*');
+                break;
+            case 'unit_number':
+                $query->orderBy('unit_number');
+                break;
+            case 'status':
+                $query->orderByRaw("FIELD(status, 'available', 'occupied', 'maintenance')")
+                      ->orderBy('unit_number');
+                break;
+            case 'rent':
+                $query->orderByDesc('rent_amount');
+                break;
+            case 'newest':
+                $query->latest();
+                break;
+            default:
+                $query->join('apartments', 'units.apartment_id', '=', 'apartments.id')
+                      ->orderBy('apartments.name')
+                      ->orderBy('units.unit_number')
+                      ->select('units.*');
+        }
+        
+        $units = $query->paginate(20);
+        $apartments = $landlord->apartments()->orderBy('name')->get();
         
         return view('landlord.units', compact('units', 'apartments', 'apartmentId'));
     }

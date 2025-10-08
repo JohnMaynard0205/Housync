@@ -624,13 +624,102 @@
 
                             <div class="form-group">
                                 <label class="form-label required">Total Units</label>
-                                <input type="number" name="total_units" class="form-control @error('total_units') error @enderror" 
+                                <input type="number" name="total_units" id="total_units" class="form-control @error('total_units') error @enderror" 
                                        value="{{ old('total_units') }}" min="1" placeholder="e.g., 24" required>
                                 @error('total_units')
                                     <div class="form-error">{{ $message }}</div>
                                 @enderror
+                                <small class="form-text text-muted">Enter the number of units in this property</small>
                             </div>
 
+                            <div class="form-group full-width">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="auto_generate_units" name="auto_generate_units" 
+                                           value="1" {{ old('auto_generate_units', '1') ? 'checked' : '' }}>
+                                    <label class="custom-control-label" for="auto_generate_units">
+                                        <strong>Auto-generate units</strong> (Automatically create unit records based on total units count)
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    ✨ Recommended for properties with many units! This will create all unit records automatically.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Generation Settings (shown when auto-generate is checked) -->
+                    <div class="form-section" id="auto_gen_settings" style="display: none;">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-magic"></i>
+                            Auto-Generation Settings
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Default Unit Type</label>
+                                <select name="default_unit_type" class="form-control">
+                                    <option value="Studio" {{ old('default_unit_type') == 'Studio' ? 'selected' : '' }}>Studio</option>
+                                    <option value="1-Bedroom" {{ old('default_unit_type') == '1-Bedroom' ? 'selected' : '' }}>1-Bedroom</option>
+                                    <option value="2-Bedroom" {{ old('default_unit_type', '2-Bedroom') == '2-Bedroom' ? 'selected' : '' }}>2-Bedroom</option>
+                                    <option value="3-Bedroom" {{ old('default_unit_type') == '3-Bedroom' ? 'selected' : '' }}>3-Bedroom</option>
+                                    <option value="Apartment" {{ old('default_unit_type') == 'Apartment' ? 'selected' : '' }}>Apartment</option>
+                                </select>
+                                <small class="form-text text-muted">Default type for all generated units</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Default Rent Amount (₱)</label>
+                                <input type="number" name="default_rent" class="form-control" 
+                                       value="{{ old('default_rent', 15000) }}" min="0" step="100" placeholder="15000">
+                                <small class="form-text text-muted">You can edit individual unit prices later</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Number of Floors</label>
+                                <input type="number" name="num_floors" id="num_floors" class="form-control" 
+                                       value="{{ old('num_floors', 1) }}" min="1" placeholder="e.g., 5">
+                                <small class="form-text text-muted">For unit numbering (e.g., 101, 201, 301...)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Units Per Floor</label>
+                                <input type="number" name="units_per_floor" id="units_per_floor" class="form-control" 
+                                       value="{{ old('units_per_floor') }}" min="1" placeholder="Auto-calculated">
+                                <small class="form-text text-muted">Leave empty to auto-distribute</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Default Bedrooms</label>
+                                <input type="number" name="default_bedrooms" class="form-control" 
+                                       value="{{ old('default_bedrooms', 2) }}" min="0" max="10">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Default Bathrooms</label>
+                                <input type="number" name="default_bathrooms" class="form-control" 
+                                       value="{{ old('default_bathrooms', 1) }}" min="1" max="10">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Numbering Pattern</label>
+                                <select name="numbering_pattern" class="form-control">
+                                    <option value="floor_based" {{ old('numbering_pattern', 'floor_based') == 'floor_based' ? 'selected' : '' }}>Floor-Based (101, 102, 201, 202...)</option>
+                                    <option value="sequential" {{ old('numbering_pattern') == 'sequential' ? 'selected' : '' }}>Sequential (Unit 1, Unit 2, Unit 3...)</option>
+                                    <option value="letter_number" {{ old('numbering_pattern') == 'letter_number' ? 'selected' : '' }}>Letter-Number (A1, A2, B1, B2...)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Note:</strong> All generated units will be created with status "Available". You can edit individual units later to customize details.
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-calendar"></i>
+                            Building Information
+                        </h3>
+                        <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label">Year Built</label>
                                 <input type="number" name="year_built" class="form-control @error('year_built') error @enderror" 
@@ -931,6 +1020,46 @@
                     alert('Please fix the errors before submitting.');
                 }
             });
+
+            // Auto-generation toggle
+            const autoGenCheckbox = document.getElementById('auto_generate_units');
+            const autoGenSettings = document.getElementById('auto_gen_settings');
+            const totalUnitsInput = document.getElementById('total_units');
+            const numFloorsInput = document.getElementById('num_floors');
+            const unitsPerFloorInput = document.getElementById('units_per_floor');
+
+            // Show/hide auto-generation settings
+            if (autoGenCheckbox) {
+                autoGenCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        autoGenSettings.style.display = 'block';
+                    } else {
+                        autoGenSettings.style.display = 'none';
+                    }
+                });
+
+                // Initial state
+                if (autoGenCheckbox.checked) {
+                    autoGenSettings.style.display = 'block';
+                }
+            }
+
+            // Auto-calculate units per floor
+            function calculateUnitsPerFloor() {
+                const totalUnits = parseInt(totalUnitsInput.value) || 0;
+                const numFloors = parseInt(numFloorsInput.value) || 1;
+                
+                if (totalUnits > 0 && numFloors > 0 && !unitsPerFloorInput.value) {
+                    const perFloor = Math.ceil(totalUnits / numFloors);
+                    unitsPerFloorInput.placeholder = `Auto: ${perFloor} units/floor`;
+                }
+            }
+
+            if (totalUnitsInput && numFloorsInput) {
+                totalUnitsInput.addEventListener('input', calculateUnitsPerFloor);
+                numFloorsInput.addEventListener('input', calculateUnitsPerFloor);
+                calculateUnitsPerFloor();
+            }
         });
     </script>
 </body>

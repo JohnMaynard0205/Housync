@@ -2,6 +2,81 @@
 
 @section('title', 'My Units')
 
+@push('styles')
+<style>
+.units-list {
+    background: white;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.units-list .list-header {
+    display: flex;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.units-list .list-row {
+    display: flex;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+    transition: background 0.15s ease;
+}
+
+.units-list .list-row:hover {
+    background: #f8fafc;
+}
+
+.units-list .list-row:last-child {
+    border-bottom: none;
+}
+
+.units-list .list-column {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    font-size: 0.875rem;
+}
+
+.units-list .text-center {
+    justify-content: center;
+}
+
+.units-list .text-right {
+    justify-content: flex-end;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-icon:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+</style>
+@endpush
+
 @section('content')
 <!DOCTYPE html>
 <html lang="en">
@@ -516,27 +591,64 @@
             align-items: center;
             gap: 0.5rem;
             margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .pagination nav {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .pagination a,
         .pagination span {
             padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid #e2e8f0;
             border-radius: 0.375rem;
             text-decoration: none;
-            color: #374151;
+            color: #475569;
             font-size: 0.875rem;
+            background: white;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
         }
 
         .pagination a:hover {
-            background: #f9fafb;
-            border-color: #9ca3af;
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #0f172a;
         }
 
         .pagination .active span {
             background: #f97316;
             border-color: #f97316;
             color: white;
+        }
+
+        /* Fix Tailwind SVG arrow sizing */
+        .pagination svg {
+            width: 1rem !important;
+            height: 1rem !important;
+            display: inline-block;
+        }
+
+        /* Disabled pagination elements */
+        .pagination .disabled span,
+        .pagination [aria-disabled="true"] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+
+        /* Pagination ellipsis */
+        .pagination .dots {
+            padding: 0.5rem;
+            color: #94a3b8;
         }
     </style>
 </head>
@@ -643,107 +755,85 @@
                         <h2 class="section-title">All Units</h2>
                         <p class="section-subtitle">View and manage your rental units across all properties</p>
                     </div>
-                    <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add New Unit
-                    </a>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div class="sort-dropdown">
+                            <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
+                            <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                                <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Unit Number</option>
+                                <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
+                                <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
+                                <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
+                                <option value="rent" {{ request('sort') == 'rent' ? 'selected' : '' }}>Rent (Highest First)</option>
+                                <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                            </select>
+                        </div>
+                        <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add New Unit
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Search and Filters -->
-                <form method="GET" action="{{ route('landlord.units') }}">
-                    <div class="filters-section">
-                        <div class="form-group">
-                            <label class="form-label">Search Units</label>
-                            <input type="text" name="search" class="form-control" 
-                                   placeholder="Search by unit number, property..." 
-                                   value="{{ request('search') }}">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-control">
-                                <option value="">All Status</option>
-                                <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
-                                <option value="occupied" {{ request('status') == 'occupied' ? 'selected' : '' }}>Occupied</option>
-                                <option value="maintenance" {{ request('status') == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Property</label>
-                            <select name="apartment" class="form-control">
-                                <option value="">All Properties</option>
-                                @foreach($apartments ?? [] as $apartment)
-                                    <option value="{{ $apartment->id }}" {{ request('apartment') == $apartment->id ? 'selected' : '' }}>
-                                        {{ $apartment->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filter
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
                 @if($units->count() > 0)
-                    <div class="units-grid">
+                    <div class="units-list">
+                        <div class="list-header">
+                            <div class="list-column" style="flex: 1.5;">Unit Number</div>
+                            <div class="list-column" style="flex: 1.5;">Property</div>
+                            <div class="list-column">Type</div>
+                            <div class="list-column text-center">Beds / Baths</div>
+                            <div class="list-column text-center">Floor</div>
+                            <div class="list-column text-center">Status</div>
+                            <div class="list-column text-right">Rent/Month</div>
+                            <div class="list-column text-center">Actions</div>
+                        </div>
+                        
                         @foreach($units as $unit)
-                            <div class="unit-card">
-                                <div class="unit-header">
-                                    <div>
-                                        <h3 class="unit-title">{{ $unit->unit_number }}</h3>
-                                        <p class="unit-property">{{ $unit->apartment->name ?? 'Unknown Property' }}</p>
+                            <div class="list-row">
+                                <div class="list-column" style="flex: 1.5;">
+                                    <div style="font-weight: 600; color: #1e293b;">{{ $unit->unit_number }}</div>
+                                </div>
+                                <div class="list-column" style="flex: 1.5;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-building" style="color: #94a3b8; font-size: 0.75rem;"></i>
+                                        <span>{{ $unit->apartment->name ?? 'Unknown' }}</span>
                                     </div>
-                                    <span class="unit-status status-{{ $unit->status }}">
+                                </div>
+                                <div class="list-column">
+                                    <span style="color: #64748b;">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
+                                </div>
+                                <div class="list-column text-center">
+                                    <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: center;">
+                                        <span title="Bedrooms"><i class="fas fa-bed" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bedrooms ?? 0 }}</span>
+                                        <span title="Bathrooms"><i class="fas fa-bath" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bathrooms ?? 1 }}</span>
+                                    </div>
+                                </div>
+                                <div class="list-column text-center">
+                                    <span style="color: #64748b;">{{ $unit->floor_number ?? 'N/A' }}</span>
+                                </div>
+                                <div class="list-column text-center">
+                                    @php
+                                        $statusColors = [
+                                            'available' => ['bg' => '#dcfce7', 'text' => '#16a34a'],
+                                            'occupied' => ['bg' => '#fee2e2', 'text' => '#dc2626'],
+                                            'maintenance' => ['bg' => '#fef3c7', 'text' => '#d97706'],
+                                        ];
+                                        $color = $statusColors[$unit->status] ?? ['bg' => '#e2e8f0', 'text' => '#64748b'];
+                                    @endphp
+                                    <span style="background: {{ $color['bg'] }}; color: {{ $color['text'] }}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
                                         {{ ucfirst($unit->status) }}
                                     </span>
                                 </div>
-
-                                <div class="unit-info">
-                                    <div class="info-item">
-                                        <i class="fas fa-bed"></i>
-                                        <span>{{ $unit->bedrooms ?? 0 }} Bedrooms</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <i class="fas fa-bath"></i>
-                                        <span>{{ $unit->bathrooms ?? 1 }} Bathrooms</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <i class="fas fa-layer-group"></i>
-                                        <span>Floor {{ $unit->floor_number ?? 'N/A' }}</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <i class="fas fa-users"></i>
-                                        <span>Max {{ $unit->max_occupants ?? 'N/A' }}</span>
-                                    </div>
+                                <div class="list-column text-right">
+                                    <span style="color: #0f172a; font-weight: 600;">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span>
                                 </div>
-
-                                <div class="unit-details">
-                                    <div class="detail-row">
-                                        <span class="detail-label">Unit Type:</span>
-                                        <span class="detail-value">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
+                                <div class="list-column text-center">
+                                    <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                        <button onclick="editUnit({{ $unit->id }})" class="btn-icon" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="viewUnitDetails({{ $unit->id }})" class="btn-icon" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Floor Area:</span>
-                                        <span class="detail-value">{{ $unit->floor_area ?? 'N/A' }} sq ft</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Created:</span>
-                                        <span class="detail-value">{{ $unit->created_at->format('M d, Y') }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="rent-amount">
-                                    ₱{{ number_format($unit->rent_amount ?? 0, 0) }}/month
-                                </div>
-
-                                <div class="btn-group">
-                                    <a href="#" class="btn btn-primary btn-sm" onclick="editUnit({{ $unit->id }})">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="#" class="btn btn-secondary btn-sm" onclick="viewUnitDetails({{ $unit->id }})">
-                                        <i class="fas fa-eye"></i> Details
-                                    </a>
                                 </div>
                             </div>
                         @endforeach
@@ -751,8 +841,8 @@
 
                     <!-- Pagination -->
                     @if($units->hasPages())
-                        <div class="pagination">
-                            {{ $units->links() }}
+                        <div class="pagination" style="margin-top: 1.5rem;">
+                            {{ $units->appends(['sort' => request('sort')])->links() }}
                         </div>
                     @endif
                 @else
@@ -831,8 +921,8 @@
                                         <option value="two_bedroom" ${data.unit_type === 'two_bedroom' ? 'selected' : ''}>Two Bedroom</option>
                                         <option value="three_bedroom" ${data.unit_type === 'three_bedroom' ? 'selected' : ''}>Three Bedroom</option>
                                         <option value="penthouse" ${data.unit_type === 'penthouse' ? 'selected' : ''}>Penthouse</option>
-                                        <option value="duplex" ${data.unit_type === 'duplex' ? 'selected' : ''}>Duplex</option>
                                     </select>
+                                    <small class="form-text text-muted">Bedrooms will auto-update based on selection</small>
                                 </div>
                             </div>
                         </div>
@@ -866,19 +956,14 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_floor_area" class="form-label">Floor Area (sq ft)</label>
-                                    <input type="number" class="form-control" id="edit_floor_area" name="floor_area" value="${data.floor_area || ''}" step="0.01" min="0">
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="edit_bedrooms" class="form-label">Bedrooms *</label>
-                                    <input type="number" class="form-control" id="edit_bedrooms" name="bedrooms" value="${data.bedrooms}" min="0" required>
+                                    <input type="number" class="form-control" id="edit_bedrooms" name="bedrooms" value="${data.bedrooms}" min="0" required readonly>
+                                    <small class="form-text text-muted">Auto-filled based on unit type</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -918,6 +1003,39 @@
                     
                     // Show save button
                     saveBtn.style.display = 'inline-block';
+                    
+                    // Add event listener for unit type change to auto-populate bedrooms
+                    const editUnitTypeSelect = document.getElementById('edit_unit_type');
+                    const editBedroomsInput = document.getElementById('edit_bedrooms');
+                    
+                    if (editUnitTypeSelect && editBedroomsInput) {
+                        editUnitTypeSelect.addEventListener('change', function() {
+                            const unitType = this.value;
+                            let bedroomCount = 0;
+                            
+                            switch(unitType) {
+                                case 'studio':
+                                    bedroomCount = 0;
+                                    break;
+                                case 'one_bedroom':
+                                    bedroomCount = 1;
+                                    break;
+                                case 'two_bedroom':
+                                    bedroomCount = 2;
+                                    break;
+                                case 'three_bedroom':
+                                    bedroomCount = 3;
+                                    break;
+                                case 'penthouse':
+                                    bedroomCount = 3; // Default for penthouse
+                                    break;
+                                default:
+                                    bedroomCount = 0;
+                            }
+                            
+                            editBedroomsInput.value = bedroomCount;
+                        });
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading unit details:', error);
@@ -1077,10 +1195,6 @@
                                             <small class="text-muted">Bathrooms</small>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-muted">Floor Area</label>
-                                    <p class="mb-1">${data.floor_area ? data.floor_area + ' sq ft' : 'Not specified'}</p>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-muted">Max Occupants</label>
