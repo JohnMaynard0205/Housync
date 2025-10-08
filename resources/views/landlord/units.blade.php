@@ -767,6 +767,9 @@
                                 <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
                             </select>
                         </div>
+                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#generateUnitsModal">
+                            <i class="fas fa-layer-group"></i> Generate Units
+                        </button>
                         <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Add New Unit
                         </a>
@@ -874,6 +877,113 @@
     </div>
 
     <script>
+        // Generate Units Modal Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const propertySelect = document.getElementById('gen_property_id');
+            const numFloorsInput = document.getElementById('gen_num_floors');
+            const numUnitsInput = document.getElementById('gen_num_units');
+            const unitsPerFloorInput = document.getElementById('gen_units_per_floor');
+            const unitTypeSelect = document.getElementById('gen_unit_type');
+            const bedroomsInput = document.getElementById('gen_bedrooms');
+            const numberingPattern = document.getElementById('gen_numbering_pattern');
+            const floorConfig = document.getElementById('gen_floor_config');
+
+            // When property is selected, populate floor count
+            if (propertySelect) {
+                propertySelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const floors = selectedOption.getAttribute('data-floors') || 1;
+                    numFloorsInput.value = floors;
+                    calculateUnitsPerFloor();
+                });
+            }
+
+            // Auto-populate bedrooms based on unit type
+            if (unitTypeSelect) {
+                unitTypeSelect.addEventListener('change', function() {
+                    const bedroomMap = {
+                        'Studio': 0,
+                        'One Bedroom': 1,
+                        'Two Bedroom': 2,
+                        'Three Bedroom': 3,
+                        'Penthouse': 3
+                    };
+                    bedroomsInput.value = bedroomMap[this.value] || 0;
+                });
+            }
+
+            // Toggle floor configuration visibility
+            if (numberingPattern) {
+                numberingPattern.addEventListener('change', function() {
+                    if (this.value === 'floor_based') {
+                        floorConfig.style.display = 'flex';
+                    } else {
+                        floorConfig.style.display = 'none';
+                    }
+                });
+            }
+
+            // Auto-calculate units per floor
+            function calculateUnitsPerFloor() {
+                if (numUnitsInput && numFloorsInput) {
+                    const totalUnits = parseInt(numUnitsInput.value) || 0;
+                    const floors = parseInt(numFloorsInput.value) || 1;
+                    
+                    if (totalUnits > 0 && floors > 0 && !unitsPerFloorInput.value) {
+                        const perFloor = Math.ceil(totalUnits / floors);
+                        unitsPerFloorInput.placeholder = `Auto: ${perFloor} units/floor`;
+                    }
+                }
+            }
+
+            if (numUnitsInput) {
+                numUnitsInput.addEventListener('input', calculateUnitsPerFloor);
+            }
+
+            // Handle form submission
+            const generateForm = document.getElementById('generateUnitsForm');
+            if (generateForm) {
+                generateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Close modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('generateUnitsModal'));
+                            modal.hide();
+                            
+                            // Show success message and reload
+                            alert(data.message || 'Units generated successfully!');
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Error generating units. Please try again.');
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    });
+                });
+            }
+        });
+
         function editUnit(unitId) {
             // Show the edit modal
             const modal = new bootstrap.Modal(document.getElementById('editUnitModal'));
@@ -1357,6 +1467,112 @@
                         <i class="fas fa-edit"></i> Edit Unit
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Units Modal -->
+    <div class="modal fade" id="generateUnitsModal" tabindex="-1" aria-labelledby="generateUnitsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="generateUnitsModalLabel">
+                        <i class="fas fa-layer-group"></i> Generate Units
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="generateUnitsForm" method="POST" action="{{ route('landlord.bulk-generate-units') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Automatically create multiple units for a property with your configured settings.
+                        </div>
+
+                        <!-- Select Property -->
+                        <div class="mb-3">
+                            <label for="gen_property_id" class="form-label">Select Property <span class="text-danger">*</span></label>
+                            <select class="form-control" id="gen_property_id" name="apartment_id" required>
+                                <option value="">-- Select Property --</option>
+                                @foreach($apartments as $apartment)
+                                    <option value="{{ $apartment->id }}" data-floors="{{ $apartment->floors ?? 1 }}">
+                                        {{ $apartment->name }} ({{ $apartment->units->count() }} units)
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Number of Units -->
+                        <div class="mb-3">
+                            <label for="gen_num_units" class="form-label">Number of Units to Generate <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="gen_num_units" name="num_units" min="1" max="500" required>
+                            <small class="text-muted">Maximum 500 units per generation</small>
+                        </div>
+
+                        <!-- Unit Configuration -->
+                        <h6 class="mt-4 mb-3">Unit Configuration</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_unit_type" class="form-label">Default Unit Type</label>
+                                <select class="form-control" id="gen_unit_type" name="default_unit_type">
+                                    <option value="Studio">Studio</option>
+                                    <option value="One Bedroom">One Bedroom</option>
+                                    <option value="Two Bedroom" selected>Two Bedroom</option>
+                                    <option value="Three Bedroom">Three Bedroom</option>
+                                    <option value="Penthouse">Penthouse</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_rent" class="form-label">Default Rent Amount (₱)</label>
+                                <input type="number" class="form-control" id="gen_rent" name="default_rent" step="100" min="0" placeholder="15000">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_bedrooms" class="form-label">Default Bedrooms</label>
+                                <input type="number" class="form-control" id="gen_bedrooms" name="default_bedrooms" min="0" value="2" readonly>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_bathrooms" class="form-label">Default Bathrooms</label>
+                                <input type="number" class="form-control" id="gen_bathrooms" name="default_bathrooms" min="0" step="0.5" value="1">
+                            </div>
+                        </div>
+
+                        <!-- Numbering Pattern -->
+                        <div class="mb-3">
+                            <label for="gen_numbering_pattern" class="form-label">Unit Numbering Pattern</label>
+                            <select class="form-control" id="gen_numbering_pattern" name="numbering_pattern">
+                                <option value="floor_based" selected>Floor-based (101, 102, 201, 202...)</option>
+                                <option value="sequential">Sequential (1, 2, 3, 4...)</option>
+                                <option value="letter_number">Letter-Number (A1, A2, B1, B2...)</option>
+                            </select>
+                        </div>
+
+                        <!-- Floor Configuration -->
+                        <div id="gen_floor_config" class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_num_floors" class="form-label">Number of Floors</label>
+                                <input type="number" class="form-control" id="gen_num_floors" name="num_floors" min="1" value="1" readonly>
+                                <small class="text-muted">From property details</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="gen_units_per_floor" class="form-label">Units per Floor</label>
+                                <input type="number" class="form-control" id="gen_units_per_floor" name="units_per_floor" min="1" placeholder="Auto-calculated">
+                                <small class="text-muted">Leave blank to auto-distribute</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-layer-group"></i> Generate Units
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

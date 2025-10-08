@@ -598,6 +598,73 @@ class LandlordController extends Controller
         }
     }
 
+    public function bulkGenerateUnits(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'apartment_id' => 'required|exists:apartments,id',
+                'num_units' => 'required|integer|min:1|max:500',
+                'default_unit_type' => 'nullable|string',
+                'default_rent' => 'nullable|numeric|min:0',
+                'default_bedrooms' => 'nullable|integer|min:0',
+                'default_bathrooms' => 'nullable|numeric|min:0',
+                'numbering_pattern' => 'required|in:floor_based,sequential,letter_number',
+                'num_floors' => 'nullable|integer|min:1',
+                'units_per_floor' => 'nullable|integer|min:1',
+            ]);
+
+            $apartment = Auth::user()->apartments()->findOrFail($validated['apartment_id']);
+            
+            // Prepare default data
+            $defaultData = [
+                'unit_type' => $validated['default_unit_type'] ?? 'Two Bedroom',
+                'rent_amount' => $validated['default_rent'] ?? null,
+                'bedrooms' => $validated['default_bedrooms'] ?? 2,
+                'bathrooms' => $validated['default_bathrooms'] ?? 1,
+                'status' => 'available',
+            ];
+
+            $numToGenerate = (int) $validated['num_units'];
+            $pattern = $validated['numbering_pattern'];
+            $unitsCreated = 0;
+
+            for ($i = 1; $i <= $numToGenerate; $i++) {
+                // Generate unit number based on pattern
+                $unitNumber = $this->generateUnitNumber(
+                    $i,
+                    $pattern,
+                    $validated['num_floors'] ?? 1,
+                    $validated['units_per_floor'] ?? 1
+                );
+
+                // Check if unit number already exists for this apartment
+                if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
+                    continue; // Skip if exists
+                }
+
+                // Create the unit
+                $apartment->units()->create(array_merge($defaultData, [
+                    'unit_number' => $unitNumber,
+                ]));
+                
+                $unitsCreated++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully generated {$unitsCreated} units for {$apartment->name}!",
+                'units_created' => $unitsCreated,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Bulk unit generation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate units: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function deleteUnit($id)
     {
         $unit = Unit::whereHas('apartment', function($query) {
