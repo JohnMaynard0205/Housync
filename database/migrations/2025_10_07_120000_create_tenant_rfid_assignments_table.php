@@ -30,8 +30,8 @@ return new class extends Migration
             $table->index(['tenant_assignment_id', 'status']);
             $table->index(['status', 'assigned_at']);
             
-            // Ensure one active assignment per card at a time
-            $table->unique(['rfid_card_id', 'status'], 'unique_active_card_assignment');
+            // Note: We'll use application logic to ensure only one active assignment per card
+            // A database constraint for this would be complex since we only want to restrict 'active' status
         });
     }
 

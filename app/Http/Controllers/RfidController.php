@@ -360,7 +360,7 @@ class RfidController extends Controller
             $entryState = ($lastEntryState === 'in') ? 'out' : 'in';
 
             // Process the card
-            $rfidCard = RfidCard::where('card_uid', $cardUID)->first();
+            $rfidCard = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant'])->where('card_uid', $cardUID)->first();
             
             $result = [
                 'success' => true,
@@ -409,9 +409,14 @@ class RfidController extends Controller
                     $result['access_granted'] = false;
                     $result['denial_reason'] = $rfidCard->getAccessDenialReason();
                     $result['message'] = 'Access denied: ' . $result['denial_reason'];
+                    
+                    // Ensure we have a denial reason for deactivated cards
+                    if (!$result['denial_reason'] && $rfidCard->status !== 'active') {
+                        $result['denial_reason'] = 'card_inactive';
+                    }
                 }
                 
-                // Always log for registered cards
+                // Always log for registered cards (both access attempts and card registration)
                 AccessLog::create([
                     'card_uid' => $cardUID,
                     'rfid_card_id' => $rfidCard->id,
@@ -423,7 +428,8 @@ class RfidController extends Controller
                     'reader_location' => $readerLocation,
                     'raw_data' => array_merge($request->all(), [
                         'entry_state' => $entryState,
-                        'device_id' => $deviceId
+                        'device_id' => $deviceId,
+                        'scan_type' => $scanType
                     ])
                 ]);
             }
@@ -745,6 +751,56 @@ class RfidController extends Controller
         ]);
     }
     
+    /**
+     * Test endpoint to verify deactivated card behavior
+     */
+    public function testDeactivatedCard(Request $request)
+    {
+        $cardUid = strtoupper($request->input('card_uid'));
+        
+        if (!$cardUid) {
+            return response()->json(['error' => 'Card UID required'], 400);
+        }
+        
+        $rfidCard = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant'])->where('card_uid', $cardUid)->first();
+        
+        if (!$rfidCard) {
+            return response()->json(['error' => 'Card not found'], 404);
+        }
+        
+        $debug = [
+            'card_uid' => $rfidCard->card_uid,
+            'card_status' => $rfidCard->status,
+            'card_isActive' => $rfidCard->isActive(),
+            'card_isExpired' => $rfidCard->isExpired(),
+            'card_isCompromised' => $rfidCard->isCompromised(),
+            'activeTenantAssignment_exists' => $rfidCard->activeTenantAssignment ? true : false,
+            'canGrantAccess' => $rfidCard->canGrantAccess(),
+            'accessDenialReason' => $rfidCard->getAccessDenialReason(),
+        ];
+        
+        if ($rfidCard->activeTenantAssignment) {
+            $debug['activeTenantAssignment'] = [
+                'id' => $rfidCard->activeTenantAssignment->id,
+                'status' => $rfidCard->activeTenantAssignment->status,
+                'tenant_assignment_id' => $rfidCard->activeTenantAssignment->tenant_assignment_id,
+                'canGrantAccess' => $rfidCard->activeTenantAssignment->canGrantAccess(),
+            ];
+        }
+        
+        // Test what would be logged
+        $wouldLog = [
+            'access_result' => $rfidCard->canGrantAccess() ? 'granted' : 'denied',
+            'denial_reason' => $rfidCard->canGrantAccess() ? null : $rfidCard->getAccessDenialReason(),
+        ];
+        
+        return response()->json([
+            'debug' => $debug,
+            'would_log' => $wouldLog,
+            'message' => 'Debug information for card: ' . $cardUid
+        ]);
+    }
+
     /**
      * Update scan status (called by ESP32 bridge)
      */

@@ -28,6 +28,8 @@ Route::middleware(['throttle:60,1'])->group(function () {
     // Recent logs JSON for dynamic UI
     Route::get('/rfid/recent-logs', [RfidController::class, 'recentLogsJson'])->name('api.rfid.recent-logs');
     Route::post('/rfid/test', [RfidController::class, 'testConnection'])->name('api.rfid.test');
+    // Debug endpoint for testing deactivated card behavior
+    Route::post('/rfid/test-deactivated', [RfidController::class, 'testDeactivatedCard'])->name('api.rfid.test-deactivated');
     Route::get('/system-info', function() {
         return response()->json([
             'success' => true,
