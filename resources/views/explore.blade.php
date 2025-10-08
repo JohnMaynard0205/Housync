@@ -303,9 +303,87 @@
                 margin-top: 0;
             }
         }
+        /* Navbar */
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+
+        .navbar-custom .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+
+        .navbar-custom .nav-link {
+            color: #475569;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            transition: color 0.2s;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: #667eea;
+        }
+
+        .navbar-custom .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="{{ route('explore') }}">
+                <i class="fas fa-home"></i> HouseSync
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    @auth
+                        @if(auth()->user()->role === 'tenant')
+                            @if(auth()->user()->tenantAssignments()->exists())
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('tenant.dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                                    </a>
+                                </li>
+                            @endif
+                            <li class="nav-item">
+                                <span class="nav-link">
+                                    <i class="fas fa-user me-1"></i> {{ auth()->user()->name }}
+                                </span>
+                            </li>
+                        @endif
+                        <li class="nav-item">
+                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    @else
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('register') }}" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-1"></i> Register
+                            </a>
+                        </li>
+                    @endauth
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <!-- Header -->
     <div class="explore-header">
         <div class="container">
@@ -316,6 +394,25 @@
 
     <!-- Main Content -->
     <div class="container" style="margin-top: -2rem; padding-bottom: 3rem;">
+        <!-- Tenant Info Banner -->
+        @if(session('info'))
+            <div class="alert alert-info alert-dismissible fade show mb-3" role="alert" style="margin-top: 1rem; border-radius: 12px; border-left: 4px solid #0dcaf0;">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Welcome!</strong> {{ session('info') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @auth
+            @if(auth()->user()->role === 'tenant' && !auth()->user()->tenantAssignments()->exists())
+                <div class="alert alert-info alert-dismissible fade show mb-3" role="alert" style="margin-top: 1rem; border-radius: 12px; border-left: 4px solid #0dcaf0;">
+                    <i class="fas fa-home me-2"></i>
+                    <strong>Welcome, {{ auth()->user()->name }}!</strong> You're browsing as a prospect tenant. Contact landlords for the properties you're interested in to get assigned to a unit.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+        @endauth
+        
         <!-- Filter Section -->
         <div class="filter-section">
             <form id="filterForm">
