@@ -390,11 +390,23 @@ class LandlordController extends Controller
         if ($apartmentId) {
             $apartment = $landlord->apartments()->findOrFail($apartmentId);
             $query = $apartment->units()->with('apartment');
+            $statsQuery = $apartment->units();
         } else {
             $query = Unit::whereHas('apartment', function($q) use ($landlord) {
                 $q->where('landlord_id', $landlord->id);
             })->with('apartment');
+            $statsQuery = Unit::whereHas('apartment', function($q) use ($landlord) {
+                $q->where('landlord_id', $landlord->id);
+            });
         }
+        
+        // Calculate stats from the full dataset (not paginated)
+        $stats = [
+            'total_units' => $statsQuery->count(),
+            'available_units' => (clone $statsQuery)->where('status', 'available')->count(),
+            'occupied_units' => (clone $statsQuery)->where('status', 'occupied')->count(),
+            'monthly_revenue' => (clone $statsQuery)->where('status', 'occupied')->sum('rent_amount') ?? 0,
+        ];
         
         // Apply sorting
         switch ($sortBy) {
@@ -434,7 +446,7 @@ class LandlordController extends Controller
         $units = $query->paginate(20);
         $apartments = $landlord->apartments()->orderBy('name')->get();
         
-        return view('landlord.units', compact('units', 'apartments', 'apartmentId'));
+        return view('landlord.units', compact('units', 'apartments', 'apartmentId', 'stats'));
     }
 
     public function createUnit($apartmentId = null)

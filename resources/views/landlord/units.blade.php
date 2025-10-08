@@ -731,19 +731,19 @@
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">{{ $units->count() }}</div>
+                    <div class="stat-value">{{ $stats['total_units'] }}</div>
                     <div class="stat-label">Total Units</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ $units->where('status', 'available')->count() }}</div>
+                    <div class="stat-value">{{ $stats['available_units'] }}</div>
                     <div class="stat-label">Available Units</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ $units->where('status', 'occupied')->count() }}</div>
+                    <div class="stat-value">{{ $stats['occupied_units'] }}</div>
                     <div class="stat-label">Occupied Units</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱{{ number_format($units->where('status', 'occupied')->sum('rent_amount') ?? 0, 0) }}</div>
+                    <div class="stat-value">₱{{ number_format($stats['monthly_revenue'], 0) }}</div>
                     <div class="stat-label">Monthly Revenue</div>
                 </div>
             </div>
