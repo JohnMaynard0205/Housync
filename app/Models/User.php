@@ -9,20 +9,18 @@ use Illuminate\Notifications\Notifiable;
 
 /**
  * @property int $id
- * @property string $name
  * @property string $email
  * @property string $password
  * @property string $role
- * @property string $status
- * @property string|null $phone
- * @property string|null $address
- * @property string|null $business_info
- * @property \Carbon\Carbon|null $approved_at
- * @property int|null $approved_by
- * @property string|null $rejection_reason
  * @property \Carbon\Carbon|null $email_verified_at
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
+ * 
+ * Delegated to Profile:
+ * @property string $name (via profile)
+ * @property string $status (via profile)
+ * @property string|null $phone (via profile)
+ * @property string|null $address (via profile)
  */
 class User extends Authenticatable
 {
@@ -31,23 +29,30 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
+     * Note: name, phone, address, etc. are now in profile tables
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
         'email',
         'password',
         'role',
-        'staff_type',
-        'status',
-        'phone',
-        'address',
-        'business_info',
-        'approved_at',
-        'approved_by',
-        'rejection_reason',
     ];
+
+    /**
+     * Eager load profile relationship based on role
+     */
+    protected $with = [];
+    
+    /**
+     * Boot the model and auto-load appropriate profile
+     */
+    protected static function booted()
+    {
+        static::retrieved(function ($user) {
+            $user->load($user->getProfileRelation());
+        });
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -118,6 +123,97 @@ class User extends Authenticatable
     public function superAdminProfile()
     {
         return $this->hasOne(SuperAdminProfile::class);
+    }
+
+    /**
+     * Get the profile relation name based on role
+     */
+    public function getProfileRelation()
+    {
+        return match($this->role) {
+            'super_admin' => 'superAdminProfile',
+            'landlord' => 'landlordProfile',
+            'tenant' => 'tenantProfile',
+            'staff' => 'staffProfile',
+            default => null,
+        };
+    }
+
+    /**
+     * Get the profile instance based on role
+     */
+    public function profile()
+    {
+        return match($this->role) {
+            'super_admin' => $this->superAdminProfile,
+            'landlord' => $this->landlordProfile,
+            'tenant' => $this->tenantProfile,
+            'staff' => $this->staffProfile,
+            default => null,
+        };
+    }
+
+    // Accessors - Delegate to Profile
+    public function getNameAttribute($value)
+    {
+        return $this->profile()?->name ?? $value ?? 'Unknown';
+    }
+
+    public function getPhoneAttribute($value)
+    {
+        return $this->profile()?->phone ?? $value;
+    }
+
+    public function getAddressAttribute($value)
+    {
+        return $this->profile()?->address ?? $value;
+    }
+
+    public function getStatusAttribute($value)
+    {
+        return $this->profile()?->status ?? $value ?? 'active';
+    }
+
+    // Landlord-specific accessors
+    public function getBusinessInfoAttribute($value)
+    {
+        if ($this->isLandlord()) {
+            return $this->landlordProfile?->business_info ?? $value;
+        }
+        return $value;
+    }
+
+    public function getApprovedAtAttribute($value)
+    {
+        if ($this->isLandlord()) {
+            return $this->landlordProfile?->approved_at ?? $value;
+        }
+        return $value;
+    }
+
+    public function getApprovedByAttribute($value)
+    {
+        if ($this->isLandlord()) {
+            return $this->landlordProfile?->approved_by ?? $value;
+        }
+        return $value;
+    }
+
+    public function getRejectionReasonAttribute($value)
+    {
+        if ($this->isLandlord()) {
+            return $this->landlordProfile?->rejection_reason ?? $value;
+        }
+        return $value;
+    }
+
+    // Staff-specific accessor
+    public function getStaffTypeAttribute($value)
+    {
+        if ($this->isStaff()) {
+            return $this->staffProfile?->staff_type ?? $value;
+        }
+        return $value;
     }
 
     // Tenant assignments
@@ -205,24 +301,63 @@ class User extends Authenticatable
         return $query->where('role', $role);
     }
 
-    // Methods
+    // Methods - Now update profiles instead of users table
     public function approve($adminId)
     {
-        $this->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-            'approved_by' => $adminId,
-            'rejection_reason' => null,
-        ]);
+        if ($this->isLandlord() && $this->landlordProfile) {
+            $this->landlordProfile->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+                'approved_by' => $adminId,
+                'rejection_reason' => null,
+            ]);
+        }
     }
 
     public function reject($adminId, $reason = null)
     {
-        $this->update([
-            'status' => 'rejected',
-            'approved_at' => null,
-            'approved_by' => $adminId,
-            'rejection_reason' => $reason,
-        ]);
+        if ($this->isLandlord() && $this->landlordProfile) {
+            $this->landlordProfile->update([
+                'status' => 'rejected',
+                'approved_at' => null,
+                'approved_by' => $adminId,
+                'rejection_reason' => $reason,
+            ]);
+        }
+    }
+    
+    /**
+     * Create or update profile when user is created/updated
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::created(function ($user) {
+            $user->createProfileIfNeeded();
+        });
+    }
+    
+    /**
+     * Create profile if it doesn't exist
+     */
+    public function createProfileIfNeeded()
+    {
+        $profileClass = match($this->role) {
+            'super_admin' => SuperAdminProfile::class,
+            'landlord' => LandlordProfile::class,
+            'tenant' => TenantProfile::class,
+            'staff' => StaffProfile::class,
+            default => null,
+        };
+        
+        if ($profileClass && !$this->profile()) {
+            $profileClass::create([
+                'user_id' => $this->id,
+                'name' => 'New User', // Default, will be updated
+                'status' => $this->role === 'landlord' ? 'pending' : 'active',
+            ]);
+        }
     }
 }
+

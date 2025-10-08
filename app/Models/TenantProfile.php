@@ -11,11 +11,13 @@ class TenantProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'name',
         'phone',
         'address',
         'emergency_contact_name',
         'emergency_contact_phone',
         'id_number',
+        'status',
     ];
 
     public function user()

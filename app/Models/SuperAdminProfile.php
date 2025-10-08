@@ -11,9 +11,11 @@ class SuperAdminProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'name',
         'phone',
         'address',
         'notes',
+        'status',
     ];
 
     public function user()
