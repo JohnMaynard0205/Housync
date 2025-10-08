@@ -501,6 +501,9 @@
                 <a href="{{ route('tenant.dashboard') }}" class="nav-item {{ request()->routeIs('tenant.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
+                <a href="{{ route('explore') }}" class="nav-item {{ request()->routeIs('explore') ? 'active' : '' }}">
+                    <i class="fas fa-search"></i> Browse Properties
+                </a>
                 <a href="{{ route('tenant.upload-documents') }}" class="nav-item {{ request()->routeIs('tenant.upload-documents') ? 'active' : '' }}">
                     <i class="fas fa-upload"></i> Upload Documents
                 </a>
