@@ -674,17 +674,10 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Number of Floors</label>
-                                <input type="number" name="num_floors" id="num_floors" class="form-control" 
-                                       value="{{ old('num_floors', 1) }}" min="1" placeholder="e.g., 5">
-                                <small class="form-text text-muted">For unit numbering (e.g., 101, 201, 301...)</small>
-                            </div>
-
-                            <div class="form-group">
                                 <label class="form-label">Units Per Floor</label>
                                 <input type="number" name="units_per_floor" id="units_per_floor" class="form-control" 
                                        value="{{ old('units_per_floor') }}" min="1" placeholder="Auto-calculated">
-                                <small class="form-text text-muted">Leave empty to auto-distribute</small>
+                                <small class="form-text text-muted">Will use number of floors from Property Details below</small>
                             </div>
 
                             <div class="form-group">
@@ -785,7 +778,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label">Number of Floors</label>
-                                <input type="number" name="floors" class="form-control @error('floors') error @enderror" 
+                                <input type="number" name="floors" id="floors" class="form-control @error('floors') error @enderror" 
                                        value="{{ old('floors') }}" min="1" placeholder="e.g., 5">
                                 @error('floors')
                                     <div class="form-error">{{ $message }}</div>
@@ -1025,7 +1018,7 @@
             const autoGenCheckbox = document.getElementById('auto_generate_units');
             const autoGenSettings = document.getElementById('auto_gen_settings');
             const totalUnitsInput = document.getElementById('total_units');
-            const numFloorsInput = document.getElementById('num_floors');
+            const floorsInput = document.getElementById('floors');
             const unitsPerFloorInput = document.getElementById('units_per_floor');
 
             // Show/hide auto-generation settings
@@ -1047,7 +1040,7 @@
             // Auto-calculate units per floor
             function calculateUnitsPerFloor() {
                 const totalUnits = parseInt(totalUnitsInput.value) || 0;
-                const numFloors = parseInt(numFloorsInput.value) || 1;
+                const numFloors = parseInt(floorsInput.value) || 1;
                 
                 if (totalUnits > 0 && numFloors > 0 && !unitsPerFloorInput.value) {
                     const perFloor = Math.ceil(totalUnits / numFloors);
@@ -1055,9 +1048,9 @@
                 }
             }
 
-            if (totalUnitsInput && numFloorsInput) {
+            if (totalUnitsInput && floorsInput) {
                 totalUnitsInput.addEventListener('input', calculateUnitsPerFloor);
-                numFloorsInput.addEventListener('input', calculateUnitsPerFloor);
+                floorsInput.addEventListener('input', calculateUnitsPerFloor);
                 calculateUnitsPerFloor();
             }
         });

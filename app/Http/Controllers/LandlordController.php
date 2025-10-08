@@ -99,7 +99,6 @@ class LandlordController extends Controller
             'auto_generate_units' => 'nullable|boolean',
             'default_unit_type' => 'nullable|string|max:100',
             'default_rent' => 'nullable|numeric|min:0',
-            'num_floors' => 'nullable|integer|min:1',
             'units_per_floor' => 'nullable|integer|min:1',
             'default_bedrooms' => 'nullable|integer|min:0',
             'default_bathrooms' => 'nullable|integer|min:1',
@@ -155,7 +154,7 @@ class LandlordController extends Controller
     private function autoGenerateUnits($apartment, $request)
     {
         $totalUnits = $request->total_units;
-        $numFloors = $request->num_floors ?? 1;
+        $numFloors = $request->floors ?? 1; // Use floors from Property Details
         $unitsPerFloor = $request->units_per_floor ?? ceil($totalUnits / $numFloors);
         $numberingPattern = $request->numbering_pattern ?? 'floor_based';
         
