@@ -966,7 +966,7 @@
         });
 
         function confirmDelete() {
-            if (confirm('Are you sure you want to delete this property? This action cannot be undone and will also delete all associated units.')) {
+            if (confirm('Are you sure you want to delete this property?\n\nThis action cannot be undone.\n\nNote: You must first delete all units in this property before you can delete the property itself.')) {
                 document.getElementById('delete-form').submit();
             }
         }

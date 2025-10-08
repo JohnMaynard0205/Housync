@@ -744,6 +744,9 @@
                                     <a href="#" class="btn btn-secondary btn-sm" onclick="viewUnitDetails({{ $unit->id }})">
                                         <i class="fas fa-eye"></i> Details
                                     </a>
+                                    <a href="#" class="btn btn-danger btn-sm" onclick="deleteUnit({{ $unit->id }}, '{{ $unit->unit_number }}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
                                 </div>
                             </div>
                         @endforeach
@@ -1193,6 +1196,31 @@
 
         // assignTenant and vacateUnit removed; tenant actions handled in Tenant Assignments tab
 
+        function deleteUnit(unitId, unitNumber) {
+            if (confirm(`Are you sure you want to delete Unit ${unitNumber}? This action cannot be undone.\n\nNote: You cannot delete units with active tenant assignments.`)) {
+                // Create and submit delete form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/landlord/units/${unitId}`;
+                
+                // CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
+                
+                // DELETE method
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'DELETE';
+                form.appendChild(methodInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
 
     </script>
 
