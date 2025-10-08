@@ -131,6 +131,7 @@
                                 <option value="carpenter" {{ request('staff_type') == 'carpenter' ? 'selected' : '' }}>Carpenter</option>
                                 <option value="security_guard" {{ request('staff_type') == 'security_guard' ? 'selected' : '' }}>Security Guard</option>
                                 <option value="gardener" {{ request('staff_type') == 'gardener' ? 'selected' : '' }}>Gardener</option>
+                                <option value="others" {{ request('staff_type') == 'others' ? 'selected' : '' }}>Others</option>
                             </select>
                         </div>
                         <div class="col-md-6 d-flex gap-2 align-items-end">
@@ -201,6 +202,7 @@
                                     <option value="carpenter" {{ old('staff_type') == 'carpenter' ? 'selected' : '' }}>Carpenter</option>
                                     <option value="security_guard" {{ old('staff_type') == 'security_guard' ? 'selected' : '' }}>Security Guard</option>
                                     <option value="gardener" {{ old('staff_type') == 'gardener' ? 'selected' : '' }}>Gardener</option>
+                                    <option value="others" {{ old('staff_type') == 'others' ? 'selected' : '' }}>Others</option>
                                 </select>
                             </div>
                         </div>
@@ -286,6 +288,7 @@
                                     <option value="carpenter">Carpenter</option>
                                     <option value="security_guard">Security Guard</option>
                                     <option value="gardener">Gardener</option>
+                                    <option value="others">Others</option>
                                 </select>
                             </div>
                             <div class="col-md-6">

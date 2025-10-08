@@ -603,6 +603,10 @@
                                 <input type="checkbox" id="amenity_laundry" name="amenities[]" value="laundry" {{ in_array('laundry', old('amenities', [])) ? 'checked' : '' }}>
                                 <label for="amenity_laundry">Laundry</label>
                             </div>
+                            <div class="amenity-item">
+                                <input type="checkbox" id="amenity_others" name="amenities[]" value="others" {{ in_array('others', old('amenities', [])) ? 'checked' : '' }}>
+                                <label for="amenity_others">Others</label>
+                            </div>
                         </div>
                     </div>
 

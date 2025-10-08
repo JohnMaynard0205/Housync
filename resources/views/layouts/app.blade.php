@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         * {
             margin: 0;
@@ -26,10 +25,10 @@
             min-height: 100vh;
         }
 
-        /* Sidebar Styles - Green Theme for Tenants */
+        /* Sidebar Styles - Purple Theme for Tenants */
         .sidebar {
             width: 280px;
-            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             display: flex;
             flex-direction: column;
@@ -75,14 +74,14 @@
         .nav-item:hover {
             background-color: rgba(255,255,255,0.1);
             color: white;
-            border-left-color: #34d399;
+            border-left-color: #818cf8;
             text-decoration: none;
         }
 
         .nav-item.active {
-            background-color: #059669;
+            background-color: #764ba2;
             color: white;
-            border-left-color: #34d399;
+            border-left-color: #818cf8;
         }
 
         .nav-item i {
@@ -152,7 +151,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -195,7 +194,7 @@
         }
 
         .breadcrumb-item a {
-            color: #10b981;
+            color: #667eea;
             text-decoration: none;
         }
 
@@ -271,6 +270,11 @@
             background-color: #10b981;
             color: white;
         }
+        
+        .btn-success:hover {
+            background-color: #059669;
+            color: white;
+        }
 
         .btn-warning {
             background-color: #f59e0b;
@@ -283,13 +287,13 @@
         }
 
         .btn-outline-primary {
-            border: 1px solid #10b981;
-            color: #10b981;
+            border: 1px solid #667eea;
+            color: #667eea;
             background: transparent;
         }
 
         .btn-outline-primary:hover {
-            background-color: #10b981;
+            background-color: #667eea;
             color: white;
         }
 
@@ -381,7 +385,7 @@
             top: 1rem;
             left: 1rem;
             z-index: 1100;
-            background: #10b981;
+            background: #667eea;
             color: white;
             border: none;
             width: 45px;
@@ -393,7 +397,7 @@
         }
 
         .mobile-menu-toggle:hover {
-            background: #059669;
+            background: #764ba2;
         }
 
         .mobile-menu-toggle i {

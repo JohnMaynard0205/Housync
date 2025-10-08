@@ -340,6 +340,7 @@
                             <option value="townhouse" {{ old('property_type') == 'townhouse' ? 'selected' : '' }}>Townhouse</option>
                             <option value="house" {{ old('property_type') == 'house' ? 'selected' : '' }}>Single Family House</option>
                             <option value="duplex" {{ old('property_type') == 'duplex' ? 'selected' : '' }}>Duplex</option>
+                            <option value="others" {{ old('property_type') == 'others' ? 'selected' : '' }}>Others</option>
                         </select>
                         @error('property_type')
                             <div class="form-error">{{ $message }}</div>
@@ -639,6 +640,13 @@
                         <label for="garden">
                             <i class="fas fa-seedling"></i>
                             Garden/Green Space
+                        </label>
+                    </div>
+                    <div class="amenity-item">
+                        <input type="checkbox" id="others" name="amenities[]" value="others" {{ in_array('others', old('amenities', [])) ? 'checked' : '' }}>
+                        <label for="others">
+                            <i class="fas fa-ellipsis-h"></i>
+                            Others
                         </label>
                     </div>
                 </div>

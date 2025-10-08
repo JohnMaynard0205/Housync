@@ -92,6 +92,10 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::get('/available-units', [TenantAssignmentController::class, 'getAvailableUnits'])->name('available-units');
     Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
     
+    // Application approval/rejection routes
+    Route::post('/tenant-assignments/{id}/approve', [TenantAssignmentController::class, 'approveApplication'])->name('approve-application');
+    Route::post('/tenant-assignments/{id}/reject', [TenantAssignmentController::class, 'rejectApplication'])->name('reject-application');
+    
     // Staff Management Routes
     Route::get('/staff', [StaffController::class, 'index'])->name('staff');
     Route::post('/staff/add', [StaffController::class, 'addStaff'])->name('add-staff');
@@ -162,6 +166,9 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
     Route::post('/get-password', [TenantAssignmentController::class, 'getTenantPassword'])->name('get-password');
     Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
+    
+    // Apply for property
+    Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');
 });
 
 // Staff Routes

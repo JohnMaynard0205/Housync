@@ -67,23 +67,51 @@
                         </div>
                         <div class="col-md-6">
                             <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>Lease Start:</strong></td>
-                                    <td>{{ $assignment->lease_start_date->format('M d, Y') }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Lease End:</strong></td>
-                                    <td>{{ $assignment->lease_end_date->format('M d, Y') }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Security Deposit:</strong></td>
-                                    <td>₱{{ number_format($assignment->security_deposit, 2) }}</td>
-                                </tr>
+                                @if($assignment->status === 'pending_approval')
+                                    <tr>
+                                        <td><strong>Occupation:</strong></td>
+                                        <td>{{ $assignment->occupation ?? 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Monthly Income:</strong></td>
+                                        <td>₱{{ number_format($assignment->monthly_income ?? 0, 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Application Date:</strong></td>
+                                        <td>{{ $assignment->created_at->format('M d, Y') }}</td>
+                                    </tr>
+                                @else
+                                    <tr>
+                                        <td><strong>Lease Start:</strong></td>
+                                        <td>{{ $assignment->lease_start_date ? $assignment->lease_start_date->format('M d, Y') : 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Lease End:</strong></td>
+                                        <td>{{ $assignment->lease_end_date ? $assignment->lease_end_date->format('M d, Y') : 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Security Deposit:</strong></td>
+                                        <td>₱{{ number_format($assignment->security_deposit, 2) }}</td>
+                                    </tr>
+                                @endif
                                 <tr>
                                     <td><strong>Assignment Status:</strong></td>
                                     <td>
-                                        <span class="badge bg-{{ $assignment->status_badge_class }}">
-                                            {{ ucfirst($assignment->status) }}
+                                        @php
+                                            $badgeClass = match($assignment->status) {
+                                                'active' => 'success',
+                                                'pending' => 'warning',
+                                                'pending_approval' => 'warning',
+                                                'terminated' => 'danger',
+                                                default => 'secondary'
+                                            };
+                                            $statusLabel = match($assignment->status) {
+                                                'pending_approval' => 'Pending Approval',
+                                                default => ucfirst($assignment->status)
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $badgeClass }}">
+                                            {{ $statusLabel }}
                                         </span>
                                     </td>
                                 </tr>
@@ -109,6 +137,22 @@
                     @endif
                 </div>
             </div>
+            
+            <!-- Approve/Reject Buttons for Pending Applications -->
+            @if($assignment->status === 'pending_approval')
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success btn-lg" onclick="approveApplication({{ $assignment->id }})">
+                                <i class="mdi mdi-check-circle me-1"></i> Approve Application
+                            </button>
+                            <button class="btn btn-danger btn-lg" onclick="rejectApplication({{ $assignment->id }})">
+                                <i class="mdi mdi-close-circle me-1"></i> Reject Application
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Quick Actions -->
@@ -139,10 +183,6 @@
                                 </button>
                             </form>
                         @endif
-
-                        <a href="#" onclick="viewCredentials({{ $assignment->id }}, '{{ $assignment->tenant->email }}')" class="btn btn-outline-primary">
-                            <i class="mdi mdi-key me-1"></i> View Credentials
-                        </a>
 
                         <a href="{{ route('landlord.tenant-history', ['tenant_name' => $assignment->tenant->email]) }}" class="btn btn-outline-info">
                             <i class="mdi mdi-history me-1"></i> View Tenant History
@@ -375,74 +415,11 @@
     </div>
 </div>
 
-<!-- Credentials Modal -->
-<div class="modal fade" id="credentialsModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Tenant Login Credentials</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <h6 class="alert-heading">Login Information</h6>
-                    <p class="mb-2">Share these credentials with the tenant:</p>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Email:</strong><br>
-                            <code id="tenantEmail"></code>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Password:</strong><br>
-                            <code id="tenantPassword"></code>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="copyCredentials()">
-                    <i class="mdi mdi-content-copy me-1"></i> Copy Credentials
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 @endsection
 
 @push('scripts')
 <script>
-function viewCredentials(assignmentId, email) {
-    // Fetch credentials from the server
-    fetch(`/landlord/tenant-assignments/${assignmentId}/credentials`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('tenantEmail').textContent = data.email;
-            document.getElementById('tenantPassword').textContent = data.password;
-            
-            const modal = new bootstrap.Modal(document.getElementById('credentialsModal'));
-            modal.show();
-        })
-        .catch(error => {
-            console.error('Error fetching credentials:', error);
-            alert('Error fetching credentials. Please try again.');
-        });
-}
-
-function copyCredentials() {
-    const email = document.getElementById('tenantEmail').textContent;
-    const password = document.getElementById('tenantPassword').textContent;
-    const credentials = `Email: ${email}\nPassword: ${password}`;
-    
-    navigator.clipboard.writeText(credentials).then(function() {
-        alert('Credentials copied to clipboard!');
-    }).catch(function(err) {
-        console.error('Could not copy text: ', err);
-        alert('Could not copy to clipboard. Please copy manually.');
-    });
-}
-
 function viewImage(imageUrl, fileName) {
     document.getElementById('imagePreview').src = imageUrl;
     document.getElementById('imageModalTitle').textContent = fileName;
@@ -475,6 +452,68 @@ function verifyDocument(documentId, fileName) {
     
     const modal = new bootstrap.Modal(document.getElementById('documentVerificationModal'));
     modal.show();
+}
+
+// Approve application
+function approveApplication(assignmentId) {
+    if (!confirm('Are you sure you want to approve this tenant application? This will activate the tenant and mark the unit as occupied.')) {
+        return;
+    }
+    
+    fetch(`/landlord/tenant-assignments/${assignmentId}/approve`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Application approved successfully!');
+            window.location.href = '/landlord/tenant-assignments';
+        } else {
+            alert(data.message || 'Failed to approve application');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while approving the application');
+    });
+}
+
+// Reject application
+function rejectApplication(assignmentId) {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    if (reason === null) return; // User cancelled
+    
+    if (!confirm('Are you sure you want to reject this tenant application?')) {
+        return;
+    }
+    
+    fetch(`/landlord/tenant-assignments/${assignmentId}/reject`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Application rejected successfully');
+            window.location.href = '/landlord/tenant-assignments';
+        } else {
+            alert(data.message || 'Failed to reject application');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while rejecting the application');
+    });
 }
 </script>
 

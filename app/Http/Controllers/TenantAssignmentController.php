@@ -882,4 +882,264 @@ class TenantAssignmentController extends Controller
             return response()->json(['error' => 'An error occurred while updating your password.'], 500);
         }
     }
+
+    /**
+     * Apply for a property as a tenant (from explore page)
+     */
+    public function applyForProperty(Request $request, $propertyId)
+    {
+        // Validate the application data
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:500',
+            'occupation' => 'required|string|max:255',
+            'monthly_income' => 'required|numeric|min:0',
+            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
+            'documents.*.max' => 'Each file must not exceed 5MB',
+            'document_types.*.in' => 'Invalid document type selected',
+        ]);
+
+        try {
+            $tenant = Auth::user();
+            
+            // Check if tenant already has an active or pending application
+            $existingApplication = TenantAssignment::where('tenant_id', $tenant->id)
+                ->whereIn('status', ['active', 'pending_approval'])
+                ->first();
+
+            if ($existingApplication) {
+                return back()->with('error', 'You already have an active or pending application.');
+            }
+
+            // Get the property from explore page
+            $property = \App\Models\Property::findOrFail($propertyId);
+            
+            // Find an available unit from this landlord's apartments
+            $unit = Unit::whereHas('apartment', function($q) use ($property) {
+                $q->where('landlord_id', $property->landlord_id);
+            })
+            ->where('status', 'available')
+            ->with('apartment.landlord')
+            ->first();
+            
+            if (!$unit) {
+                Log::warning('No available units found for application', [
+                    'tenant_id' => $tenant->id,
+                    'property_id' => $propertyId,
+                    'landlord_id' => $property->landlord_id,
+                    'timestamp' => now()
+                ]);
+                
+                return back()->with('error', 'No available units found for this property. The landlord may not have set up units yet. Please contact the landlord directly.');
+            }
+            
+            Log::info('Found unit for application', [
+                'unit_id' => $unit->id,
+                'apartment_id' => $unit->apartment_id,
+                'landlord_id' => $property->landlord_id
+            ]);
+
+            // Create the tenant assignment with pending_approval status
+            DB::transaction(function() use ($request, $unit, $tenant, $property) {
+                // Update user info if provided (profile-centric)
+                if ($tenant->tenantProfile) {
+                    $tenant->tenantProfile->update([
+                        'name' => $request->name,
+                        'phone' => $request->phone,
+                        'address' => $request->address,
+                    ]);
+                }
+
+                // Create the assignment as pending approval
+                $assignment = TenantAssignment::create([
+                    'tenant_id' => $tenant->id,
+                    'unit_id' => $unit->id,
+                    'landlord_id' => $unit->apartment->landlord_id,
+                    'status' => 'pending_approval',
+                    'lease_start_date' => null,
+                    'lease_end_date' => null,
+                    'rent_amount' => $unit->rent_amount ?? 0,
+                    'security_deposit' => 0,
+                    'occupation' => $request->occupation,
+                    'monthly_income' => $request->monthly_income,
+                    'notes' => $request->notes,
+                    'documents_uploaded' => true,
+                    'documents_verified' => false,
+                ]);
+
+                // Upload and store documents
+                foreach ($request->file('documents') as $index => $file) {
+                    $documentType = $request->document_types[$index];
+                    
+                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
+
+                    TenantDocument::create([
+                        'tenant_assignment_id' => $assignment->id,
+                        'document_type' => $documentType,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $filePath,
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                        'uploaded_at' => now(),
+                        'verification_status' => 'pending',
+                    ]);
+                }
+            });
+
+            // Audit log
+            Log::info('Tenant application submitted', [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'property_id' => $property->id,
+                'unit_id' => $unit->id,
+                'landlord_id' => $unit->apartment->landlord_id,
+                'property_name' => $unit->apartment->name,
+                'documents_count' => count($request->file('documents')),
+                'timestamp' => now()
+            ]);
+
+            return redirect()->route('explore')
+                ->with('success', 'Your application has been submitted successfully! The landlord will review it shortly.');
+
+        } catch (\Exception $e) {
+            Log::error('Tenant application failed', [
+                'tenant_id' => Auth::id(),
+                'property_id' => $propertyId,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'timestamp' => now()
+            ]);
+
+            // Show detailed error in development
+            $errorMessage = config('app.debug') 
+                ? 'Failed to submit application: ' . $e->getMessage()
+                : 'Failed to submit application. Please try again.';
+
+            return back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
+     * Approve tenant application
+     */
+    public function approveApplication($id)
+    {
+        try {
+            DB::transaction(function() use ($id) {
+                $assignment = TenantAssignment::where('landlord_id', Auth::id())
+                    ->where('status', 'pending_approval')
+                    ->with(['unit', 'tenant'])
+                    ->findOrFail($id);
+
+                // Update assignment status to active
+                $assignment->update([
+                    'status' => 'active',
+                    'documents_verified' => true,
+                    'lease_start_date' => now(),
+                    'lease_end_date' => now()->addYear(),
+                ]);
+
+                // Update unit status to occupied
+                $assignment->unit->update([
+                    'status' => 'occupied',
+                    'tenant_count' => 1
+                ]);
+
+                // Verify all documents
+                $assignment->documents()->update([
+                    'verification_status' => 'verified',
+                    'verified_by' => Auth::id(),
+                    'verified_at' => now()
+                ]);
+            });
+
+            Log::info('Tenant application approved', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Application approval failed', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve application'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject tenant application
+     */
+    public function rejectApplication(Request $request, $id)
+    {
+        try {
+            DB::transaction(function() use ($request, $id) {
+                $assignment = TenantAssignment::where('landlord_id', Auth::id())
+                    ->where('status', 'pending_approval')
+                    ->with(['unit', 'tenant', 'documents'])
+                    ->findOrFail($id);
+
+                // Delete all uploaded documents
+                foreach ($assignment->documents as $document) {
+                    if (Storage::disk('public')->exists($document->file_path)) {
+                        Storage::disk('public')->delete($document->file_path);
+                    }
+                    $document->delete();
+                }
+
+                // Store rejection reason in notes
+                $assignment->update([
+                    'notes' => 'Application rejected. Reason: ' . ($request->reason ?? 'No reason provided'),
+                ]);
+
+                // Delete the assignment
+                $assignment->delete();
+            });
+
+            Log::info('Tenant application rejected', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'reason' => $request->reason ?? 'No reason provided',
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Application rejection failed', [
+                'landlord_id' => Auth::id(),
+                'assignment_id' => $id,
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject application'
+            ], 500);
+        }
+    }
 } 
