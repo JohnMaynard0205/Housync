@@ -365,18 +365,30 @@ class LandlordController extends Controller
         $apartment = Auth::user()->apartments()->findOrFail($id);
         
         try {
+            $unitCount = $apartment->units()->count();
+            
             // Check if apartment has units
-            if ($apartment->units()->count() > 0) {
-                return back()->with('error', 'Cannot delete apartment with existing units. Please remove all units first.');
+            if ($unitCount > 0) {
+                // Check if any units have active tenants
+                $activeTenantsCount = $apartment->units()
+                    ->whereHas('tenantAssignments', function($query) {
+                        $query->whereIn('status', ['active', 'pending']);
+                    })->count();
+                
+                if ($activeTenantsCount > 0) {
+                    return back()->with('error', "Cannot delete property with active tenant assignments. Found {$activeTenantsCount} unit(s) with active tenants. Please terminate all tenant assignments first, then delete the units.");
+                }
+                
+                return back()->with('error', "Cannot delete property with existing units. Found {$unitCount} unit(s). Please delete all units first from the Units page.");
             }
             
             $apartmentName = $apartment->name;
             $apartment->delete();
             
-            return back()->with('success', "Apartment '{$apartmentName}' deleted successfully.");
+            return redirect()->route('landlord.apartments')->with('success', "Property '{$apartmentName}' deleted successfully.");
         } catch (\Exception $e) {
             \Log::error('Error deleting apartment: ' . $e->getMessage());
-            return back()->with('error', 'Failed to delete apartment. Please try again.');
+            return back()->with('error', 'Failed to delete property. Please try again.');
         }
     }
 
@@ -584,6 +596,37 @@ class LandlordController extends Controller
             }
             
             return back()->with('error', 'Failed to update unit. Please try again.');
+        }
+    }
+
+    public function deleteUnit($id)
+    {
+        $unit = Unit::whereHas('apartment', function($query) {
+            $query->where('landlord_id', Auth::id());
+        })->findOrFail($id);
+        
+        try {
+            // Check if unit has active tenant assignments
+            $activeAssignments = $unit->tenantAssignments()
+                ->whereIn('status', ['active', 'pending'])
+                ->count();
+                
+            if ($activeAssignments > 0) {
+                return back()->with('error', 'Cannot delete unit with active tenant assignments. Please terminate all assignments first.');
+            }
+            
+            $unitNumber = $unit->unit_number;
+            
+            // Delete all terminated/completed assignments first
+            $unit->tenantAssignments()->delete();
+            
+            // Delete the unit
+            $unit->delete();
+            
+            return back()->with('success', "Unit '{$unitNumber}' deleted successfully.");
+        } catch (\Exception $e) {
+            \Log::error('Error deleting unit: ' . $e->getMessage());
+            return back()->with('error', 'Failed to delete unit. Please try again.');
         }
     }
 

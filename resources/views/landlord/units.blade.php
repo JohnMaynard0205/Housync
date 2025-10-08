@@ -834,6 +834,33 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
+<<<<<<< HEAD
+=======
+                                    <div class="detail-row">
+                                        <span class="detail-label">Floor Area:</span>
+                                        <span class="detail-value">{{ $unit->floor_area ?? 'N/A' }} sq ft</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Created:</span>
+                                        <span class="detail-value">{{ $unit->created_at->format('M d, Y') }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="rent-amount">
+                                    ₱{{ number_format($unit->rent_amount ?? 0, 0) }}/month
+                                </div>
+
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-primary btn-sm" onclick="editUnit({{ $unit->id }})">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="#" class="btn btn-secondary btn-sm" onclick="viewUnitDetails({{ $unit->id }})">
+                                        <i class="fas fa-eye"></i> Details
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm" onclick="deleteUnit({{ $unit->id }}, '{{ $unit->unit_number }}')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+>>>>>>> origin/main
                                 </div>
                             </div>
                         @endforeach
@@ -1307,6 +1334,31 @@
 
         // assignTenant and vacateUnit removed; tenant actions handled in Tenant Assignments tab
 
+        function deleteUnit(unitId, unitNumber) {
+            if (confirm(`Are you sure you want to delete Unit ${unitNumber}? This action cannot be undone.\n\nNote: You cannot delete units with active tenant assignments.`)) {
+                // Create and submit delete form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/landlord/units/${unitId}`;
+                
+                // CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
+                
+                // DELETE method
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'DELETE';
+                form.appendChild(methodInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
 
     </script>
 

@@ -5,7 +5,7 @@
  * Command-line script to read RFID data from ESP32 via serial port
  * Now supports web scan requests from Laravel application
  * 
- * Usage: php ESP32Reader.php --port=COM7 --url=http://localhost:8000
+ * Usage: php ESP32Reader.php --port=COM7 --url=https://housync.up.railway.app
  */
 
 class ESP32Reader
@@ -22,7 +22,7 @@ class ESP32Reader
     private $lastProcessedAt = 0; // unix timestamp seconds
     private $dedupeWindowSeconds = 10; // suppress repeats within 10 seconds - only allow one scan per card per 10s
 
-    public function __construct ($port = 'COM3', $baudrate = 115200, $laravelUrl = 'http://localhost:8000')
+    public function __construct ($port = 'COM3', $baudrate = 115200, $laravelUrl = 'https://housync.up.railway.app')
     {
         $this->port = $port;
         $this->baudrate = $baudrate;
@@ -123,10 +123,16 @@ class ESP32Reader
                 'method' => 'POST',
                 'header' => [
                     'Content-Type: application/json',
-                    'Content-Length: ' . strlen($postData)
+                    'Content-Length: ' . strlen($postData),
+                    'User-Agent: ESP32Reader/1.0'
                 ],
                 'content' => $postData,
-                'timeout' => 10
+                'timeout' => 30
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+                'allow_self_signed' => false
             ]
         ]);
 
@@ -207,6 +213,7 @@ class ESP32Reader
         } else {
             echo "Laravel API returned error: " . ($responseData['message'] ?? 'Unknown error') . "\n";
             return false;
+            //--
         }
     }
 
@@ -403,7 +410,7 @@ class ESP32Reader
             // Dedupe: suppress rapid duplicate submissions of the same UID
             $now = time();
             if ($this->lastProcessedUid === $cardUID && ($now - $this->lastProcessedAt) < $this->dedupeWindowSeconds) {
-                echo "🚫 Duplicate UID within {$this->dedupeWindowSeconds}s window, ignoring: $cardUID (last scan was " . ($now - $this->lastProcessedAt) . "s ago)\n";
+                echo "Duplicate UID within {$this->dedupeWindowSeconds}s window, ignoring: $cardUID (last scan was " . ($now - $this->lastProcessedAt) . "s ago)\n";
                 return false;
             }
             $this->lastProcessedUid = $cardUID;
@@ -443,11 +450,32 @@ class ESP32Reader
         echo "Testing Laravel connection...\n";
         
         $testUrl = $this->laravelUrl . '/api/system-info';
-        $response = @file_get_contents($testUrl);
+        
+        // Create SSL context for HTTPS connections
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => [
+                    'User-Agent: ESP32Reader/1.0'
+                ],
+                'timeout' => 30
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+                'allow_self_signed' => false
+            ]
+        ]);
+        
+        $response = @file_get_contents($testUrl, false, $context);
         
         if ($response === false) {
             echo "Cannot connect to Laravel at {$this->laravelUrl}\n";
-            echo "Make sure Laravel server is running: php artisan serve\n";
+            $error = error_get_last();
+            if ($error) {
+                echo "Error: {$error['message']}\n";
+            }
+            echo "Make sure your Railway app is running and accessible\n";
             return false;
         }
         
@@ -596,7 +624,7 @@ if (php_sapi_name() === 'cli') {
     // Parse command line arguments
     $options = [
         'port' => 'COM3',
-        'url' => 'http://localhost:8000',
+        'url' => 'https://housync.up.railway.app',
         'help' => false
     ];
     
@@ -609,7 +637,7 @@ if (php_sapi_name() === 'cli') {
         echo "Usage: php ESP32Reader.php [options]\n\n";
         echo "Options:\n";
         echo "  --port=COMx    Serial port (default: COM3)\n";
-        echo "  --url=URL      Laravel base URL (default: http://localhost:8000)\n";
+        echo "  --url=URL      Laravel base URL (default: https://housync.up.railway.app)\n";
         echo "  --help, -h     Show this help message\n\n";
         echo "Features:\n";
         echo "   RFID data reading and Laravel API integration\n";
@@ -622,7 +650,7 @@ if (php_sapi_name() === 'cli') {
             echo "  - $port\n";
         }
         echo "\nExample:\n";
-        echo "php ESP32Reader.php --port=COM3 --url=http://localhost:8000\n";
+        echo "php ESP32Reader.php --port=COM3 --url=https://housync.up.railway.app\n";
         exit(0);
     }
     

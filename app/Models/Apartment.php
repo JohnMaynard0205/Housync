@@ -82,6 +82,7 @@ class Apartment extends Model
         return $this->status === 'maintenance';
     }
 
+    //
     // Scopes
     public function scopeActive($query)
     {

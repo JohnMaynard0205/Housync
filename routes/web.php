@@ -72,6 +72,9 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     // Unit Update Route (for AJAX modal)
     Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
     
+    // Unit Delete Route
+    Route::delete('/units/{id}', [LandlordController::class, 'deleteUnit'])->name('delete-unit')->whereNumber('id');
+    
     // Tenant Assignment Routes
     Route::get('/tenant-assignments', [TenantAssignmentController::class, 'index'])->name('tenant-assignments');
     // Standalone assign-tenant page removed; use modal in tenant-assignments instead
