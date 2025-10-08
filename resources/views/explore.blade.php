@@ -39,14 +39,61 @@
             opacity: 0.95;
         }
 
-        /* Filter Section */
-        .filter-section {
+        /* Filter Bar */
+        .filter-bar {
             background: white;
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-top: -2rem;
             margin-bottom: 2rem;
+        }
+
+        .filter-bar .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+        }
+
+        .filter-bar .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .filter-bar #quickSearch {
+            border: 2px solid #e2e8f0;
+            padding: 0.6rem 1rem;
+        }
+
+        .filter-bar #quickSearch:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Filter Modal Styles */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 1.5rem;
         }
 
         .filter-group {
@@ -320,11 +367,20 @@
             color: #475569;
             font-weight: 500;
             padding: 0.5rem 1rem;
-            transition: color 0.2s;
+            transition: all 0.2s;
         }
 
         .navbar-custom .nav-link:hover {
             color: #667eea;
+        }
+
+        .navbar-custom .nav-link .fa-user-circle {
+            font-size: 1.1rem;
+        }
+
+        .navbar-custom a.nav-link:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
         }
 
         .navbar-custom .btn {
@@ -348,17 +404,16 @@
                 <ul class="navbar-nav ms-auto">
                     @auth
                         @if(auth()->user()->role === 'tenant')
-                            @if(auth()->user()->tenantAssignments()->exists())
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('tenant.dashboard') }}">
-                                        <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-                                    </a>
-                                </li>
-                            @endif
                             <li class="nav-item">
-                                <span class="nav-link">
-                                    <i class="fas fa-user me-1"></i> {{ auth()->user()->name }}
-                                </span>
+                                @if(auth()->user()->tenantAssignments()->exists())
+                                    <a class="nav-link" href="{{ route('tenant.dashboard') }}" style="cursor: pointer;">
+                                        <i class="fas fa-user-circle me-1"></i> {{ auth()->user()->name }}
+                                    </a>
+                                @else
+                                    <a class="nav-link" href="{{ route('tenant.profile') }}" style="cursor: pointer;">
+                                        <i class="fas fa-user-circle me-1"></i> {{ auth()->user()->name }}
+                                    </a>
+                                @endif
                             </li>
                         @endif
                         <li class="nav-item">
@@ -413,129 +468,153 @@
             @endif
         @endauth
         
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <form id="filterForm">
-                <div class="row g-3">
-                    <!-- Search -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="filter-group">
-                            <label><i class="fas fa-search me-1"></i> Search</label>
-                            <input type="text" name="search" id="search" class="form-control" placeholder="Search properties...">
-                        </div>
-            </div>
-
-                    <!-- Property Type -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="filter-group">
-                            <label><i class="fas fa-building me-1"></i> Property Type</label>
-                            <select name="type" id="type" class="form-select">
-                                <option value="">All Types</option>
-                                @foreach($propertyTypes as $type)
-                                    <option value="{{ $type }}">{{ ucfirst($type) }}</option>
-                                @endforeach
-                            </select>
-            </div>
-            </div>
-
-                    <!-- Availability -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="filter-group">
-                            <label><i class="fas fa-calendar-check me-1"></i> Availability</label>
-                            <select name="availability" id="availability" class="form-select">
-                                <option value="">All</option>
-                                <option value="available">Available</option>
-                                <option value="occupied">Occupied</option>
-                </select>
-            </div>
-                    </div>
-
-                    <!-- Price Range -->
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="filter-group">
-                            <label><i class="fas fa-dollar-sign me-1"></i> Min Price</label>
-                            <input type="number" name="min_price" id="min_price" class="form-control" placeholder="Min ₱">
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="filter-group">
-                            <label><i class="fas fa-dollar-sign me-1"></i> Max Price</label>
-                            <input type="number" name="max_price" id="max_price" class="form-control" placeholder="Max ₱">
-                        </div>
-                    </div>
-
-                    <!-- Date Range -->
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="filter-group">
-                            <label><i class="fas fa-calendar me-1"></i> Available From</label>
-                            <input type="date" name="available_from" id="available_from" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="filter-group">
-                            <label><i class="fas fa-calendar me-1"></i> Available To</label>
-                            <input type="date" name="available_to" id="available_to" class="form-control">
-                        </div>
-                    </div>
-
-                    <!-- Amenities -->
-                    <div class="col-12">
-                        <div class="filter-group">
-                            <label><i class="fas fa-star me-1"></i> Amenities</label>
-                            <div class="row g-2">
-                                @foreach($amenities as $amenity)
-                                    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                        <label class="amenity-checkbox">
-                                            <input type="checkbox" name="amenities[]" value="{{ $amenity->id }}" class="amenity-input">
-                                            <span>
-                                                <i class="{{ $amenity->icon }} me-1"></i>
-                                                {{ $amenity->name }}
-                                            </span>
-                                        </label>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sort -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="filter-group">
-                            <label><i class="fas fa-sort me-1"></i> Sort By</label>
-                            <select name="sort_by" id="sort_by" class="form-select">
-                                <option value="latest">Latest</option>
-                                <option value="price_low">Price: Low to High</option>
-                                <option value="price_high">Price: High to Low</option>
-                                <option value="featured">Featured</option>
-                            </select>
-            </div>
-                    </div>
-
-                    <!-- Buttons -->
-                    <div class="col-12 col-md-6 col-lg-8">
-                        <div class="filter-group">
-                            <label class="d-none d-lg-block">&nbsp;</label>
-                            <div class="d-flex gap-2">
-                                <button type="button" id="applyFilters" class="btn btn-primary flex-grow-1">
-                                    <i class="fas fa-filter me-1"></i> Apply Filters
-                                </button>
-                                <button type="button" id="clearFilters" class="btn btn-secondary">
-                                    <i class="fas fa-times me-1"></i> Clear
-                                </button>
-                            </div>
-                        </div>
+        <!-- Compact Filter Bar -->
+        <div class="filter-bar">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-2"></i> Filters
+                        <span class="badge bg-light text-primary ms-2" id="activeFiltersCount" style="display: none;">0</span>
+                    </button>
+                    <div class="flex-grow-1" style="max-width: 400px;">
+                        <input type="text" id="quickSearch" class="form-control" placeholder="Quick search...">
                     </div>
                 </div>
-            </form>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="quickSort" class="form-select" style="width: auto;">
+                        <option value="latest">Latest</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="featured">Featured</option>
+                    </select>
+                    <h6 class="mb-0 text-muted">
+                        <span id="resultsCount">{{ $properties->total() }}</span> found
+                    </h6>
+                </div>
+            </div>
         </div>
 
-        <!-- Results Count -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">
-                <span id="resultsCount">{{ $properties->total() }}</span> Properties Found
-            </h5>
+        <!-- Filter Modal -->
+        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="filterModalLabel">
+                            <i class="fas fa-sliders-h me-2"></i> Filter Properties
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="filterForm">
+                            <div class="row g-3">
+                                <!-- Search -->
+                                <div class="col-12">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-search me-1"></i> Search</label>
+                                        <input type="text" name="search" id="search" class="form-control" placeholder="Search properties...">
+                                    </div>
+                                </div>
+
+                                <!-- Property Type -->
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-building me-1"></i> Property Type</label>
+                                        <select name="type" id="type" class="form-select">
+                                            <option value="">All Types</option>
+                                            @foreach($propertyTypes as $type)
+                                                <option value="{{ $type }}">{{ ucfirst($type) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Availability -->
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-calendar-check me-1"></i> Availability</label>
+                                        <select name="availability" id="availability" class="form-select">
+                                            <option value="">All</option>
+                                            <option value="available">Available</option>
+                                            <option value="occupied">Occupied</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Price Range -->
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-dollar-sign me-1"></i> Min Price</label>
+                                        <input type="number" name="min_price" id="min_price" class="form-control" placeholder="Min ₱">
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-dollar-sign me-1"></i> Max Price</label>
+                                        <input type="number" name="max_price" id="max_price" class="form-control" placeholder="Max ₱">
+                                    </div>
+                                </div>
+
+                                <!-- Date Range -->
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-calendar me-1"></i> Available From</label>
+                                        <input type="date" name="available_from" id="available_from" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-calendar me-1"></i> Available To</label>
+                                        <input type="date" name="available_to" id="available_to" class="form-control">
+                                    </div>
+                                </div>
+
+                                <!-- Amenities -->
+                                <div class="col-12">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-star me-1"></i> Amenities</label>
+                                        <div class="row g-2">
+                                            @foreach($amenities as $amenity)
+                                                <div class="col-6 col-md-4">
+                                                    <label class="amenity-checkbox">
+                                                        <input type="checkbox" name="amenities[]" value="{{ $amenity->id }}" class="amenity-input">
+                                                        <span>
+                                                            <i class="{{ $amenity->icon }} me-1"></i>
+                                                            {{ $amenity->name }}
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sort -->
+                                <div class="col-12">
+                                    <div class="filter-group">
+                                        <label><i class="fas fa-sort me-1"></i> Sort By</label>
+                                        <select name="sort_by" id="sort_by" class="form-select">
+                                            <option value="latest">Latest</option>
+                                            <option value="price_low">Price: Low to High</option>
+                                            <option value="price_high">Price: High to Low</option>
+                                            <option value="featured">Featured</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="clearFilters">
+                            <i class="fas fa-times me-1"></i> Clear All
+                        </button>
+                        <button type="button" class="btn btn-primary" id="applyFilters">
+                            <i class="fas fa-check me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Properties Grid -->
@@ -565,6 +644,25 @@
                 }
             });
 
+            // Sync quick search with modal search
+            $('#quickSearch').on('input', function() {
+                $('#search').val($(this).val());
+            });
+
+            // Sync quick sort with modal sort
+            $('#quickSort').on('change', function() {
+                $('#sort_by').val($(this).val());
+                applyFilters();
+            });
+
+            // Quick search on Enter key
+            $('#quickSearch').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    applyFilters();
+                }
+            });
+
             // Amenity checkbox styling
             $('.amenity-checkbox input').on('change', function() {
                 if ($(this).is(':checked')) {
@@ -572,7 +670,31 @@
                 } else {
                     $(this).closest('.amenity-checkbox').removeClass('checked');
                 }
+                updateActiveFiltersCount();
             });
+
+            // Update active filters count
+            function updateActiveFiltersCount() {
+                let count = 0;
+                
+                if ($('#search').val()) count++;
+                if ($('#type').val()) count++;
+                if ($('#availability').val()) count++;
+                if ($('#min_price').val()) count++;
+                if ($('#max_price').val()) count++;
+                if ($('#available_from').val()) count++;
+                if ($('#available_to').val()) count++;
+                count += $('input[name="amenities[]"]:checked').length;
+
+                if (count > 0) {
+                    $('#activeFiltersCount').text(count).show();
+                } else {
+                    $('#activeFiltersCount').hide();
+                }
+            }
+
+            // Update count when inputs change
+            $('#filterForm input, #filterForm select').on('change input', updateActiveFiltersCount);
 
             // Apply filters
             function applyFilters(page = 1) {
@@ -590,6 +712,9 @@
                     }).get(),
                     page: page
                 };
+
+                // Sync quick sort
+                $('#quickSort').val(formData.sort_by);
 
                 // Show loading
                 $('#loadingOverlay').addClass('active');
@@ -622,22 +747,36 @@
             // Apply filters button
             $('#applyFilters').on('click', function() {
                 applyFilters();
+                // Close modal
+                const filterModal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+                if (filterModal) {
+                    filterModal.hide();
+                }
+                updateActiveFiltersCount();
             });
 
-            // Apply filters on Enter key
+            // Apply filters on Enter key in modal
             $('#filterForm input, #filterForm select').on('keypress', function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
-                    applyFilters();
+                    $('#applyFilters').click();
                 }
             });
 
             // Clear filters
             $('#clearFilters').on('click', function() {
                 $('#filterForm')[0].reset();
+                $('#quickSearch').val('');
+                $('#quickSort').val('latest');
                 $('.amenity-checkbox').removeClass('checked');
                 localStorage.removeItem('exploreFilters');
                 applyFilters();
+                updateActiveFiltersCount();
+                // Close modal
+                const filterModal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+                if (filterModal) {
+                    filterModal.hide();
+                }
             });
 
             // Handle pagination clicks
@@ -653,6 +792,7 @@
             if (savedFilters) {
                 const filters = JSON.parse(savedFilters);
                 $('#search').val(filters.search || '');
+                $('#quickSearch').val(filters.search || '');
                 $('#type').val(filters.type || '');
                 $('#availability').val(filters.availability || '');
                 $('#min_price').val(filters.min_price || '');
@@ -660,6 +800,7 @@
                 $('#available_from').val(filters.available_from || '');
                 $('#available_to').val(filters.available_to || '');
                 $('#sort_by').val(filters.sort_by || 'latest');
+                $('#quickSort').val(filters.sort_by || 'latest');
                 
                 if (filters.amenities && filters.amenities.length > 0) {
                     filters.amenities.forEach(function(amenityId) {
@@ -669,6 +810,9 @@
                     });
                 }
             }
+
+            // Update filter count on page load
+            updateActiveFiltersCount();
 
             // Auto-apply filters on select change
             $('#type, #availability, #sort_by').on('change', function() {
