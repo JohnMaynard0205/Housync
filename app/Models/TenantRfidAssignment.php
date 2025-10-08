@@ -20,6 +20,31 @@ class TenantRfidAssignment extends Model
 {
     use HasFactory;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Ensure only one active assignment per card
+        static::creating(function ($assignment) {
+            if ($assignment->status === 'active') {
+                // Deactivate any existing active assignments for this card
+                static::where('rfid_card_id', $assignment->rfid_card_id)
+                      ->where('status', 'active')
+                      ->update(['status' => 'inactive']);
+            }
+        });
+
+        static::updating(function ($assignment) {
+            if ($assignment->status === 'active' && $assignment->getOriginal('status') !== 'active') {
+                // Deactivate any existing active assignments for this card
+                static::where('rfid_card_id', $assignment->rfid_card_id)
+                      ->where('id', '!=', $assignment->id)
+                      ->where('status', 'active')
+                      ->update(['status' => 'inactive']);
+            }
+        });
+    }
+
     protected $fillable = [
         'rfid_card_id',
         'tenant_assignment_id',
