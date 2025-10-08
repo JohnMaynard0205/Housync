@@ -834,33 +834,6 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
-<<<<<<< HEAD
-=======
-                                    <div class="detail-row">
-                                        <span class="detail-label">Floor Area:</span>
-                                        <span class="detail-value">{{ $unit->floor_area ?? 'N/A' }} sq ft</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Created:</span>
-                                        <span class="detail-value">{{ $unit->created_at->format('M d, Y') }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="rent-amount">
-                                    ₱{{ number_format($unit->rent_amount ?? 0, 0) }}/month
-                                </div>
-
-                                <div class="btn-group">
-                                    <a href="#" class="btn btn-primary btn-sm" onclick="editUnit({{ $unit->id }})">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="#" class="btn btn-secondary btn-sm" onclick="viewUnitDetails({{ $unit->id }})">
-                                        <i class="fas fa-eye"></i> Details
-                                    </a>
-                                    <a href="#" class="btn btn-danger btn-sm" onclick="deleteUnit({{ $unit->id }}, '{{ $unit->unit_number }}')">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </a>
->>>>>>> origin/main
                                 </div>
                             </div>
                         @endforeach
