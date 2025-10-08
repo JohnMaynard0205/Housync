@@ -283,14 +283,18 @@ class TenantAssignmentController extends Controller
     public function tenantDashboard()
     {
         $tenant = Auth::user();
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
+        $assignments = $tenant->tenantAssignments()
+            ->with(['unit.apartment', 'documents'])
+            ->orderByRaw("FIELD(status, 'active', 'pending_approval', 'terminated')")
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        if (!$assignment) {
+        if ($assignments->isEmpty()) {
             // Redirect prospects (tenants without assignments) to property listings
             return redirect()->route('explore')->with('info', 'Browse available properties and contact landlords to get assigned to a unit.');
         }
 
-        return view('tenant.dashboard', compact('assignment'));
+        return view('tenant.dashboard', compact('assignments'));
     }
 
     /**
@@ -907,15 +911,6 @@ class TenantAssignmentController extends Controller
         try {
             $tenant = Auth::user();
             
-            // Check if tenant already has an active or pending application
-            $existingApplication = TenantAssignment::where('tenant_id', $tenant->id)
-                ->whereIn('status', ['active', 'pending_approval'])
-                ->first();
-
-            if ($existingApplication) {
-                return back()->with('error', 'You already have an active or pending application.');
-            }
-
             // Get the property from explore page
             $property = \App\Models\Property::findOrFail($propertyId);
             
@@ -936,6 +931,16 @@ class TenantAssignmentController extends Controller
                 ]);
                 
                 return back()->with('error', 'No available units found for this property. The landlord may not have set up units yet. Please contact the landlord directly.');
+            }
+            
+            // Check if tenant already has an application for this specific unit
+            $existingApplicationForUnit = TenantAssignment::where('tenant_id', $tenant->id)
+                ->where('unit_id', $unit->id)
+                ->whereIn('status', ['active', 'pending_approval'])
+                ->first();
+
+            if ($existingApplicationForUnit) {
+                return back()->with('error', 'You already have an active or pending application for this unit.');
             }
             
             Log::info('Found unit for application', [
