@@ -257,26 +257,6 @@ Route::get('/debug', function () {
     ]);
 });
 
-// Railway deployment debug route
-Route::get('/debug-storage', function () {
-    $storagePath = storage_path('app/public');
-    $publicPath = public_path('storage');
-    $testImage = 'apartment-covers/kynfrnmON9fPygUmAcH1akbS99655E9h13dREbxz.png';
-    
-    return response()->json([
-        'storage_path' => $storagePath,
-        'storage_exists' => is_dir($storagePath),
-        'storage_contents' => is_dir($storagePath) ? scandir($storagePath) : 'N/A',
-        'public_path' => $publicPath,
-        'public_exists' => file_exists($publicPath),
-        'public_is_link' => is_link($publicPath),
-        'test_image_storage' => file_exists($storagePath . '/' . $testImage),
-        'test_image_public' => file_exists($publicPath . '/' . $testImage),
-        'test_image_full_path' => $storagePath . '/' . $testImage,
-        'cwd' => getcwd(),
-        'files_in_root' => scandir(getcwd()),
-    ]);
-});
 
 // Fallback image serving route for Railway deployment issues
 Route::get('/storage/{path}', function ($path) {
