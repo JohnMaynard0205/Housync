@@ -77,7 +77,7 @@ class BackfillRoleProfiles extends Command
                                     'staff_type' => $user->staff_type ?? $defaults['staff_type'],
                                 ]);
                             }
-                            $created['staff']++;
+                            $created['staff']++;s
                         }
                         break;
                     case 'super_admin':
@@ -112,5 +112,3 @@ class BackfillRoleProfiles extends Command
         return self::SUCCESS;
     }
 }
-
-
