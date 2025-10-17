@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Unit;
 
 class Property extends Model
 {
@@ -91,6 +92,29 @@ class Property extends Model
         } catch (\Throwable $e) {
             // If storage check fails in some environments, fall back to asset URL
             return asset('storage/' . $diskRelative);
+        }
+
+        // Fallback: try to derive image from the related Unit via slug suffix ("-<unitId>")
+        if (!empty($this->slug) && preg_match('/-(\d+)$/', $this->slug, $matches)) {
+            $unitId = (int) ($matches[1] ?? 0);
+            if ($unitId > 0) {
+                $unit = Unit::with('apartment')->find($unitId);
+                if ($unit) {
+                    $candidate = $unit->cover_image ?: ($unit->apartment->cover_image ?? null);
+                    if (!empty($candidate)) {
+                        // Normalize like observer
+                        if (Str::startsWith($candidate, ['storage/'])) {
+                            $candidate = ltrim(Str::after($candidate, 'storage/'), '/');
+                        } elseif (Str::startsWith($candidate, ['public/'])) {
+                            $candidate = ltrim(Str::after($candidate, 'public/'), '/');
+                        } else {
+                            $candidate = ltrim($candidate, '/');
+                        }
+
+                        return asset('storage/' . $candidate);
+                    }
+                }
+            }
         }
 
         return null;
