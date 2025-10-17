@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class Property extends Model
 {
@@ -73,21 +74,26 @@ class Property extends Model
             return $path;
         }
 
-        // Already pointing to public storage
+        // Normalize to disk-relative path (no leading storage/ or public/)
         if (Str::startsWith($path, ['storage/'])) {
-            return asset($path);
+            $diskRelative = ltrim(Str::after($path, 'storage/'), '/');
+        } elseif (Str::startsWith($path, ['public/'])) {
+            $diskRelative = ltrim(Str::after($path, 'public/'), '/');
+        } else {
+            $diskRelative = ltrim($path, '/');
         }
 
-        // If path begins with public/ or images/, normalize to asset()
-        if (Str::startsWith($path, ['public/'])) {
-            return asset(ltrim(Str::after($path, 'public/'), '/'));
-        }
-        if (Str::startsWith($path, ['images/'])) {
-            return asset($path);
+        // Only return URL if the file exists on the public disk; otherwise null so UI can show placeholder
+        try {
+            if (Storage::disk('public')->exists($diskRelative)) {
+                return asset('storage/' . $diskRelative);
+            }
+        } catch (\Throwable $e) {
+            // If storage check fails in some environments, fall back to asset URL
+            return asset('storage/' . $diskRelative);
         }
 
-        // Default: files stored on public disk → storage/<path>
-        return asset('storage/' . ltrim($path, '/'));
+        return null;
     }
 
     /**
