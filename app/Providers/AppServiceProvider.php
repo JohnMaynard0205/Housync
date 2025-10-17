@@ -31,5 +31,9 @@ class AppServiceProvider extends ServiceProvider
         // Register observers for automatic property syncing
         Unit::observe(UnitObserver::class);
         Apartment::observe(ApartmentObserver::class);
+        
+        // Use Bootstrap pagination (simpler styling, no SVG issues)
+        // Comment this line to use Tailwind pagination instead
+        \Illuminate\Pagination\Paginator::useBootstrap();
     }
 }

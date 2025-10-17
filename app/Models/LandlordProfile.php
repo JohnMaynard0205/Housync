@@ -11,11 +11,25 @@ class LandlordProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'name',
         'phone',
         'address',
         'business_info',
         'company_name',
+        'status',
+        'approved_at',
+        'approved_by',
+        'rejection_reason',
     ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
+    ];
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(\App\Models\SuperAdmin::class, 'approved_by');
+    }
 
     public function user()
     {

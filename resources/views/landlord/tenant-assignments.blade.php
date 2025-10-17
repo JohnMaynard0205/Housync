@@ -261,7 +261,7 @@
                             </thead>
                             <tbody>
                                 @forelse($assignments as $assignment)
-                                <tr>
+                                <tr class="{{ $assignment->status === 'pending_approval' ? 'table-warning' : '' }}">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-sm me-3">
@@ -272,6 +272,10 @@
                                             <div>
                                                 <h5 class="font-14 mb-0">{{ $assignment->tenant->name }}</h5>
                                                 <small class="text-muted">{{ $assignment->tenant->email }}</small>
+                                                @if($assignment->status === 'pending_approval')
+                                                    <br><small class="text-info"><i class="mdi mdi-briefcase"></i> {{ $assignment->occupation }}</small>
+                                                    <br><small class="text-success"><i class="mdi mdi-currency-php"></i> {{ number_format($assignment->monthly_income, 2) }}/mo</small>
+                                                @endif
                                             </div>
                                         </div>
                                     </td>
@@ -280,21 +284,33 @@
                                     </td>
                                     <td>{{ $assignment->unit->apartment->name }}</td>
                                     <td>
-                                        <div>
-                                            <small class="text-muted">Start: {{ $assignment->lease_start_date->format('M d, Y') }}</small><br>
-                                            <small class="text-muted">End: {{ $assignment->lease_end_date->format('M d, Y') }}</small>
-                                        </div>
+                                        @if($assignment->status === 'pending_approval')
+                                            <span class="badge bg-warning">Awaiting Approval</span>
+                                        @elseif($assignment->lease_start_date && $assignment->lease_end_date)
+                                            <div>
+                                                <small class="text-muted">Start: {{ $assignment->lease_start_date->format('M d, Y') }}</small><br>
+                                                <small class="text-muted">End: {{ $assignment->lease_end_date->format('M d, Y') }}</small>
+                                            </div>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     </td>
                                     <td>₱{{ number_format($assignment->rent_amount, 2) }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $assignment->status_badge_class }}">
-                                            {{ $assignment->status === 'terminated' ? 'Terminated' : ucfirst($assignment->status) }}
+                                        <span class="badge bg-{{ $assignment->status === 'pending_approval' ? 'warning' : $assignment->status_badge_class }}">
+                                            {{ $assignment->status === 'pending_approval' ? 'Pending Approval' : ($assignment->status === 'terminated' ? 'Terminated' : ucfirst($assignment->status)) }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ $assignment->documents_status_badge_class }}">
-                                            {{ ucfirst($assignment->documents_status) }}
-                                        </span>
+                                        @if($assignment->documents_uploaded)
+                                            <button class="btn btn-sm btn-info" onclick="viewApplicationDocuments({{ $assignment->id }})">
+                                                <i class="mdi mdi-file-document"></i> {{ $assignment->documents->count() }} Docs
+                                            </button>
+                                        @else
+                                            <span class="badge bg-{{ $assignment->documents_status_badge_class ?? 'secondary' }}">
+                                                {{ $assignment->documents_status ?? 'No Documents' }}
+                                            </span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="dropdown">
@@ -302,26 +318,38 @@
                                                 <i class="mdi mdi-eye"></i>
                                             </button>
                                             <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="{{ route('landlord.assignment-details', $assignment->id) }}">
-                                                    <i class="mdi mdi-eye me-1"></i> View Details
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="viewCredentials({{ $assignment->id }}, '{{ $assignment->tenant->email }}')" title="View Login Credentials">
-                                                    <i class="mdi mdi-key me-1"></i> View Credentials
-                                                </a></li>
-                                                @if($assignment->status === 'pending')
-                                                <li><a class="dropdown-item" href="#" onclick="updateStatus({{ $assignment->id }}, 'active')" title="Activate Assignment">
-                                                    <i class="mdi mdi-check me-1"></i> Activate
-                                                </a></li>
-                                                @endif
-                                                @if($assignment->status === 'active')
-                                                <li><a class="dropdown-item" href="#" onclick="updateStatus({{ $assignment->id }}, 'terminated')" title="Terminate Assignment">
-                                                    <i class="mdi mdi-close me-1"></i> Terminate
-                                                </a></li>
-                                                @endif
-                                                @if($assignment->status === 'terminated')
-                                                <li><button type="button" class="dropdown-item" onclick="window.reassignExistingTenant({{ $assignment->id }}, '{{ addslashes($assignment->tenant->name) }}', '{{ addslashes($assignment->tenant->phone ?? '') }}');" title="Assign Tenant Again">
-                                                    <i class="mdi mdi-account-plus me-1"></i> Assign
-                                                </button></li>
+                                                @if($assignment->status === 'pending_approval')
+                                                    <li><a class="dropdown-item" href="#" onclick="viewApplicationDetails({{ $assignment->id }})" title="View Application">
+                                                        <i class="mdi mdi-eye me-1"></i> View Application
+                                                    </a></li>
+                                                    <li><a class="dropdown-item text-success" href="#" onclick="approveApplication({{ $assignment->id }})" title="Approve Application">
+                                                        <i class="mdi mdi-check-circle me-1"></i> Approve Application
+                                                    </a></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" onclick="rejectApplication({{ $assignment->id }})" title="Reject Application">
+                                                        <i class="mdi mdi-close-circle me-1"></i> Reject Application
+                                                    </a></li>
+                                                @else
+                                                    <li><a class="dropdown-item" href="{{ route('landlord.assignment-details', $assignment->id) }}">
+                                                        <i class="mdi mdi-eye me-1"></i> View Details
+                                                    </a></li>
+                                                    <li><a class="dropdown-item" href="#" onclick="viewCredentials({{ $assignment->id }}, '{{ $assignment->tenant->email }}')" title="View Login Credentials">
+                                                        <i class="mdi mdi-key me-1"></i> View Credentials
+                                                    </a></li>
+                                                    @if($assignment->status === 'pending')
+                                                    <li><a class="dropdown-item" href="#" onclick="updateStatus({{ $assignment->id }}, 'active')" title="Activate Assignment">
+                                                        <i class="mdi mdi-check me-1"></i> Activate
+                                                    </a></li>
+                                                    @endif
+                                                    @if($assignment->status === 'active')
+                                                    <li><a class="dropdown-item" href="#" onclick="updateStatus({{ $assignment->id }}, 'terminated')" title="Terminate Assignment">
+                                                        <i class="mdi mdi-close me-1"></i> Terminate
+                                                    </a></li>
+                                                    @endif
+                                                    @if($assignment->status === 'terminated')
+                                                    <li><button type="button" class="dropdown-item" onclick="window.reassignExistingTenant({{ $assignment->id }}, '{{ addslashes($assignment->tenant->name) }}', '{{ addslashes($assignment->tenant->phone ?? '') }}');" title="Assign Tenant Again">
+                                                        <i class="mdi mdi-account-plus me-1"></i> Assign
+                                                    </button></li>
+                                                    @endif
                                                 @endif
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li><a class="dropdown-item text-danger" href="#" onclick="deleteTenantAssignment({{ $assignment->id }}, '{{ $assignment->tenant->name }}')" title="Delete Assignment">
@@ -333,7 +361,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center">No tenant assignments found.</td>
+                                    <td colspan="8" class="text-center">No tenant inquiries found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -1194,6 +1222,80 @@ function showNewCredentialsModal(email, password) {
         keyboard: false
     });
     modal.show();
+}
+
+// View application documents
+function viewApplicationDocuments(assignmentId) {
+    window.location.href = `/landlord/tenant-assignments/${assignmentId}`;
+}
+
+// View application details in modal
+function viewApplicationDetails(assignmentId) {
+    // This would be better to fetch via AJAX and show in a modal
+    // For now, redirect to assignment details page
+    window.location.href = `/landlord/tenant-assignments/${assignmentId}`;
+}
+
+// Approve application
+function approveApplication(assignmentId) {
+    if (!confirm('Are you sure you want to approve this tenant application? This will allow the tenant to access their unit.')) {
+        return;
+    }
+    
+    fetch(`/landlord/tenant-assignments/${assignmentId}/approve`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast('Application approved successfully!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            alert(data.message || 'Failed to approve application');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while approving the application');
+    });
+}
+
+// Reject application
+function rejectApplication(assignmentId) {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    if (reason === null) return; // User cancelled
+    
+    if (!confirm('Are you sure you want to reject this tenant application?')) {
+        return;
+    }
+    
+    fetch(`/landlord/tenant-assignments/${assignmentId}/reject`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast('Application rejected successfully');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            alert(data.message || 'Failed to reject application');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while rejecting the application');
+    });
 }
 </script>
 @endpush 

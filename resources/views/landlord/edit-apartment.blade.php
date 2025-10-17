@@ -649,6 +649,7 @@
                                     <option value="townhouse" {{ old('property_type', $apartment->property_type) == 'townhouse' ? 'selected' : '' }}>Townhouse</option>
                                     <option value="house" {{ old('property_type', $apartment->property_type) == 'house' ? 'selected' : '' }}>Single Family House</option>
                                     <option value="duplex" {{ old('property_type', $apartment->property_type) == 'duplex' ? 'selected' : '' }}>Duplex</option>
+                                    <option value="others" {{ old('property_type', $apartment->property_type) == 'others' ? 'selected' : '' }}>Others</option>
                                 </select>
                                 @error('property_type')
                                     <div class="form-error">{{ $message }}</div>
@@ -657,11 +658,48 @@
 
                             <div class="form-group">
                                 <label class="form-label required">Total Units</label>
-                                <input type="number" name="total_units" class="form-control @error('total_units') error @enderror" 
-                                       value="{{ old('total_units', $apartment->total_units) }}" min="1" placeholder="e.g., 24" required>
+                                <input type="number" name="total_units" id="total_units" class="form-control @error('total_units') error @enderror" 
+                                       value="{{ old('total_units', $apartment->total_units) }}" min="{{ $apartment->units()->count() }}" placeholder="e.g., 24" required>
                                 @error('total_units')
                                     <div class="form-error">{{ $message }}</div>
                                 @enderror
+                                <small class="form-text text-muted">
+                                    Current actual units: {{ $apartment->units()->count() }}
+                                    @if($apartment->units()->count() < $apartment->total_units)
+                                        ({{ $apartment->total_units - $apartment->units()->count() }} units need to be created)
+                                    @endif
+                                </small>
+                            </div>
+
+                            <input type="hidden" id="current_unit_count" value="{{ $apartment->units()->count() }}">
+
+                            @if($apartment->units()->count() < $apartment->total_units)
+                            <div class="form-group full-width">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Discrepancy Detected:</strong> This property has {{ $apartment->total_units }} units listed but only {{ $apartment->units()->count() }} units actually created.
+                                    <br>Would you like to auto-generate the missing {{ $apartment->total_units - $apartment->units()->count() }} units?
+                                    <div class="custom-control custom-checkbox mt-2">
+                                        <input type="checkbox" class="custom-control-input" id="auto_create_missing" name="auto_create_missing" value="1">
+                                        <label class="custom-control-label" for="auto_create_missing">
+                                            Yes, auto-create missing units
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            <div class="form-group full-width" id="increase_units_notice" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    You're increasing the total units. Would you like to auto-generate the additional units?
+                                    <div class="custom-control custom-checkbox mt-2">
+                                        <input type="checkbox" class="custom-control-input" id="auto_generate_additional" name="auto_generate_additional" value="1" checked>
+                                        <label class="custom-control-label" for="auto_generate_additional">
+                                            Yes, auto-generate <span id="additional_count">0</span> additional units
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -854,6 +892,13 @@
                                     Garden/Green Space
                                 </label>
                             </div>
+                            <div class="amenity-item">
+                                <input type="checkbox" id="others" name="amenities[]" value="others" {{ in_array('others', $selectedAmenities) ? 'checked' : '' }}>
+                                <label for="others">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                    Others
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -963,6 +1008,26 @@
                     alert('Please fix the errors before submitting.');
                 }
             });
+
+            // Detect when total units is increased
+            const totalUnitsInput = document.getElementById('total_units');
+            const currentUnitCount = parseInt(document.getElementById('current_unit_count').value);
+            const increaseNotice = document.getElementById('increase_units_notice');
+            const additionalCountSpan = document.getElementById('additional_count');
+
+            if (totalUnitsInput && increaseNotice) {
+                totalUnitsInput.addEventListener('input', function() {
+                    const newTotal = parseInt(this.value) || 0;
+                    
+                    if (newTotal > currentUnitCount) {
+                        const additional = newTotal - currentUnitCount;
+                        additionalCountSpan.textContent = additional;
+                        increaseNotice.style.display = 'block';
+                    } else {
+                        increaseNotice.style.display = 'none';
+                    }
+                });
+            }
         });
 
         function confirmDelete() {
