@@ -84,15 +84,9 @@ class Property extends Model
             $diskRelative = ltrim($path, '/');
         }
 
-        // Only return URL if the file exists on the public disk; otherwise null so UI can show placeholder
-        try {
-            if (Storage::disk('public')->exists($diskRelative)) {
-                return asset('storage/' . $diskRelative);
-            }
-        } catch (\Throwable $e) {
-            // If storage check fails in some environments, fall back to asset URL
-            return asset('storage/' . $diskRelative);
-        }
+        // For Railway deployment, always return the asset URL since storage link might not work
+        // The fallback route will handle serving the actual file
+        return asset('storage/' . $diskRelative);
 
         // Fallback: try to derive image from the related Unit via slug suffix ("-<unitId>")
         if (!empty($this->slug) && preg_match('/-(\d+)$/', $this->slug, $matches)) {
