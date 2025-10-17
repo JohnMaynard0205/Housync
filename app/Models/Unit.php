@@ -64,6 +64,40 @@ class Unit extends Model
         'bathrooms' => 'integer',
     ];
 
+    protected $appends = ['cover_image_url', 'gallery_urls'];
+
+    // Accessors
+    public function getCoverImageUrlAttribute()
+    {
+        if (empty($this->cover_image)) {
+            return null;
+        }
+
+        // If already starts with http/https, return as is
+        if (str_starts_with($this->cover_image, 'http')) {
+            return $this->cover_image;
+        }
+
+        // Return the asset URL with storage path
+        return asset('storage/' . $this->cover_image);
+    }
+
+    public function getGalleryUrlsAttribute()
+    {
+        if (empty($this->gallery) || !is_array($this->gallery)) {
+            return [];
+        }
+
+        return array_map(function ($path) {
+            // If already starts with http/https, return as is
+            if (str_starts_with($path, 'http')) {
+                return $path;
+            }
+            // Return the asset URL with storage path
+            return asset('storage/' . $path);
+        }, $this->gallery);
+    }
+
     // Relationships
     public function apartment()
     {
