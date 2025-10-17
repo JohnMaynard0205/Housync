@@ -84,9 +84,8 @@ class Property extends Model
             $diskRelative = ltrim($path, '/');
         }
 
-        // For Railway deployment, always return the asset URL since storage link might not work
-        // The fallback route will handle serving the actual file
-        return asset('storage/' . $diskRelative);
+        // For Railway deployment, use API route since storage link doesn't work
+        return url('api/storage/' . $diskRelative);
 
         // Fallback: try to derive image from the related Unit via slug suffix ("-<unitId>")
         if (!empty($this->slug) && preg_match('/-(\d+)$/', $this->slug, $matches)) {
@@ -105,7 +104,7 @@ class Property extends Model
                             $candidate = ltrim($candidate, '/');
                         }
 
-                        return asset('storage/' . $candidate);
+                        return url('api/storage/' . $candidate);
                     }
                 }
             }

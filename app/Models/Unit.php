@@ -78,8 +78,8 @@ class Unit extends Model
             return $this->cover_image;
         }
 
-        // Return the asset URL with storage path
-        return asset('storage/' . $this->cover_image);
+        // Return the API URL with storage path for Railway
+        return url('api/storage/' . $this->cover_image);
     }
 
     public function getGalleryUrlsAttribute()
@@ -93,8 +93,8 @@ class Unit extends Model
             if (str_starts_with($path, 'http')) {
                 return $path;
             }
-            // Return the asset URL with storage path
-            return asset('storage/' . $path);
+            // Return the API URL with storage path for Railway
+            return url('api/storage/' . $path);
         }, $this->gallery);
     }
 
