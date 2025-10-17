@@ -257,5 +257,20 @@ Route::get('/debug', function () {
     ]);
 });
 
+// Fallback image serving route for Railway deployment issues
+Route::get('/storage/{path}', function ($path) {
+    $fullPath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($fullPath)) {
+        abort(404);
+    }
+    
+    $mimeType = mime_content_type($fullPath);
+    return response()->file($fullPath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=3600'
+    ]);
+})->where('path', '.*')->name('storage.fallback');
+
 // Authentication routes
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
