@@ -39,6 +39,8 @@ class TenantAssignment extends Model
         'security_deposit',
         'status',
         'notes',
+        'occupation',
+        'monthly_income',
         'documents_uploaded',
         'documents_verified',
         'verification_notes',
@@ -51,6 +53,7 @@ class TenantAssignment extends Model
         'lease_end_date' => 'date',
         'rent_amount' => 'decimal:2',
         'security_deposit' => 'decimal:2',
+        'monthly_income' => 'decimal:2',
         'documents_uploaded' => 'boolean',
         'documents_verified' => 'boolean',
     ];

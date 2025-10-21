@@ -394,8 +394,8 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('explore') }}">
-                <i class="fas fa-home"></i> HouseSync
+            <a class="navbar-brand" href="{{ route('login') }}">
+                <i class="fas fa-home"></i> HouSync
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

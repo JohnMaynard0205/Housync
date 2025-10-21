@@ -11,10 +11,12 @@ class StaffProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'name',
         'phone',
         'address',
         'staff_type',
         'license_number',
+        'status',
     ];
 
     public function user()

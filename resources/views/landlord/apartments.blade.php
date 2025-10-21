@@ -2,6 +2,148 @@
 
 @section('title', 'My Properties')
 
+@push('styles')
+<style>
+.properties-list {
+    background: white;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.list-header {
+    display: flex;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.list-row {
+    display: flex;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+    transition: background 0.15s ease;
+}
+
+.list-row:hover {
+    background: #f8fafc;
+}
+
+.list-row:last-child {
+    border-bottom: none;
+}
+
+.list-column {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    font-size: 0.875rem;
+}
+
+.text-center {
+    justify-content: center;
+}
+
+.text-right {
+    justify-content: flex-end;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.btn-icon:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.pagination nav {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    color: #475569;
+    font-size: 0.875rem;
+    background: white;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+.pagination a:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.pagination .active span {
+    background: #f97316;
+    border-color: #f97316;
+    color: white;
+}
+
+/* Fix Tailwind SVG arrow sizing */
+.pagination svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    display: inline-block;
+}
+
+/* Disabled pagination elements */
+.pagination .disabled span,
+.pagination [aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+/* Pagination ellipsis */
+.pagination .dots {
+    padding: 0.5rem;
+    color: #94a3b8;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="content-header">
@@ -59,78 +201,93 @@
                 <h2 class="section-title">Property Portfolio</h2>
                 <p class="section-subtitle">View and manage all your properties</p>
             </div>
-            <a href="{{ route('landlord.create-apartment') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add New Property
-            </a>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div class="sort-dropdown">
+                    <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
+                    <select id="propertySort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                        <option value="name" {{ request('sort', 'name') == 'name' ? 'selected' : '' }}>Property Name (A-Z)</option>
+                        <option value="units" {{ request('sort') == 'units' ? 'selected' : '' }}>Total Units (Most)</option>
+                        <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                    </select>
+                </div>
+                <a href="{{ route('landlord.create-apartment') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add New Property
+                </a>
+            </div>
         </div>
 
         @if($apartments->count() > 0)
-            <div class="properties-grid">
+            <div class="properties-list">
+                <div class="list-header">
+                    <div class="list-column" style="flex: 2;">Property Name</div>
+                    <div class="list-column">Location</div>
+                    <div class="list-column text-center">Total Units</div>
+                    <div class="list-column text-center">Occupied</div>
+                    <div class="list-column text-center">Occupancy</div>
+                    <div class="list-column text-right">Revenue/Month</div>
+                    <div class="list-column text-center">Actions</div>
+                </div>
+                
                 @foreach($apartments as $apartment)
-                    <div class="property-card">
-                        <div class="property-header">
-                            <div>
-                                <h3 class="property-title">{{ $apartment->name }}</h3>
-                                <p style="font-size: 0.875rem; color: #64748b;">ID: #{{ $apartment->id }}</p>
-                            </div>
-                            <span class="property-status status-active">Active</span>
-                        </div>
-                        <div class="property-info">
-                            <div class="info-item">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <span title="{{ $apartment->address }}">{{ Str::limit($apartment->address ?? 'No address', 30) }}</span>
-                            </div>
-                            <div class="info-item">
-                                <i class="fas fa-door-open"></i>
-                                <span>{{ $apartment->units->count() }} Units</span>
-                            </div>
-                            <div class="info-item">
-                                <i class="fas fa-calendar"></i>
-                                <span>{{ $apartment->created_at->format('M d, Y') }}</span>
-                            </div>
-                            <div class="info-item">
-                                <i class="fas fa-users"></i>
-                                <span>{{ $apartment->units->where('status', 'occupied')->count() }} Occupied</span>
-                            </div>
-                        </div>
-                        <div class="property-stats">
-                            <div class="stat-item">
-                                <div class="stat-item-value">{{ $apartment->units->count() }}</div>
-                                <div class="stat-item-label">Total Units</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-item-value">{{ $apartment->units->where('status', 'occupied')->count() }}</div>
-                                <div class="stat-item-label">Occupied</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-item-value">
-                                    @if($apartment->units->count() > 0)
-                                        {{ round(($apartment->units->where('status', 'occupied')->count() / $apartment->units->count()) * 100) }}%
-                                    @else
-                                        0%
-                                    @endif
+                    @php
+                        $totalUnits = $apartment->units->count();
+                        $occupiedUnits = $apartment->units->where('status', 'occupied')->count();
+                        $occupancyRate = $totalUnits > 0 ? round(($occupiedUnits / $totalUnits) * 100) : 0;
+                        $revenue = $apartment->units->where('status', 'occupied')->sum('rent_amount');
+                    @endphp
+                    <div class="list-row">
+                        <div class="list-column" style="flex: 2;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.125rem;">
+                                    {{ strtoupper(substr($apartment->name, 0, 1)) }}
                                 </div>
-                                <div class="stat-item-label">Occupancy</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-item-value">₱{{ number_format($apartment->units->where('status', 'occupied')->sum('rent_amount') ?? 0, 0) }}</div>
-                                <div class="stat-item-label">Revenue</div>
+                                <div>
+                                    <div style="font-weight: 600; color: #1e293b;">{{ $apartment->name }}</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8;">ID: #{{ $apartment->id }}</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="btn-group">
-                            <a href="{{ route('landlord.edit-apartment', $apartment->id) }}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="viewApartmentDetails({{ $apartment->id }})">
-                                <i class="fas fa-eye"></i> View Details
-                            </button>
+                        <div class="list-column">
+                            <i class="fas fa-map-marker-alt" style="color: #94a3b8; margin-right: 0.5rem;"></i>
+                            <span title="{{ $apartment->address }}">{{ Str::limit($apartment->address ?? 'No address', 35) }}</span>
+                        </div>
+                        <div class="list-column text-center">
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: 600;">
+                                {{ $totalUnits }}
+                            </span>
+                        </div>
+                        <div class="list-column text-center">
+                            <span style="color: #0f172a; font-weight: 500;">{{ $occupiedUnits }}</span>
+                        </div>
+                        <div class="list-column text-center">
+                            <div class="occupancy-bar" style="width: 100%; max-width: 80px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; position: relative;">
+                                <div style="position: absolute; left: 0; top: 0; height: 100%; background: {{ $occupancyRate >= 80 ? '#22c55e' : ($occupancyRate >= 50 ? '#f59e0b' : '#ef4444') }}; width: {{ $occupancyRate }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; display: block;">{{ $occupancyRate }}%</span>
+                        </div>
+                        <div class="list-column text-right">
+                            <span style="color: #0f172a; font-weight: 600;">₱{{ number_format($revenue, 0) }}</span>
+                        </div>
+                        <div class="list-column text-center">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <a href="{{ route('landlord.edit-apartment', $apartment->id) }}" class="btn-icon" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="viewApartmentDetails({{ $apartment->id }})" class="btn-icon" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="{{ route('landlord.units', $apartment->id) }}" class="btn-icon" title="View Units">
+                                    <i class="fas fa-door-open"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 @endforeach
             </div>
+            
             @if($apartments->hasPages())
-                <div class="pagination">
-                    {{ $apartments->links() }}
+                <div class="pagination" style="margin-top: 1.5rem;">
+                    {{ $apartments->appends(['sort' => request('sort')])->links() }}
                 </div>
             @endif
         @else

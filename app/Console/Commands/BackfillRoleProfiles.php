@@ -112,5 +112,3 @@ class BackfillRoleProfiles extends Command
         return self::SUCCESS;
     }
 }
-
-

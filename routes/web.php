@@ -69,8 +69,14 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::post('/apartments/{apartmentId}/units', [LandlordController::class, 'storeUnit'])->name('store-unit')->whereNumber('apartmentId');
     Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
     
+    // Bulk Unit Generation Route
+    Route::post('/units/bulk-generate', [LandlordController::class, 'bulkGenerateUnits'])->name('bulk-generate-units');
+    
     // Unit Update Route (for AJAX modal)
     Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
+    
+    // Unit Delete Route
+    Route::delete('/units/{id}', [LandlordController::class, 'deleteUnit'])->name('delete-unit')->whereNumber('id');
     
     // Tenant Assignment Routes
     Route::get('/tenant-assignments', [TenantAssignmentController::class, 'index'])->name('tenant-assignments');
@@ -85,6 +91,10 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::get('/tenant-assignments/{id}/credentials', [TenantAssignmentController::class, 'getCredentials'])->name('get-credentials');
     Route::get('/available-units', [TenantAssignmentController::class, 'getAvailableUnits'])->name('available-units');
     Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
+    
+    // Application approval/rejection routes
+    Route::post('/tenant-assignments/{id}/approve', [TenantAssignmentController::class, 'approveApplication'])->name('approve-application');
+    Route::post('/tenant-assignments/{id}/reject', [TenantAssignmentController::class, 'rejectApplication'])->name('reject-application');
     
     // Staff Management Routes
     Route::get('/staff', [StaffController::class, 'index'])->name('staff');
@@ -156,6 +166,9 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
     Route::post('/get-password', [TenantAssignmentController::class, 'getTenantPassword'])->name('get-password');
     Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
+    
+    // Apply for property
+    Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');
 });
 
 // Staff Routes
@@ -243,6 +256,8 @@ Route::get('/debug', function () {
         ]
     ]);
 });
+
+
 
 // Authentication routes
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

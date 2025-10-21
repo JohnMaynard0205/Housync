@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Unit;
 
 class Property extends Model
 {
@@ -73,21 +75,42 @@ class Property extends Model
             return $path;
         }
 
-        // Already pointing to public storage
+        // Normalize to disk-relative path (no leading storage/ or public/)
         if (Str::startsWith($path, ['storage/'])) {
-            return asset($path);
+            $diskRelative = ltrim(Str::after($path, 'storage/'), '/');
+        } elseif (Str::startsWith($path, ['public/'])) {
+            $diskRelative = ltrim(Str::after($path, 'public/'), '/');
+        } else {
+            $diskRelative = ltrim($path, '/');
         }
 
-        // If path begins with public/ or images/, normalize to asset()
-        if (Str::startsWith($path, ['public/'])) {
-            return asset(ltrim(Str::after($path, 'public/'), '/'));
-        }
-        if (Str::startsWith($path, ['images/'])) {
-            return asset($path);
+        // For Railway deployment, use API route since storage link doesn't work
+        return url('api/storage/' . $diskRelative);
+
+        // Fallback: try to derive image from the related Unit via slug suffix ("-<unitId>")
+        if (!empty($this->slug) && preg_match('/-(\d+)$/', $this->slug, $matches)) {
+            $unitId = (int) ($matches[1] ?? 0);
+            if ($unitId > 0) {
+                $unit = Unit::with('apartment')->find($unitId);
+                if ($unit) {
+                    $candidate = $unit->cover_image ?: ($unit->apartment->cover_image ?? null);
+                    if (!empty($candidate)) {
+                        // Normalize like observer
+                        if (Str::startsWith($candidate, ['storage/'])) {
+                            $candidate = ltrim(Str::after($candidate, 'storage/'), '/');
+                        } elseif (Str::startsWith($candidate, ['public/'])) {
+                            $candidate = ltrim(Str::after($candidate, 'public/'), '/');
+                        } else {
+                            $candidate = ltrim($candidate, '/');
+                        }
+
+                        return url('api/storage/' . $candidate);
+                    }
+                }
+            }
         }
 
-        // Default: files stored on public disk → storage/<path>
-        return asset('storage/' . ltrim($path, '/'));
+        return null;
     }
 
     /**

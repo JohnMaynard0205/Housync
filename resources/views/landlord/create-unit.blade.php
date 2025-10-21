@@ -489,11 +489,11 @@
                                     <option value="two_bedroom" {{ old('unit_type') == 'two_bedroom' ? 'selected' : '' }}>Two Bedroom</option>
                                     <option value="three_bedroom" {{ old('unit_type') == 'three_bedroom' ? 'selected' : '' }}>Three Bedroom</option>
                                     <option value="penthouse" {{ old('unit_type') == 'penthouse' ? 'selected' : '' }}>Penthouse</option>
-                                    <option value="duplex" {{ old('unit_type') == 'duplex' ? 'selected' : '' }}>Duplex</option>
                                 </select>
                                 @error('unit_type')
                                     <div class="error-message">{{ $message }}</div>
                                 @enderror
+                                <small class="form-text text-muted">Number of bedrooms will be set based on your selection</small>
                             </div>
                         </div>
 
@@ -532,15 +532,6 @@
                                     <div class="error-message">{{ $message }}</div>
                                 @enderror
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="floor_area" class="form-label">Floor Area (sq ft)</label>
-                                <input type="number" id="floor_area" name="floor_area" class="form-control @error('floor_area') error @enderror" 
-                                       value="{{ old('floor_area') }}" placeholder="0" min="0" step="0.01">
-                                @error('floor_area')
-                                    <div class="error-message">{{ $message }}</div>
-                                @enderror
-                            </div>
                         </div>
                     </div>
 
@@ -552,10 +543,11 @@
                             <div class="form-group">
                                 <label for="bedrooms" class="form-label">Number of Bedrooms *</label>
                                 <input type="number" id="bedrooms" name="bedrooms" class="form-control @error('bedrooms') error @enderror" 
-                                       value="{{ old('bedrooms', 0) }}" placeholder="0" min="0" required>
+                                       value="{{ old('bedrooms', 0) }}" placeholder="0" min="0" required readonly>
                                 @error('bedrooms')
                                     <div class="error-message">{{ $message }}</div>
                                 @enderror
+                                <small class="form-text text-muted">Auto-filled based on unit type</small>
                             </div>
                             
                             <div class="form-group">
@@ -613,6 +605,10 @@
                             <div class="amenity-item">
                                 <input type="checkbox" id="amenity_laundry" name="amenities[]" value="laundry" {{ in_array('laundry', old('amenities', [])) ? 'checked' : '' }}>
                                 <label for="amenity_laundry">Laundry</label>
+                            </div>
+                            <div class="amenity-item">
+                                <input type="checkbox" id="amenity_others" name="amenities[]" value="others" {{ in_array('others', old('amenities', [])) ? 'checked' : '' }}>
+                                <label for="amenity_others">Others</label>
                             </div>
                         </div>
                     </div>
@@ -696,6 +692,37 @@
                         this.value = `${unitType.charAt(0).toUpperCase()}${timestamp}`;
                     }
                 }
+            });
+
+            // Auto-populate bedrooms based on unit type
+            const unitTypeSelect = document.getElementById('unit_type');
+            const bedroomsInput = document.getElementById('bedrooms');
+
+            unitTypeSelect.addEventListener('change', function() {
+                const unitType = this.value;
+                let bedroomCount = 0;
+
+                switch(unitType) {
+                    case 'studio':
+                        bedroomCount = 0;
+                        break;
+                    case 'one_bedroom':
+                        bedroomCount = 1;
+                        break;
+                    case 'two_bedroom':
+                        bedroomCount = 2;
+                        break;
+                    case 'three_bedroom':
+                        bedroomCount = 3;
+                        break;
+                    case 'penthouse':
+                        bedroomCount = 3; // Default for penthouse, can be adjusted
+                        break;
+                    default:
+                        bedroomCount = 0;
+                }
+
+                bedroomsInput.value = bedroomCount;
             });
 
             // Form submission
