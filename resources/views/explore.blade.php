@@ -661,7 +661,7 @@
                 <div class="modal-body text-center" style="padding: 2rem;">
                     <div class="mb-4">
                         <i class="fas fa-home fa-3x text-primary mb-3"></i>
-                        <h4>Apply for Tenant</h4>
+                        <h4>Apply as Tenant</h4>
                         <p class="text-muted">To apply for this property, you need to have an account. Please login or register to continue.</p>
                     </div>
                     <div class="d-grid gap-2">

@@ -72,23 +72,11 @@
                         </div>
                     @endif
 
-                    <!-- Apply for Tenant Button -->
+                    <!-- View Details Button -->
                     <div class="property-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
-                        @auth
-                            @if(auth()->user()->role === 'tenant')
-                                <a href="{{ route('property.show', $property->slug) }}" class="btn btn-primary btn-sm w-100">
-                                    <i class="fas fa-home me-1"></i> View Details
-                                </a>
-                            @else
-                                <a href="{{ route('property.show', $property->slug) }}" class="btn btn-outline-primary btn-sm w-100">
-                                    <i class="fas fa-eye me-1"></i> View Details
-                                </a>
-                            @endif
-                        @else
-                            <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#loginRequiredModal">
-                                <i class="fas fa-user-plus me-1"></i> Apply for Tenant
-                            </button>
-                        @endauth
+                        <a href="{{ route('property.show', $property->slug) }}" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-eye me-1"></i> View Details
+                        </a>
                     </div>
                 </div>
             </div>
