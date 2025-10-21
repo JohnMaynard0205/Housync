@@ -179,20 +179,6 @@ Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(functi
     Route::post('/update-password', [StaffController::class, 'updatePassword'])->name('update-password');
 });
 
-Route::get('/tenant-payments', function () {
-    return view('tenant-payments');
-})->name('tenant.payments');
-
-Route::get('/tenant-maintenance', function () {
-    return view('tenant-maintenance');
-})->name('tenant.maintenance');
-
-Route::get('/tenant-messages', function () {
-    return view('tenant-messages');
-})->name('tenant.messages');
-
-
-
 // Units routes (need to be updated for role-based access)
 Route::middleware(['role:super_admin'])->group(function () {
     Route::get('/admin/units', [UnitController::class, 'index'])->name('admin.units');
@@ -202,23 +188,7 @@ Route::middleware(['role:super_admin'])->group(function () {
     Route::get('/admin/units/types', [UnitController::class, 'getUnitTypes'])->name('admin.units.types');
 });
 
-Route::get('/tenants', function () {
-    return view('tenants');
-})->name('tenants');
-
 Route::get('/landlord/tenants', [LandlordController::class, 'tenants'])->name('landlord.tenants');
-
-Route::get('/billing', function () {
-    return view('billing');
-})->name('billing');
-
-Route::get('/messages', function () {
-    return view('messages');
-})->name('messages');
-
-Route::get('/security', function () {
-    return view('security');
-})->name('security');
 
 // Health Check Route (for Railway monitoring)
 Route::get('/health', function () {

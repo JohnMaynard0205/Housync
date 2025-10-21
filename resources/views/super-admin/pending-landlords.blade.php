@@ -549,11 +549,11 @@
                     <div class="stat-label">Pending Approvals</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ \App\Models\User::where('role', 'landlord')->where('status', 'approved')->count() }}</div>
+                    <div class="stat-value">{{ \App\Models\User::approvedLandlords()->count() }}</div>
                     <div class="stat-label">Approved Landlords</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ \App\Models\User::where('role', 'landlord')->where('status', 'rejected')->count() }}</div>
+                    <div class="stat-value">{{ \App\Models\User::rejectedLandlords()->count() }}</div>
                     <div class="stat-label">Rejected Applications</div>
                 </div>
             </div>

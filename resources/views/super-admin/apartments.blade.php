@@ -556,7 +556,7 @@
                     <div class="stat-label">Occupied Units</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ \App\Models\User::where('role', 'landlord')->where('status', 'approved')->count() }}</div>
+                    <div class="stat-value">{{ \App\Models\User::approvedLandlords()->count() }}</div>
                     <div class="stat-label">Active Landlords</div>
                 </div>
             </div>
@@ -583,7 +583,7 @@
                             <label class="form-label">Landlord</label>
                             <select name="landlord" class="form-control">
                                 <option value="">All Landlords</option>
-                                @foreach(\App\Models\User::where('role', 'landlord')->where('status', 'approved')->get() as $landlord)
+                                @foreach(\App\Models\User::approvedLandlords()->get() as $landlord)
                                     <option value="{{ $landlord->id }}" {{ request('landlord') == $landlord->id ? 'selected' : '' }}>
                                         {{ $landlord->name }}
                                     </option>
