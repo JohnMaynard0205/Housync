@@ -50,7 +50,10 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::retrieved(function ($user) {
-            $user->load($user->getProfileRelation());
+            $relationName = $user->getProfileRelation();
+            if ($relationName && !$user->relationLoaded($relationName)) {
+                $user->load($relationName);
+            }
         });
     }
 
@@ -156,7 +159,20 @@ class User extends Authenticatable
     // Accessors - Delegate to Profile
     public function getNameAttribute($value)
     {
-        return $this->profile()?->name ?? $value ?? 'Unknown';
+        // Ensure profile is loaded
+        $relationName = $this->getProfileRelation();
+        if ($relationName && !$this->relationLoaded($relationName)) {
+            $this->load($relationName);
+        }
+        
+        // Try to get name from the profile relationship
+        $profile = $this->profile();
+        if ($profile && isset($profile->name)) {
+            return $profile->name;
+        }
+        
+        // Fallback to the value from users table if it exists
+        return $value ?? 'New User';
     }
 
     public function getPhoneAttribute($value)
