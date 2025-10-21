@@ -62,7 +62,7 @@ class Property extends Model
     /**
      * Accessors
      */
-    public function getImageUrlAttribute()
+    public function getImageUrlAttribute()4
     {
         if (empty($this->image_path)) {
             return null;
