@@ -375,25 +375,28 @@ class RfidController extends Controller
                 // New card - not in database yet
                 $result['card_status'] = 'new_card';
                 $result['message'] = 'New card detected - ready for assignment';
-                $result['access_granted'] = false;
-                $result['denial_reason'] = 'card_not_found';
-                
-                // Always log all card taps (including new cards for registration)
-                AccessLog::create([
-                    'card_uid' => $cardUID,
-                    'rfid_card_id' => null,
-                    'tenant_assignment_id' => null,
-                    'apartment_id' => null,
-                    'access_result' => 'denied',
-                    'denial_reason' => 'card_not_found',
-                    'access_time' => now(),
-                    'reader_location' => $readerLocation,
-                    'raw_data' => array_merge($request->all(), [
-                        'entry_state' => $entryState,
-                        'device_id' => $deviceId,
-                        'scan_type' => $scanType
-                    ])
-                ]);
+                 
+                // Only log as access attempt if it's actually an access attempt
+                if ($scanType === 'access_attempt') {
+                    $result['access_granted'] = false;
+                    $result['denial_reason'] = 'card_not_found';
+                    
+                    // Log the access attempt
+                    AccessLog::create([
+                        'card_uid' => $cardUID,
+                        'rfid_card_id' => null,
+                        'tenant_assignment_id' => null,
+                        'apartment_id' => null,
+                        'access_result' => 'denied',
+                        'denial_reason' => 'card_not_found',
+                        'access_time' => now(),
+                        'reader_location' => $readerLocation,
+                        'raw_data' => array_merge($request->all(), [
+                            'entry_state' => $entryState,
+                            'device_id' => $deviceId
+                        ])
+                    ]);
+                }
             } else {
                 // Existing card - check access
                 $result['card_status'] = 'registered_card';
@@ -455,28 +458,14 @@ class RfidController extends Controller
     }
 
     /**
-     * Get the latest Card UID from database (access_logs)
+     * Get the latest Card UID from ESP32Reader.php
      */
     public function getLatestCardUID(Request $request)
     {
         try {
-            // Optional filters
-            $apartmentId = $request->get('apartment_id');
-            $deviceId = $request->get('device_id');
-            $freshSeconds = (int)($request->get('fresh_seconds', 600)); // 10 minutes default
+            $latestCardFile = base_path('storage/app/latest_card.json');
             
-            // Query the latest scan from access_logs
-            $latestLog = AccessLog::when($apartmentId, function($query, $apartmentId) {
-                    return $query->where('apartment_id', $apartmentId);
-                })
-                ->when($deviceId, function($query, $deviceId) {
-                    return $query->where('reader_location', $deviceId);
-                })
-                ->orderBy('access_time', 'desc')
-                ->first();
-            
-            // Check if we have a log entry
-            if (!$latestLog || !$latestLog->card_uid) {
+            if (!file_exists($latestCardFile)) {
                 return response()->json([
                     'success' => false,
                     'error' => 'No card has been scanned yet. Please tap a card on the ESP32 reader first.',
@@ -484,27 +473,35 @@ class RfidController extends Controller
                 ], 404);
             }
             
-            // Check if the scan is fresh enough
-            $age = now()->diffInSeconds($latestLog->access_time);
+            $latestCardData = json_decode(file_get_contents($latestCardFile), true);
             
-            if ($age > $freshSeconds) {
+            if (!$latestCardData || !isset($latestCardData['card_uid'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid card data found.'
+                ], 500);
+            }
+            
+            // Check if the card data is recent (within last 10 minutes for better UX)
+            $scannedAt = strtotime($latestCardData['scanned_at']);
+            $age = time() - $scannedAt;
+            
+            // Allow cards scanned within the last 10 minutes (600 seconds)
+            if ($age > 600) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Last scanned card is too old. Please tap a new card on the ESP32 reader.',
-                    'last_scan' => $latestLog->access_time->toIso8601String(),
-                    'age_seconds' => $age,
-                    'fresh_seconds' => $freshSeconds
+                    'last_scan' => $latestCardData['scanned_at'],
+                    'age_seconds' => $age
                 ], 410);
             }
             
             return response()->json([
                 'success' => true,
-                'card_uid' => $latestLog->card_uid,
-                'message' => 'Latest Card UID retrieved from database',
-                'scanned_at' => $latestLog->access_time->toIso8601String(),
-                'age_seconds' => $age,
-                'access_result' => $latestLog->access_result,
-                'reader_location' => $latestLog->reader_location
+                'card_uid' => $latestCardData['card_uid'],
+                'message' => 'Latest Card UID retrieved successfully',
+                'scanned_at' => $latestCardData['scanned_at'],
+                'age_seconds' => $age
             ]);
             
         } catch (\Exception $e) {
