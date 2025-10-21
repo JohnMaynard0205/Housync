@@ -20,9 +20,10 @@ class ExploreController extends Controller
             return $this->filterProperties($request);
         }
 
-        // Initial page load
+        // Initial page load - only show available (non-occupied) properties
         $properties = Property::with(['amenities', 'landlord'])
             ->active()
+            ->available()
             ->latest()
             ->paginate(12);
 
@@ -44,7 +45,11 @@ class ExploreController extends Controller
         }
 
         if ($request->filled('availability')) {
+            // Only apply custom availability filter if explicitly set
             $query->filterByAvailability($request->availability);
+        } else {
+            // By default, only show available properties (exclude occupied)
+            $query->available();
         }
 
         if ($request->filled('amenities')) {
@@ -107,6 +112,7 @@ class ExploreController extends Controller
             ->where('type', $property->type)
             ->where('id', '!=', $property->id)
             ->active()
+            ->available()
             ->limit(4)
             ->get();
 

@@ -179,13 +179,19 @@
                         <i class="fas fa-calendar me-1"></i> Schedule Viewing
                     </button>
                     
-                    @auth
-                        @if(Auth::user()->role === 'tenant' && $property->availability_status === 'available')
-                            <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#applyTenantModal">
+                    @if($property->availability_status === 'available')
+                        @auth
+                            @if(Auth::user()->role === 'tenant')
+                                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#applyTenantModal">
+                                    <i class="fas fa-file-signature me-1"></i> Apply as Tenant
+                                </button>
+                            @endif
+                        @else
+                            <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#loginRequiredModal">
                                 <i class="fas fa-file-signature me-1"></i> Apply as Tenant
                             </button>
-                        @endif
-                    @endauth
+                        @endauth
+                    @endif
                 </div>
             </div>
         </div>
@@ -218,6 +224,35 @@
         @endif
     </div>
 
+    <!-- Login Required Modal -->
+    <div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-labelledby="loginRequiredModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title" id="loginRequiredModalLabel">
+                        <i class="fas fa-user-lock me-2"></i>Login Required
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center" style="padding: 2rem;">
+                    <div class="mb-4">
+                        <i class="fas fa-home fa-3x text-primary mb-3"></i>
+                        <h4>Apply as Tenant</h4>
+                        <p class="text-muted">To apply for this property, you need to have an account. Please login or register to continue.</p>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('login') }}" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                        <a href="{{ route('register') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Apply as Tenant Modal -->
     @auth
         @if(Auth::user()->role === 'tenant')
@@ -230,7 +265,7 @@
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <form id="applyTenantForm" method="POST" action="{{ route('tenant.apply', $property->id) }}" enctype="multipart/form-data">
+                        <form id="applyTenantForm" method="POST" action="{{ route('tenant.apply', $property->id) }}">
                             @csrf
                             <div class="modal-body">
                                 <div class="alert alert-info">
@@ -274,43 +309,6 @@
                                     <small class="text-muted">Your monthly income helps the landlord assess your application.</small>
                                 </div>
 
-                                <hr>
-
-                                <!-- Document Upload -->
-                                <h6 class="mb-3 fw-bold text-primary">
-                                    <i class="fas fa-file-upload me-2"></i>Required Documents
-                                </h6>
-
-                                <div id="documentContainer">
-                                    <div class="document-upload-item mb-3">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Document Type <span class="text-danger">*</span></label>
-                                                <select class="form-select" name="document_types[]" required>
-                                                    <option value="">-- Select Document Type --</option>
-                                                    <option value="government_id">Government ID</option>
-                                                    <option value="proof_of_income">Proof of Income</option>
-                                                    <option value="employment_contract">Employment Contract</option>
-                                                    <option value="bank_statement">Bank Statement</option>
-                                                    <option value="character_reference">Character Reference</option>
-                                                    <option value="rental_history">Rental History</option>
-                                                    <option value="other">Other</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Upload Document <span class="text-danger">*</span></label>
-                                                <input type="file" class="form-control" name="documents[]" accept=".pdf,.jpg,.jpeg,.png" required>
-                                                <small class="text-muted">Max 5MB. PDF, JPG, PNG only.</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDocumentField()">
-                                    <i class="fas fa-plus me-1"></i>Add Another Document
-                                </button>
-
-                                <hr>
 
                                 <!-- Additional Notes -->
                                 <div class="mb-3">
@@ -333,42 +331,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script>
-        // Add more document upload fields
-        function addDocumentField() {
-            const container = document.getElementById('documentContainer');
-            const newField = document.createElement('div');
-            newField.className = 'document-upload-item mb-3';
-            newField.innerHTML = `
-                <div class="row">
-                    <div class="col-md-5">
-                        <label class="form-label">Document Type <span class="text-danger">*</span></label>
-                        <select class="form-select" name="document_types[]" required>
-                            <option value="">-- Select Document Type --</option>
-                            <option value="government_id">Government ID</option>
-                            <option value="proof_of_income">Proof of Income</option>
-                            <option value="employment_contract">Employment Contract</option>
-                            <option value="bank_statement">Bank Statement</option>
-                            <option value="character_reference">Character Reference</option>
-                            <option value="rental_history">Rental History</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Upload Document <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control" name="documents[]" accept=".pdf,.jpg,.jpeg,.png" required>
-                        <small class="text-muted">Max 5MB. PDF, JPG, PNG only.</small>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="this.closest('.document-upload-item').remove()">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-            container.appendChild(newField);
-        }
-    </script>
 </body>
 </html>
 

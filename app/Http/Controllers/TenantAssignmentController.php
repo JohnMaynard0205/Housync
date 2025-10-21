@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Unit;
 use App\Models\TenantAssignment;
 use App\Models\TenantDocument;
+use App\Models\User;
+use App\Models\Property;
 use App\Services\TenantAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +29,7 @@ class TenantAssignmentController extends Controller
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['status', 'documents_uploaded', 'documents_verified']);
+        $filters = $request->only(['status']);
         $assignments = $this->assignmentService->getLandlordAssignments(Auth::id(), $filters);
         $stats = $this->assignmentService->getLandlordStats(Auth::id());
 
@@ -162,8 +164,6 @@ class TenantAssignmentController extends Controller
                     'security_deposit' => $request->security_deposit ?? 0,
                     'status' => 'active',
                     'notes' => $request->notes ?? null,
-                    'documents_uploaded' => false, // Reset document status for new assignment
-                    'documents_verified' => false,
                 ]);
 
                 // Update new unit status to occupied
@@ -284,7 +284,7 @@ class TenantAssignmentController extends Controller
     {
         $tenant = Auth::user();
         $assignments = $tenant->tenantAssignments()
-            ->with(['unit.apartment', 'documents'])
+            ->with(['unit.apartment', 'tenant.documents']) // Documents are now at tenant level
             ->orderByRaw("FIELD(status, 'active', 'pending_approval', 'terminated')")
             ->orderBy('created_at', 'desc')
             ->get();
@@ -303,17 +303,20 @@ class TenantAssignmentController extends Controller
     public function uploadDocuments()
     {
         $tenant = Auth::user();
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
+        
+        // Get all personal documents for this tenant
+        $personalDocuments = TenantDocument::where('tenant_id', $tenant->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Get the active assignment if one exists (optional now)
+        $assignment = $tenant->tenantAssignments()->with(['unit.apartment'])->first();
 
-        if (!$assignment) {
-            return redirect()->route('tenant.dashboard')->with('error', 'No assignment found.');
-        }
-
-        return view('tenant.upload-documents', compact('assignment'));
+        return view('tenant.upload-documents', compact('assignment', 'personalDocuments'));
     }
 
     /**
-     * Store uploaded documents
+     * Store uploaded documents (personal documents for tenant profile)
      */
     public function storeDocuments(Request $request)
     {
@@ -328,25 +331,21 @@ class TenantAssignmentController extends Controller
         ]);
 
         $tenant = Auth::user();
-        $assignment = $tenant->tenantAssignments()->first();
-
-        if (!$assignment) {
-            return back()->with('error', 'No assignment found.');
-        }
-
+        
+        // No assignment required - these are personal documents
         try {
             $uploadedDocuments = [];
             
             // Use database transaction for document uploads
-            DB::transaction(function() use ($request, $assignment, &$uploadedDocuments) {
+            DB::transaction(function() use ($request, $tenant, &$uploadedDocuments) {
                 foreach ($request->file('documents') as $index => $file) {
                     $documentType = $request->document_types[$index];
                     
-                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                     $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
 
                     $document = TenantDocument::create([
-                        'tenant_assignment_id' => $assignment->id,
+                        'tenant_id' => $tenant->id,
                         'document_type' => $documentType,
                         'file_name' => $file->getClientOriginalName(),
                         'file_path' => $filePath,
@@ -358,36 +357,26 @@ class TenantAssignmentController extends Controller
 
                     $uploadedDocuments[] = $document;
                 }
-
-                // Mark documents as uploaded and update assignment status
-                $assignment->update([
-                    'documents_uploaded' => true,
-                    'documents_verified' => false, // New documents are always pending verification
-                ]);
             });
 
             // Audit log for successful document upload
-            Log::info('Documents uploaded successfully', [
+            Log::info('Personal documents uploaded successfully', [
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
-                'assignment_id' => $assignment->id,
-                'unit_id' => $assignment->unit_id,
-                'landlord_id' => $assignment->landlord_id,
                 'documents_count' => count($uploadedDocuments),
                 'document_types' => $request->document_types,
                 'total_size' => array_sum(array_map(fn($doc) => $doc->file_size, $uploadedDocuments)),
                 'timestamp' => now()
             ]);
 
-            return redirect()->route('tenant.dashboard')
-                ->with('success', 'Documents uploaded successfully. They will be reviewed by your landlord.');
+            return redirect()->route('tenant.upload-documents')
+                ->with('success', 'Personal documents uploaded successfully! You can now apply for properties.');
 
         } catch (\Exception $e) {
             // Detailed error logging
-            Log::error('Document upload failed', [
+            Log::error('Personal document upload failed', [
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
-                'assignment_id' => $assignment->id ?? 'N/A',
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),
@@ -400,122 +389,24 @@ class TenantAssignmentController extends Controller
     }
 
     /**
-     * Verify documents (landlord only)
-     */
-    public function verifyDocuments(Request $request, $assignmentId)
-    {
-        $request->validate([
-            'verification_notes' => 'nullable|string|max:1000',
-        ]);
-
-        $assignment = TenantAssignment::where('landlord_id', Auth::id())
-            ->findOrFail($assignmentId);
-
-        $this->assignmentService->verifyDocuments(
-            $assignmentId,
-            Auth::id(),
-            $request->verification_notes
-        );
-
-        return back()->with('success', 'Documents verified successfully.');
-    }
-
-    /**
-     * Verify individual document (landlord only)
-     */
-    public function verifyIndividualDocument(Request $request, $documentId)
-    {
-        $request->validate([
-            'verification_notes' => 'nullable|string|max:1000',
-        ]);
-
-        try {
-            $document = TenantDocument::with('tenantAssignment.tenant')->findOrFail($documentId);
-            
-            // Check if landlord has access to this document
-            if ($document->tenantAssignment->landlord_id !== Auth::id()) {
-                abort(403, 'Unauthorized access to document.');
-            }
-
-            $oldStatus = $document->verification_status;
-
-            // Update the individual document
-            $document->update([
-                'verification_status' => 'verified',
-                'verified_by' => Auth::id(),
-                'verified_at' => now(),
-                'verification_notes' => $request->verification_notes,
-            ]);
-
-            // Check if all documents for this assignment are verified
-            $assignment = $document->tenantAssignment;
-            $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-            
-            $allDocumentsVerified = false;
-            if ($pendingDocuments === 0) {
-                // All documents verified, update assignment status
-                $assignment->update([
-                    'documents_verified' => true,
-                    'verification_notes' => 'All documents verified',
-                ]);
-
-                // Update assignment status to active if it was pending
-                if ($assignment->status === 'pending') {
-                    $assignment->update(['status' => 'active']);
-                }
-                
-                $allDocumentsVerified = true;
-            }
-
-            // Audit log for document verification
-            Log::info('Document verified successfully', [
-                'landlord_id' => Auth::id(),
-                'document_id' => $documentId,
-                'assignment_id' => $assignment->id,
-                'tenant_id' => $assignment->tenant_id,
-                'tenant_name' => $assignment->tenant->name,
-                'document_type' => $document->document_type,
-                'document_name' => $document->file_name,
-                'old_status' => $oldStatus,
-                'new_status' => 'verified',
-                'verification_notes' => $request->verification_notes,
-                'all_documents_verified' => $allDocumentsVerified,
-                'assignment_status_updated' => $allDocumentsVerified && $assignment->status === 'active',
-                'timestamp' => now()
-            ]);
-
-            return back()->with('success', 'Document verified successfully.');
-
-        } catch (\Exception $e) {
-            // Detailed error logging
-            Log::error('Document verification failed', [
-                'landlord_id' => Auth::id(),
-                'document_id' => $documentId,
-                'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'timestamp' => now()
-            ]);
-
-            return back()->with('error', 'Failed to verify document. Please try again.');
-        }
-    }
-
-    /**
      * Download document
      */
     public function downloadDocument($documentId)
     {
-        $document = TenantDocument::with('tenantAssignment')->findOrFail($documentId);
+        $document = TenantDocument::with('tenant')->findOrFail($documentId);
         
         // Check if user has access to this document
         $user = Auth::user();
         if ($user->isLandlord()) {
-            if ($document->tenantAssignment->landlord_id !== $user->id) {
+            // Landlord can access document if they have any assignment with this tenant
+            $hasAccess = TenantAssignment::where('tenant_id', $document->tenant_id)
+                ->where('landlord_id', $user->id)
+                ->exists();
+            if (!$hasAccess) {
                 abort(403);
             }
         } elseif ($user->isTenant()) {
-            if ($document->tenantAssignment->tenant_id !== $user->id) {
+            if ($document->tenant_id !== $user->id) {
                 abort(403);
             }
         } else {
@@ -526,9 +417,21 @@ class TenantAssignmentController extends Controller
             abort(404);
         }
 
-        return response()->file(Storage::disk('public')->path($document->file_path), [
-            'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"'
-        ]);
+        // Check if this is a view request (inline) or download request
+        $inline = request()->get('inline', false);
+        
+        if ($inline) {
+            // Display inline for viewing (images, PDFs)
+            return response()->file(Storage::disk('public')->path($document->file_path), [
+                'Content-Type' => $document->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"'
+            ]);
+        } else {
+            // Force download
+            return response()->file(Storage::disk('public')->path($document->file_path), [
+                'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"'
+            ]);
+        }
     }
 
     /**
@@ -559,25 +462,7 @@ class TenantAssignmentController extends Controller
                 // Delete the document record
                 $document->delete();
 
-                // Update assignment status based on remaining documents
-                $remainingDocuments = $assignment->documents()->count();
-                
-                if ($remainingDocuments === 0) {
-                    // No documents left, mark as not uploaded
-                    $assignment->update([
-                        'documents_uploaded' => false,
-                        'documents_verified' => false,
-                    ]);
-                } else {
-                    // Check if all remaining documents are verified
-                    $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-                    $allVerified = $pendingDocuments === 0;
-                    
-                    $assignment->update([
-                        'documents_uploaded' => true,
-                        'documents_verified' => $allVerified,
-                    ]);
-                }
+                // Document deletion complete - no need to update assignment status
             });
 
             // Audit log for document deletion
@@ -591,8 +476,7 @@ class TenantAssignmentController extends Controller
                 'document_type' => $documentType,
                 'document_name' => $fileName,
                 'file_size' => $fileSize,
-                'verification_status' => $document->verification_status,
-                'remaining_documents' => $assignment->documents()->count(),
+                'remaining_documents' => $assignment->tenant->documents()->count(),
                 'timestamp' => now()
             ]);
 
@@ -651,24 +535,18 @@ class TenantAssignmentController extends Controller
             // Use database transaction for assignment deletion
             $result = DB::transaction(function() use ($id) {
                 $assignment = TenantAssignment::where('landlord_id', Auth::id())
-                    ->with(['tenant', 'unit', 'documents'])
+                    ->with(['tenant.documents', 'unit'])
                     ->findOrFail($id);
 
                 $tenantName = $assignment->tenant->name;
                 $tenantId = $assignment->tenant_id;
                 $unitId = $assignment->unit_id;
-                $documentsCount = $assignment->documents->count();
-                $totalFileSize = $assignment->documents->sum('file_size');
+                $documentsCount = $assignment->tenant->documents->count();
+                $totalFileSize = $assignment->tenant->documents->sum('file_size');
 
-                // Delete all associated documents first
-                foreach ($assignment->documents as $document) {
-                    // Delete the file from storage
-                    if (Storage::disk('public')->exists($document->file_path)) {
-                        Storage::disk('public')->delete($document->file_path);
-                    }
-                    // Delete the document record
-                    $document->delete();
-                }
+                // NOTE: We DO NOT delete tenant's personal documents
+                // Documents belong to the tenant, not the assignment
+                // The tenant may have other applications or need these documents later
 
                 // Update the unit status back to available
                 $assignment->unit->update([
@@ -676,11 +554,7 @@ class TenantAssignmentController extends Controller
                     'tenant_count' => 0
                 ]);
 
-                // Delete the tenant user account (optional - you may want to keep it)
-                // Uncomment the line below if you want to delete the tenant user account
-                // $assignment->tenant->delete();
-
-                // Delete the assignment
+                // Delete the assignment only
                 $assignment->delete();
 
                 return [
@@ -737,11 +611,15 @@ class TenantAssignmentController extends Controller
             $assignment = $tenant->tenantAssignments()
                 ->with([
                     'unit.apartment.landlord', 
-                    'documents',
                     'landlord'
                 ])
                 ->where('status', 'active')
                 ->first();
+
+            // Get all documents belonging to this tenant
+            $personalDocuments = TenantDocument::where('tenant_id', $tenant->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             // Get RFID cards if available
             $rfidCards = collect();
@@ -756,7 +634,7 @@ class TenantAssignmentController extends Controller
                 }
             }
 
-            return view('tenant-profile', compact('tenant', 'assignment', 'rfidCards'));
+            return view('tenant-profile', compact('tenant', 'assignment', 'rfidCards', 'personalDocuments'));
             
         } catch (\Exception $e) {
             \Log::error('Tenant profile error: ' . $e->getMessage(), [
@@ -768,34 +646,7 @@ class TenantAssignmentController extends Controller
         }
     }
 
-    /**
-     * Get tenant password (for profile view only)
-     */
-    public function getTenantPassword(Request $request)
-    {
-        try {
-            $tenant = Auth::user();
-            
-            // Get the tenant assignment to find the generated password
-            $assignment = $tenant->tenantAssignments()
-                ->where('status', 'active')
-                ->first();
-            
-            $password = null;
-            if ($assignment && $assignment->generated_password) {
-                // Return the generated password if available
-                $password = $assignment->generated_password;
-            } else {
-                // If no generated password, return a message
-                $password = 'No generated password available. Contact your landlord.';
-            }
-            
-            return response()->json(['password' => $password]);
-            
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Unable to retrieve password'], 500);
-        }
-    }
+    // Removed getTenantPassword - tenants create their own passwords during registration
 
     /**
      * Show tenant lease page
@@ -847,9 +698,9 @@ class TenantAssignmentController extends Controller
                 ->where('status', 'active')
                 ->first();
 
-            if (!$assignment || !$assignment->documents_verified) {
+            if (!$assignment) {
                 return response()->json([
-                    'error' => 'Password change is only available after your documents have been verified by the landlord.'
+                    'error' => 'No active assignment found.'
                 ], 403);
             }
 
@@ -892,20 +743,23 @@ class TenantAssignmentController extends Controller
      */
     public function applyForProperty(Request $request, $propertyId)
     {
-        // Validate the application data
+        $tenant = Auth::user();
+        
+        // Check if tenant has uploaded personal documents
+        $personalDocuments = TenantDocument::where('tenant_id', $tenant->id)->get();
+        
+        if ($personalDocuments->isEmpty()) {
+            return back()->with('error', 'You must upload your personal documents before applying for a property. Please visit your profile or upload documents page to add required documents.');
+        }
+        
+        // Validate the application data (no documents required in form anymore)
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:500',
             'occupation' => 'required|string|max:255',
             'monthly_income' => 'required|numeric|min:0',
-            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
             'notes' => 'nullable|string|max:1000',
-        ], [
-            'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
-            'documents.*.max' => 'Each file must not exceed 5MB',
-            'document_types.*.in' => 'Invalid document type selected',
         ]);
 
         try {
@@ -950,7 +804,7 @@ class TenantAssignmentController extends Controller
             ]);
 
             // Create the tenant assignment with pending_approval status
-            DB::transaction(function() use ($request, $unit, $tenant, $property) {
+            DB::transaction(function() use ($request, $unit, $tenant, $property, $personalDocuments) {
                 // Update user info if provided (profile-centric)
                 if ($tenant->tenantProfile) {
                     $tenant->tenantProfile->update([
@@ -973,28 +827,10 @@ class TenantAssignmentController extends Controller
                     'occupation' => $request->occupation,
                     'monthly_income' => $request->monthly_income,
                     'notes' => $request->notes,
-                    'documents_uploaded' => true,
-                    'documents_verified' => false,
                 ]);
 
-                // Upload and store documents
-                foreach ($request->file('documents') as $index => $file) {
-                    $documentType = $request->document_types[$index];
-                    
-                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
-
-                    TenantDocument::create([
-                        'tenant_assignment_id' => $assignment->id,
-                        'document_type' => $documentType,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_path' => $filePath,
-                        'file_size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
-                        'uploaded_at' => now(),
-                        'verification_status' => 'pending',
-                    ]);
-                }
+                // Documents remain at tenant level - they are NOT linked to assignments
+                // Landlord will view the tenant's personal documents when reviewing the application
             });
 
             // Audit log
@@ -1005,7 +841,7 @@ class TenantAssignmentController extends Controller
                 'unit_id' => $unit->id,
                 'landlord_id' => $unit->apartment->landlord_id,
                 'property_name' => $unit->apartment->name,
-                'documents_count' => count($request->file('documents')),
+                'documents_count' => $personalDocuments->count(),
                 'timestamp' => now()
             ]);
 
@@ -1047,7 +883,6 @@ class TenantAssignmentController extends Controller
                 // Update assignment status to active
                 $assignment->update([
                     'status' => 'active',
-                    'documents_verified' => true,
                     'lease_start_date' => now(),
                     'lease_end_date' => now()->addYear(),
                 ]);
@@ -1056,13 +891,6 @@ class TenantAssignmentController extends Controller
                 $assignment->unit->update([
                     'status' => 'occupied',
                     'tenant_count' => 1
-                ]);
-
-                // Verify all documents
-                $assignment->documents()->update([
-                    'verification_status' => 'verified',
-                    'verified_by' => Auth::id(),
-                    'verified_at' => now()
                 ]);
             });
 
@@ -1101,23 +929,18 @@ class TenantAssignmentController extends Controller
             DB::transaction(function() use ($request, $id) {
                 $assignment = TenantAssignment::where('landlord_id', Auth::id())
                     ->where('status', 'pending_approval')
-                    ->with(['unit', 'tenant', 'documents'])
+                    ->with(['unit', 'tenant.documents'])
                     ->findOrFail($id);
 
-                // Delete all uploaded documents
-                foreach ($assignment->documents as $document) {
-                    if (Storage::disk('public')->exists($document->file_path)) {
-                        Storage::disk('public')->delete($document->file_path);
-                    }
-                    $document->delete();
-                }
+                // NOTE: We DO NOT delete tenant's personal documents when rejecting
+                // Documents belong to the tenant and can be used for other applications
 
                 // Store rejection reason in notes
                 $assignment->update([
                     'notes' => 'Application rejected. Reason: ' . ($request->reason ?? 'No reason provided'),
                 ]);
 
-                // Delete the assignment
+                // Delete the assignment only
                 $assignment->delete();
             });
 
