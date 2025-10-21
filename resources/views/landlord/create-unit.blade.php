@@ -394,33 +394,36 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>Housesync</h2>
-                <p>Property Management</p>
+                <h2>Landlord Portal</h2>
+                <p>Property Manager</p>
             </div>
-            
             <nav class="sidebar-nav">
                 <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-tachometer-alt"></i>
-                    Dashboard
+                    <i class="fas fa-home"></i> My Dashboard
                 </a>
                 <a href="{{ route('landlord.apartments') }}" class="nav-item">
-                    <i class="fas fa-building"></i>
-                    Properties
+                    <i class="fas fa-building"></i> My Properties
+                    @if(isset($stats['total_apartments']))
+                        <span class="badge-count">{{ $stats['total_apartments'] }}</span>
+                    @endif
                 </a>
                 <a href="{{ route('landlord.units') }}" class="nav-item active">
-                    <i class="fas fa-home"></i>
-                    Units
+                    <i class="fas fa-door-open"></i> My Units
+                    @if(isset($stats['total_units']))
+                        <span class="badge-count">{{ $stats['total_units'] }}</span>
+                    @endif
                 </a>
                 <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item">
-                    <i class="fas fa-users"></i>
-                    Tenant Assignments
+                    <i class="fas fa-users"></i> Tenant Assignments
                 </a>
-                <a href="{{ route('landlord.staff') }}" class="nav-item">
-                    <i class="fas fa-user-tie"></i>
-                    Staff Management
+                <a href="#" class="nav-item">
+                    <i class="fas fa-credit-card"></i> Payments
                 </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-tools"></i> Maintenance
+                </a>
+
             </nav>
-            
             <div class="sidebar-footer">
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                     @csrf

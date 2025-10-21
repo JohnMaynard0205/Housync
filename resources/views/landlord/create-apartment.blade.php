@@ -500,12 +500,18 @@
                 </a>
                 <a href="{{ route('landlord.apartments') }}" class="nav-item active">
                     <i class="fas fa-building"></i> My Properties
+                    @if(isset($stats['total_apartments']))
+                        <span class="badge-count">{{ $stats['total_apartments'] }}</span>
+                    @endif
                 </a>
                 <a href="{{ route('landlord.units') }}" class="nav-item">
                     <i class="fas fa-door-open"></i> My Units
+                    @if(isset($stats['total_units']))
+                        <span class="badge-count">{{ $stats['total_units'] }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-users"></i> Tenants
+                <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item">
+                    <i class="fas fa-users"></i> Tenant Assignments
                 </a>
                 <a href="#" class="nav-item">
                     <i class="fas fa-credit-card"></i> Payments
