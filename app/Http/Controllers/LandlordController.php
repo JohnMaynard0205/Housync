@@ -11,7 +11,7 @@ use App\Models\TenantAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-
+use App\Services\SupabaseService;
 class LandlordController extends Controller
 {
     public function dashboard()
@@ -108,13 +108,73 @@ class LandlordController extends Controller
         try {
             $coverPath = null;
             if ($request->hasFile('cover_image')) {
-                $coverPath = $request->file('cover_image')->store('apartment-covers', 'public');
+                $supabase = new SupabaseService();
+                
+                // Generate unique filename
+                $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                $path = 'apartments/' . $filename;
+                
+                // Log file info
+                \Log::info('Uploading file to Supabase', [
+                    'bucket' => 'house-sync',
+                    'path' => $path,
+                    'filename' => $filename,
+                    'size' => $request->file('cover_image')->getSize(),
+                    'mime' => $request->file('cover_image')->getMimeType()
+                ]);
+                
+                // Upload file
+                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                
+                // Log upload result
+                \Log::info('Supabase upload result', ['result' => $uploadResult]);
+                
+                // Output to browser console for debugging
+                echo "<script>
+                    console.group('🚀 Supabase Cover Image Upload');
+                    console.log('📁 Upload Path:', " . json_encode($path) . ");
+                    console.log('📊 File Info:', {
+                        filename: " . json_encode($filename) . ",
+                        size: " . json_encode($request->file('cover_image')->getSize()) . ",
+                        mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
+                    });
+                    console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
+                    console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                    console.groupEnd();
+                </script>";
+                
+                // Check if upload was successful
+                if ($uploadResult['success']) {
+                    $coverPath = $uploadResult['url'];
+                } else {
+                    \Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                    throw new \Exception('Failed to upload cover image: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                }
             }
 
             $galleryPaths = [];
             if ($request->hasFile('gallery')) {
-                foreach ($request->file('gallery') as $file) {
-                    $galleryPaths[] = $file->store('apartment-gallery', 'public');
+                foreach ($request->file('gallery') as $index => $file) {
+                    $supabase = new SupabaseService();
+                    
+                    // Generate unique filename for gallery
+                    $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = 'apartments/gallery/' . $filename;
+                    
+                    // Upload to Supabase
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    \Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
+                    
+                    // Output to browser console
+                    echo "<script>
+                        console.log('🖼️ Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                    </script>";
+                    
+                    // Only add if successful
+                    if ($uploadResult['success']) {
+                        $galleryPaths[] = $uploadResult['url'];
+                    }
                 }
             }
 
