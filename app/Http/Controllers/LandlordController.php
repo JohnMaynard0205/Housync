@@ -11,7 +11,7 @@ use App\Models\TenantAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Support\Facades\Storage;
 class LandlordController extends Controller
 {
     public function dashboard()
@@ -108,13 +108,37 @@ class LandlordController extends Controller
         try {
             $coverPath = null;
             if ($request->hasFile('cover_image')) {
-                $coverPath = $request->file('cover_image')->store('apartment-covers', 'public');
+                // Generate unique filename
+                $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                
+                // Store file in public disk
+                $path = $request->file('cover_image')->storeAs('apartment-covers', $filename, 'public');
+                
+                // Generate public URL
+                $coverPath = asset('storage/' . $path);
+                
+                \Log::info('Cover image uploaded', [
+                    'path' => $path,
+                    'url' => $coverPath
+                ]);
             }
 
             $galleryPaths = [];
             if ($request->hasFile('gallery')) {
-                foreach ($request->file('gallery') as $file) {
-                    $galleryPaths[] = $file->store('apartment-gallery', 'public');
+                foreach ($request->file('gallery') as $index => $file) {
+                    // Generate unique filename for gallery
+                    $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Store file in public disk
+                    $path = $file->storeAs('apartment-gallery', $filename, 'public');
+                    
+                    // Generate public URL
+                    $galleryPaths[] = asset('storage/' . $path);
+                    
+                    \Log::info('Gallery image uploaded', [
+                        'index' => $index,
+                        'path' => $path
+                    ]);
                 }
             }
 
@@ -730,23 +754,22 @@ class LandlordController extends Controller
         ]);
 
         $landlord = User::create([
-            'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'landlord',
-            'status' => 'pending',
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
         ]);
 
-        // Create landlord profile for role-specific data
-        LandlordProfile::create([
-            'user_id' => $landlord->id,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
-        ]);
+        // Create or update the landlord profile with the actual data
+        LandlordProfile::updateOrCreate(
+            ['user_id' => $landlord->id],
+            [
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'business_info' => $request->business_info,
+                'status' => 'pending',
+            ]
+        );
 
         // Store uploaded documents for review (pending verification)
         foreach ($request->file('documents') as $index => $file) {
