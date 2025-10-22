@@ -249,6 +249,23 @@
                 </div>
             </div>
             @endif
+
+            <!-- Next Steps Card -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Next Steps</h5>
+                    <p>After uploading your documents:</p>
+                    <ol>
+                        <li>Browse available properties</li>
+                        <li>Apply for units you like</li>
+                        <li>Your documents will automatically be included with your application</li>
+                        <li>Landlords can review your application faster!</li>
+                    </ol>
+                    <a href="{{ route('explore') }}" class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-search me-2"></i>Browse Properties
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -282,24 +299,6 @@
         </div>
     </div>
 </div>
-
-@else
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Next Steps</h5>
-        <p>After uploading your documents:</p>
-        <ol>
-            <li>Browse available properties</li>
-            <li>Apply for units you like</li>
-            <li>Your documents will automatically be included with your application</li>
-            <li>Landlords can review your application faster!</li>
-        </ol>
-        <a href="{{ route('explore') }}" class="btn btn-primary w-100 mt-2">
-            <i class="fas fa-search me-2"></i>Browse Properties
-        </a>
-    </div>
-</div>
-@endif
         </div>
     </div>
 </div>
