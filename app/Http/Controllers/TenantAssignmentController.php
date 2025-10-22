@@ -318,6 +318,14 @@ class TenantAssignmentController extends Controller
      */
     public function storeDocuments(Request $request)
     {
+        // Log the incoming request for debugging
+        Log::info('Document upload request received', [
+            'has_documents' => $request->hasFile('documents'),
+            'documents_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
+            'document_types' => $request->input('document_types', []),
+            'user_id' => Auth::id(),
+        ]);
+
         // Enhanced validation rules
         $request->validate([
             'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -334,6 +342,13 @@ class TenantAssignmentController extends Controller
         try {
             $uploadedDocuments = [];
             $supabase = new \App\Services\SupabaseService();
+            
+            // Test Supabase connection
+            Log::info('Testing Supabase connection', [
+                'url' => config('services.supabase.url'),
+                'has_key' => !empty(config('services.supabase.key')),
+                'has_service_key' => !empty(config('services.supabase.service_key')),
+            ]);
             
             // Use database transaction for document uploads
             DB::transaction(function() use ($request, $tenant, $supabase, &$uploadedDocuments) {

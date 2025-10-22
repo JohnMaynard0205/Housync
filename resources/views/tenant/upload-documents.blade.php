@@ -148,6 +148,38 @@
                         <div id="documentFields">
                             <!-- Document fields will be added here dynamically -->
                         </div>
+                        
+                        <!-- Add a default document field if none exist -->
+                        <div id="defaultDocumentField" style="display: none;">
+                            <div class="row mb-3 document-field">
+                                <div class="col-md-4">
+                                    <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                                    <select name="document_types[]" class="form-select" required>
+                                        <option value="">Select Document Type</option>
+                                        <option value="government_id">Government ID</option>
+                                        <option value="proof_of_income">Proof of Income</option>
+                                        <option value="employment_contract">Employment Contract</option>
+                                        <option value="bank_statement">Bank Statement</option>
+                                        <option value="character_reference">Character Reference</option>
+                                        <option value="rental_history">Rental History</option>
+                                        <option value="other">Other Document</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">File <span class="text-danger">*</span></label>
+                                    <input type="file" name="documents[]" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <small class="text-muted">Max size: 5MB</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDocumentField(this)">
+                                            <i class="mdi mdi-delete"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="row mt-3">
                             <div class="col-12">
@@ -404,6 +436,12 @@ function viewPDF(pdfUrl, fileName) {
 document.addEventListener('DOMContentLoaded', function() {
     // Add initial document field
     addDocumentField();
+    
+    // Ensure at least one document field exists
+    const documentFields = document.querySelectorAll('.document-field');
+    if (documentFields.length === 0) {
+        addDocumentField();
+    }
 });
 
 function addDocumentField() {
@@ -447,25 +485,61 @@ function removeDocumentField(button) {
 // Form validation
 document.getElementById('documentForm')?.addEventListener('submit', function(e) {
     const fileInputs = document.querySelectorAll('input[type="file"]');
+    const documentTypeSelects = document.querySelectorAll('select[name="document_types[]"]');
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     
+    // Check if at least one document is selected
+    let hasFiles = false;
     for (let input of fileInputs) {
+        if (input.files.length > 0) {
+            hasFiles = true;
+            break;
+        }
+    }
+    
+    if (!hasFiles) {
+        e.preventDefault();
+        alert('Please select at least one document to upload.');
+        return false;
+    }
+    
+    // Validate each file
+    for (let i = 0; i < fileInputs.length; i++) {
+        const input = fileInputs[i];
+        const select = documentTypeSelects[i];
+        
         if (input.files.length > 0) {
             const file = input.files[0];
             
+            // Check file size
             if (file.size > maxSize) {
                 e.preventDefault();
                 alert(`File "${file.name}" is too large. Maximum size is 5MB.`);
                 return false;
             }
             
+            // Check file type
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
             if (!allowedTypes.includes(file.type)) {
                 e.preventDefault();
                 alert(`File "${file.name}" is not an accepted format. Please use PDF, JPG, JPEG, or PNG.`);
                 return false;
             }
+            
+            // Check if document type is selected
+            if (!select.value) {
+                e.preventDefault();
+                alert(`Please select a document type for "${file.name}".`);
+                return false;
+            }
         }
+    }
+    
+    // Show loading state
+    const submitButton = this.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Uploading...';
     }
 });
 
