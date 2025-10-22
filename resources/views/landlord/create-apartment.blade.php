@@ -373,7 +373,7 @@
             </div>
 
             <!-- Auto-Generation Settings (shown when auto-generate is checked) -->
-            <div class="form-section" id="auto_gen_settings" style="display: none;">
+            <div class="form-section" id="auto_gen_settings" style="display: block;">
                 <h3 class="form-section-title">
                     <i class="fas fa-magic"></i>
                     Auto-Generation Settings
@@ -504,10 +504,11 @@
                     <div class="form-group">
                         <label class="form-label">Number of Floors</label>
                         <input type="number" name="floors" id="floors" class="form-control @error('floors') error @enderror" 
-                               value="{{ old('floors') }}" min="1" placeholder="e.g., 5">
+                               value="{{ old('floors', 1) }}" min="1" placeholder="e.g., 5" required>
                         @error('floors')
                             <div class="form-error">{{ $message }}</div>
                         @enderror
+                        <small class="form-text text-muted">Required for auto-generation of units</small>
                     </div>
 
                     <div class="form-group">
@@ -689,14 +690,20 @@
             const value = field.value.trim();
             const isRequired = field.hasAttribute('required');
             
+            console.log('Validating field:', field.name, 'value:', value, 'required:', isRequired);
+            
             if (isRequired && !value) {
                 showError(field, 'This field is required');
+                console.log('Field validation failed:', field.name, 'is required but empty');
             } else if (field.type === 'email' && value && !isValidEmail(value)) {
                 showError(field, 'Please enter a valid email address');
+                console.log('Field validation failed:', field.name, 'invalid email format');
             } else if (field.type === 'tel' && value && !isValidPhone(value)) {
                 showError(field, 'Please enter a valid phone number');
+                console.log('Field validation failed:', field.name, 'invalid phone format');
             } else {
                 clearError(field);
+                console.log('Field validation passed:', field.name);
             }
         }
 
@@ -731,10 +738,24 @@
 
         // Form submission
         form.addEventListener('submit', function(e) {
+            console.log('Form submission started');
+            console.log('Form data:', new FormData(form));
             let isValid = true;
             
+            // Validate all required fields
+            const requiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredFields.forEach(field => {
+                validateField(field);
+                if (field.classList.contains('error') || !field.value.trim()) {
+                    isValid = false;
+                }
+            });
+
+            // Validate other inputs
             inputs.forEach(input => {
-                validateField(input);
+                if (!input.hasAttribute('required')) {
+                    validateField(input);
+                }
                 if (input.classList.contains('error')) {
                     isValid = false;
                 }
@@ -743,6 +764,18 @@
             if (!isValid) {
                 e.preventDefault();
                 alert('Please fix the errors before submitting.');
+                console.log('Form submission prevented due to validation errors');
+                return false;
+            } else {
+                console.log('Form validation passed, submitting...');
+                // Show loading state
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Property...';
+                }
+                // Allow form to submit
+                return true;
             }
         });
 
@@ -754,19 +787,19 @@
         const unitsPerFloorInput = document.getElementById('units_per_floor');
 
         // Show/hide auto-generation settings
-        if (autoGenCheckbox) {
-            autoGenCheckbox.addEventListener('change', function() {
-                if (this.checked) {
+        if (autoGenCheckbox && autoGenSettings) {
+            function toggleAutoGenSettings() {
+                if (autoGenCheckbox.checked) {
                     autoGenSettings.style.display = 'block';
                 } else {
                     autoGenSettings.style.display = 'none';
                 }
-            });
-
-            // Initial state
-            if (autoGenCheckbox.checked) {
-                autoGenSettings.style.display = 'block';
             }
+
+            autoGenCheckbox.addEventListener('change', toggleAutoGenSettings);
+
+            // Initial state - show if checkbox is checked
+            toggleAutoGenSettings();
         }
 
         // Auto-calculate units per floor

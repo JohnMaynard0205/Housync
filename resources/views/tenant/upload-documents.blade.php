@@ -79,7 +79,6 @@
                                     <th>File Name</th>
                                     <th>Size</th>
                                     <th>Uploaded</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -93,11 +92,6 @@
                                     <td>{{ $doc->file_name }}</td>
                                     <td>{{ $doc->file_size_formatted }}</td>
                                     <td>{{ $doc->uploaded_at->format('M d, Y') }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $doc->verification_status_badge_class }}">
-                                            {{ ucfirst($doc->verification_status) }}
-                                        </span>
-                                    </td>
                                     <td>
                                         @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
                                             <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
@@ -146,7 +140,35 @@
                         @csrf
                         
                         <div id="documentFields">
-                            <!-- Document fields will be added here dynamically -->
+                            <!-- Initial document field -->
+                            <div class="row mb-3 document-field">
+                                <div class="col-md-4">
+                                    <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                                    <select name="document_types[]" class="form-select" required>
+                                        <option value="">Select Document Type</option>
+                                        <option value="government_id">Government ID</option>
+                                        <option value="proof_of_income">Proof of Income</option>
+                                        <option value="employment_contract">Employment Contract</option>
+                                        <option value="bank_statement">Bank Statement</option>
+                                        <option value="character_reference">Character Reference</option>
+                                        <option value="rental_history">Rental History</option>
+                                        <option value="other">Other Document</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">File <span class="text-danger">*</span></label>
+                                    <input type="file" name="documents[]" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <small class="text-muted">Max size: 5MB</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDocumentField(this)" style="display: none;">
+                                            <i class="mdi mdi-delete"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row mt-3">
@@ -249,6 +271,23 @@
                 </div>
             </div>
             @endif
+
+            <!-- Next Steps Card -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Next Steps</h5>
+                    <p>After uploading your documents:</p>
+                    <ol>
+                        <li>Browse available properties</li>
+                        <li>Apply for units you like</li>
+                        <li>Your documents will automatically be included with your application</li>
+                        <li>Landlords can review your application faster!</li>
+                    </ol>
+                    <a href="{{ route('explore') }}" class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-search me-2"></i>Browse Properties
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -282,24 +321,6 @@
         </div>
     </div>
 </div>
-
-@else
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Next Steps</h5>
-        <p>After uploading your documents:</p>
-        <ol>
-            <li>Browse available properties</li>
-            <li>Apply for units you like</li>
-            <li>Your documents will automatically be included with your application</li>
-            <li>Landlords can review your application faster!</li>
-        </ol>
-        <a href="{{ route('explore') }}" class="btn btn-primary w-100 mt-2">
-            <i class="fas fa-search me-2"></i>Browse Properties
-        </a>
-    </div>
-</div>
-@endif
         </div>
     </div>
 </div>
@@ -403,8 +424,8 @@ function viewPDF(pdfUrl, fileName) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Add initial document field
-    addDocumentField();
+    // Initialize delete button visibility
+    updateDeleteButtons();
 });
 
 function addDocumentField() {
@@ -438,35 +459,86 @@ function addDocumentField() {
     `;
     
     container.appendChild(fieldDiv);
+    
+    // Show delete buttons for all fields if there are multiple
+    updateDeleteButtons();
+}
+
+function updateDeleteButtons() {
+    const fields = document.querySelectorAll('.document-field');
+    const deleteButtons = document.querySelectorAll('.document-field button[onclick="removeDocumentField(this)"]');
+    
+    if (fields.length > 1) {
+        deleteButtons.forEach(btn => btn.style.display = 'inline-block');
+    } else {
+        deleteButtons.forEach(btn => btn.style.display = 'none');
+    }
 }
 
 function removeDocumentField(button) {
     const fieldDiv = button.closest('.document-field');
     fieldDiv.remove();
+    updateDeleteButtons();
 }
 
 // Form validation
 document.getElementById('documentForm')?.addEventListener('submit', function(e) {
     const fileInputs = document.querySelectorAll('input[type="file"]');
+    const documentTypeSelects = document.querySelectorAll('select[name="document_types[]"]');
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     
+    // Check if at least one document is selected
+    let hasFiles = false;
     for (let input of fileInputs) {
+        if (input.files.length > 0) {
+            hasFiles = true;
+            break;
+        }
+    }
+    
+    if (!hasFiles) {
+        e.preventDefault();
+        alert('Please select at least one document to upload.');
+        return false;
+    }
+    
+    // Validate each file
+    for (let i = 0; i < fileInputs.length; i++) {
+        const input = fileInputs[i];
+        const select = documentTypeSelects[i];
+        
         if (input.files.length > 0) {
             const file = input.files[0];
             
+            // Check file size
             if (file.size > maxSize) {
                 e.preventDefault();
                 alert(`File "${file.name}" is too large. Maximum size is 5MB.`);
                 return false;
             }
             
+            // Check file type
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
             if (!allowedTypes.includes(file.type)) {
                 e.preventDefault();
                 alert(`File "${file.name}" is not an accepted format. Please use PDF, JPG, JPEG, or PNG.`);
                 return false;
             }
+            
+            // Check if document type is selected
+            if (!select.value) {
+                e.preventDefault();
+                alert(`Please select a document type for "${file.name}".`);
+                return false;
+            }
         }
+    }
+    
+    // Show loading state
+    const submitButton = this.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Uploading...';
     }
 });
 

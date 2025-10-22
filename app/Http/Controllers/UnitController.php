@@ -83,7 +83,7 @@ class UnitController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validatedData = $request->validate([
-            'unit_number' => 'required|string|unique:units,unit_number',
+            'unit_number' => 'required|string|unique:units,unit_number,NULL,id,apartment_id,' . $request->apartment_id,
             'apartment_id' => 'required|exists:apartments,id',
             'unit_type' => 'required|string|max:255',
             'rent_amount' => 'required|numeric|min:0',
