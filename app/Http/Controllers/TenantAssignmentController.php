@@ -319,7 +319,7 @@ class TenantAssignmentController extends Controller
     public function storeDocuments(Request $request)
     {
         // Log the incoming request for debugging
-        Log::info('Document upload request received', [
+        Log::info('=== DOCUMENT UPLOAD START ===', [
             'has_documents' => $request->hasFile('documents'),
             'documents_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
             'document_types' => $request->input('document_types', []),
