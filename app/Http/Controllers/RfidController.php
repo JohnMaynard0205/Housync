@@ -458,14 +458,15 @@ class RfidController extends Controller
     }
 
     /**
-     * Get the latest Card UID from ESP32Reader.php
+     * Get the latest Card UID from access_logs database
      */
     public function getLatestCardUID(Request $request)
     {
         try {
-            $latestCardFile = base_path('storage/app/latest_card.json');
+            // Get the most recent access log entry
+            $latestLog = AccessLog::orderBy('access_time', 'desc')->first();
             
-            if (!file_exists($latestCardFile)) {
+            if (!$latestLog) {
                 return response()->json([
                     'success' => false,
                     'error' => 'No card has been scanned yet. Please tap a card on the ESP32 reader first.',
@@ -473,34 +474,24 @@ class RfidController extends Controller
                 ], 404);
             }
             
-            $latestCardData = json_decode(file_get_contents($latestCardFile), true);
-            
-            if (!$latestCardData || !isset($latestCardData['card_uid'])) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Invalid card data found.'
-                ], 500);
-            }
-            
             // Check if the card data is recent (within last 10 minutes for better UX)
-            $scannedAt = strtotime($latestCardData['scanned_at']);
-            $age = time() - $scannedAt;
+            $age = now()->diffInSeconds($latestLog->access_time);
             
             // Allow cards scanned within the last 10 minutes (600 seconds)
             if ($age > 600) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Last scanned card is too old. Please tap a new card on the ESP32 reader.',
-                    'last_scan' => $latestCardData['scanned_at'],
+                    'last_scan' => $latestLog->access_time->toISOString(),
                     'age_seconds' => $age
                 ], 410);
             }
             
             return response()->json([
                 'success' => true,
-                'card_uid' => $latestCardData['card_uid'],
+                'card_uid' => $latestLog->card_uid,
                 'message' => 'Latest Card UID retrieved successfully',
-                'scanned_at' => $latestCardData['scanned_at'],
+                'scanned_at' => $latestLog->access_time->toISOString(),
                 'age_seconds' => $age
             ]);
             
