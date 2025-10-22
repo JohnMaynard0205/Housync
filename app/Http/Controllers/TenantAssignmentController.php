@@ -336,27 +336,55 @@ class TenantAssignmentController extends Controller
 
         try {
             $uploadedDocuments = [];
+            $supabase = new \App\Services\SupabaseService();
             
             // Use database transaction for document uploads
-            DB::transaction(function() use ($request, $assignment, &$uploadedDocuments) {
+            DB::transaction(function() use ($request, $assignment, $supabase, &$uploadedDocuments) {
                 foreach ($request->file('documents') as $index => $file) {
                     $documentType = $request->document_types[$index];
                     
-                    $fileName = time() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
-
-                    $document = TenantDocument::create([
-                        'tenant_assignment_id' => $assignment->id,
-                        'document_type' => $documentType,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_path' => $filePath,
-                        'file_size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
-                        'uploaded_at' => now(),
-                        'verification_status' => 'pending',
+                    // Generate unique filename
+                    $extension = $file->getClientOriginalExtension();
+                    $fileName = 'tenant-doc-' . $assignment->id . '-' . time() . '-' . $index . '-' . uniqid() . '.' . $extension;
+                    $path = 'tenant-documents/' . $fileName;
+                    
+                    // Upload to Supabase
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    Log::info('Tenant document uploaded', [
+                        'assignment_id' => $assignment->id,
+                        'index' => $index,
+                        'type' => $documentType,
+                        'result' => $uploadResult
                     ]);
+                    
+                    // Output to browser console
+                    echo "<script>
+                        console.log('📄 Tenant Document " . ($index + 1) . " (" . $documentType . "):', " . json_encode($uploadResult) . ");
+                    </script>";
+                    
+                    // Only create record if successful
+                    if ($uploadResult['success']) {
+                        $document = TenantDocument::create([
+                            'tenant_assignment_id' => $assignment->id,
+                            'document_type' => $documentType,
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_path' => $uploadResult['url'],
+                            'file_size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'uploaded_at' => now(),
+                            'verification_status' => 'pending',
+                        ]);
 
-                    $uploadedDocuments[] = $document;
+                        $uploadedDocuments[] = $document;
+                    } else {
+                        Log::error('Failed to upload tenant document', [
+                            'assignment_id' => $assignment->id,
+                            'index' => $index,
+                            'result' => $uploadResult
+                        ]);
+                        throw new \Exception('Failed to upload document: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                    }
                 }
 
                 // Mark documents as uploaded and update assignment status
@@ -950,7 +978,9 @@ class TenantAssignmentController extends Controller
             ]);
 
             // Create the tenant assignment with pending_approval status
-            DB::transaction(function() use ($request, $unit, $tenant, $property) {
+            $supabase = new \App\Services\SupabaseService();
+            
+            DB::transaction(function() use ($request, $unit, $tenant, $property, $supabase) {
                 // Update user info if provided (profile-centric)
                 if ($tenant->tenantProfile) {
                     $tenant->tenantProfile->update([
@@ -981,19 +1011,46 @@ class TenantAssignmentController extends Controller
                 foreach ($request->file('documents') as $index => $file) {
                     $documentType = $request->document_types[$index];
                     
-                    $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs('tenant-documents', $fileName, 'public');
-
-                    TenantDocument::create([
-                        'tenant_assignment_id' => $assignment->id,
-                        'document_type' => $documentType,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_path' => $filePath,
-                        'file_size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
-                        'uploaded_at' => now(),
-                        'verification_status' => 'pending',
+                    // Generate unique filename
+                    $extension = $file->getClientOriginalExtension();
+                    $fileName = 'tenant-apply-doc-' . $assignment->id . '-' . time() . '-' . $index . '-' . uniqid() . '.' . $extension;
+                    $path = 'tenant-documents/' . $fileName;
+                    
+                    // Upload to Supabase
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    Log::info('Tenant application document uploaded', [
+                        'assignment_id' => $assignment->id,
+                        'index' => $index,
+                        'type' => $documentType,
+                        'result' => $uploadResult
                     ]);
+                    
+                    // Output to browser console
+                    echo "<script>
+                        console.log('📄 Application Document " . ($index + 1) . " (" . $documentType . "):', " . json_encode($uploadResult) . ");
+                    </script>";
+                    
+                    // Only create record if successful
+                    if ($uploadResult['success']) {
+                        TenantDocument::create([
+                            'tenant_assignment_id' => $assignment->id,
+                            'document_type' => $documentType,
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_path' => $uploadResult['url'],
+                            'file_size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'uploaded_at' => now(),
+                            'verification_status' => 'pending',
+                        ]);
+                    } else {
+                        Log::error('Failed to upload tenant application document', [
+                            'assignment_id' => $assignment->id,
+                            'index' => $index,
+                            'result' => $uploadResult
+                        ]);
+                        throw new \Exception('Failed to upload document: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                    }
                 }
             });
 

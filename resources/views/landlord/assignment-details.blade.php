@@ -255,17 +255,17 @@
                                     <div class="d-flex gap-2">
                                         @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
                                             <!-- Image Preview -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-eye me-1"></i> View Image
                                             </button>
                                         @elseif($document->mime_type === 'application/pdf')
                                             <!-- PDF Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-file-pdf me-1"></i> View PDF
                                             </button>
                                         @else
                                             <!-- Generic File Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-eye me-1"></i> View File
                                             </button>
                                         @endif
