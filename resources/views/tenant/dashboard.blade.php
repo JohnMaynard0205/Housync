@@ -221,15 +221,15 @@
                                                         <td>
                                                             <div class="btn-group btn-group-sm" role="group">
                                                                 @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ route('tenant.download-document', $document->id) }}?inline=true', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-eye"></i>
                                                                     </button>
                                                                 @elseif($document->mime_type === 'application/pdf')
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ route('tenant.download-document', $document->id) }}?inline=true', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-file-pdf"></i>
                                                                     </button>
                                                                 @else
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ route('tenant.download-document', $document->id) }}?inline=true', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-eye"></i>
                                                                     </button>
                                                                 @endif

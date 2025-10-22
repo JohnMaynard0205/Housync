@@ -40,7 +40,7 @@
                     <tr>
                         <td>{{ str_replace('_',' ', ucfirst($doc->document_type)) }}</td>
                         <td>
-                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="file-link">
+                            <a href="{{ document_url($doc->file_path) }}" target="_blank" class="file-link">
                                 <i class="fas fa-file"></i> {{ $doc->file_name }}
                             </a>
                         </td>
