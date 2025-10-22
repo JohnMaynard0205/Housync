@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_documents', function (Blueprint $table) {
-            // Add tenant_id column
-            $table->foreignId('tenant_id')->after('id')->nullable()->constrained('users')->onDelete('cascade');
+            // Check if tenant_id column doesn't exist before adding
+            if (!Schema::hasColumn('tenant_documents', 'tenant_id')) {
+                $table->foreignId('tenant_id')->after('id')->nullable()->constrained('users')->onDelete('cascade');
+                $table->index('tenant_id');
+            }
             
             // Make tenant_assignment_id nullable (documents can exist without assignment)
             $table->foreignId('tenant_assignment_id')->nullable()->change();
-            
-            // Add index for tenant_id
-            $table->index('tenant_id');
         });
     }
 
@@ -29,10 +29,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_documents', function (Blueprint $table) {
-            // Drop tenant_id column and index
-            $table->dropForeign(['tenant_id']);
-            $table->dropIndex(['tenant_id']);
-            $table->dropColumn('tenant_id');
+            // Check if tenant_id column exists before dropping
+            if (Schema::hasColumn('tenant_documents', 'tenant_id')) {
+                $table->dropForeign(['tenant_id']);
+                $table->dropIndex(['tenant_id']);
+                $table->dropColumn('tenant_id');
+            }
             
             // Make tenant_assignment_id non-nullable again
             $table->foreignId('tenant_assignment_id')->nullable(false)->change();
