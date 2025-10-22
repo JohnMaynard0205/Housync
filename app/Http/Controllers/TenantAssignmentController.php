@@ -479,7 +479,19 @@ class TenantAssignmentController extends Controller
             // Generate error code for tracking
             $errorCode = 'DOC_UPLOAD_' . strtoupper(substr(md5($e->getMessage() . time()), 0, 8));
             
-            // Detailed error logging
+            // Enhanced error logging with more details
+            $files = $request->file('documents', []);
+            $fileDetails = [];
+            foreach ($files as $index => $file) {
+                $fileDetails[] = [
+                    'index' => $index,
+                    'original_name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'extension' => $file->getClientOriginalExtension(),
+                ];
+            }
+            
             Log::error('Personal document upload failed', [
                 'error_code' => $errorCode,
                 'tenant_id' => $tenant->id,
@@ -487,11 +499,14 @@ class TenantAssignmentController extends Controller
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),
-                'files_count' => count($request->file('documents', [])),
-                'request_data' => [
-                    'has_files' => $request->hasFile('documents'),
-                    'file_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
-                    'document_types' => $request->input('document_types', []),
+                'error_trace' => $e->getTraceAsString(),
+                'files_count' => count($files),
+                'file_details' => $fileDetails,
+                'document_types' => $request->input('document_types', []),
+                'supabase_config' => [
+                    'url' => config('services.supabase.url'),
+                    'has_key' => !empty(config('services.supabase.key')),
+                    'has_service_key' => !empty(config('services.supabase.service_key')),
                 ],
                 'timestamp' => now()
             ]);
