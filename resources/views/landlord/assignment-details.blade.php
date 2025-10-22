@@ -223,22 +223,22 @@
                                     <div class="d-flex gap-2">
                                         @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
                                             <!-- Image Preview -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                <i class="mdi mdi-eye me-1"></i> View Image
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $document->file_path }}', '{{ $document->file_name }}')">
+                                                <i class="mdi mdi-eye me-1"></i> View
                                             </button>
                                         @elseif($document->mime_type === 'application/pdf')
                                             <!-- PDF Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                <i class="mdi mdi-file-pdf me-1"></i> View PDF
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ $document->file_path }}', '{{ $document->file_name }}')">
+                                                <i class="mdi mdi-eye me-1"></i> View
                                             </button>
                                         @else
                                             <!-- Generic File Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                <i class="mdi mdi-eye me-1"></i> View File
-                                            </button>
+                                            <a href="{{ $document->file_path }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="mdi mdi-eye me-1"></i> View
+                                            </a>
                                         @endif
                                         
-                                        <a href="{{ route('landlord.download-document', $document->id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <a href="{{ $document->file_path }}" download="{{ $document->file_name }}" class="btn btn-sm btn-outline-success">
                                             <i class="mdi mdi-download me-1"></i> Download
                                         </a>
                                     </div>
@@ -279,8 +279,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="imageDownloadLink" href="" class="btn btn-primary" download>
-                    <i class="mdi mdi-download me-1"></i> Download
+                <a id="imageDownloadLink" href="" class="btn btn-success" download>
+                    <i class="mdi mdi-download me-1"></i> Download Image
                 </a>
             </div>
         </div>
@@ -300,8 +300,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="pdfDownloadLink" href="" class="btn btn-primary" download>
-                    <i class="mdi mdi-download me-1"></i> Download
+                <a id="pdfDownloadLink" href="" class="btn btn-success" download>
+                    <i class="mdi mdi-download me-1"></i> Download PDF
                 </a>
             </div>
         </div>
@@ -324,7 +324,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="fileDownloadLink" href="" class="btn btn-primary" download>
+                <a id="fileDownloadLink" href="" class="btn btn-success" download>
                     <i class="mdi mdi-download me-1"></i> Download File
                 </a>
             </div>
@@ -357,7 +357,8 @@ function viewImage(imageUrl, fileName) {
     
     imgElement.src = imageUrl;
     document.getElementById('imageModalTitle').textContent = fileName;
-    downloadLink.href = downloadUrl;
+    document.getElementById('imageDownloadLink').href = imageUrl;
+    document.getElementById('imageDownloadLink').download = fileName;
     
     const modal = new bootstrap.Modal(document.getElementById('imageModal'));
     modal.show();
@@ -371,7 +372,8 @@ function viewPDF(pdfUrl, fileName) {
     
     document.getElementById('pdfViewer').src = pdfUrl;
     document.getElementById('pdfModalTitle').textContent = fileName;
-    downloadLink.href = downloadUrl;
+    document.getElementById('pdfDownloadLink').href = pdfUrl;
+    document.getElementById('pdfDownloadLink').download = fileName;
     
     const modal = new bootstrap.Modal(document.getElementById('pdfModal'));
     modal.show();
@@ -382,7 +384,8 @@ function viewFile(fileUrl, fileName) {
     const downloadUrl = fileUrl.replace('?inline=true', '');
     
     document.getElementById('fileModalTitle').textContent = fileName;
-    downloadLink.href = downloadUrl;
+    document.getElementById('fileDownloadLink').href = fileUrl;
+    document.getElementById('fileDownloadLink').download = fileName;
     
     const modal = new bootstrap.Modal(document.getElementById('fileModal'));
     modal.show();
