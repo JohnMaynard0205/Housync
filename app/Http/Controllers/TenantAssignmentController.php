@@ -429,7 +429,6 @@ class TenantAssignmentController extends Controller
                     if ($uploadResult['success']) {
                         $document = TenantDocument::create([
                             'tenant_id' => $tenant->id,
-                            'tenant_assignment_id' => null, // No assignment yet - these are profile documents
                             'document_type' => $documentType,
                             'file_name' => $file->getClientOriginalName(),
                             'file_path' => $uploadResult['url'], // Now holds either Supabase URL or local storage path

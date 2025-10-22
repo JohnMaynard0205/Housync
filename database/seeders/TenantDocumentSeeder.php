@@ -25,7 +25,7 @@ class TenantDocumentSeeder extends Seeder
             foreach ($documentTypes as $type => $label) {
                 TenantDocument::updateOrCreate(
                     [
-                        'tenant_assignment_id' => $assignment->id,
+                        'tenant_id' => $assignment->tenant_id,
                         'document_type' => $type,
                     ],
                     [
@@ -47,7 +47,7 @@ class TenantDocumentSeeder extends Seeder
         if ($pendingAssignment) {
             TenantDocument::updateOrCreate(
                 [
-                    'tenant_assignment_id' => $pendingAssignment->id,
+                    'tenant_id' => $pendingAssignment->tenant_id,
                     'document_type' => 'government_id',
                 ],
                 [
