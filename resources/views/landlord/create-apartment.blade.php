@@ -238,44 +238,6 @@
         .amenities-grid {
             grid-template-columns: 1fr;
         }
-<<<<<<< HEAD
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item active">
-                    <i class="fas fa-building"></i> My Properties
-                    @if(isset($stats['total_apartments']))
-                        <span class="badge-count">{{ $stats['total_apartments'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item">
-                    <i class="fas fa-door-open"></i> My Units
-                    @if(isset($stats['total_units']))
-                        <span class="badge-count">{{ $stats['total_units'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item">
-                    <i class="fas fa-users"></i> Tenant Assignments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
-=======
->>>>>>> f74844c3ddde44166e5eb8ae133613c1b8210c4d
 
         .form-actions {
             flex-direction: column;
@@ -349,7 +311,7 @@
                 <p class="section-subtitle">Fill in the details for your new property</p>
             </div>
         </div>
-
+        
         <form method="POST" action="{{ route('landlord.store-apartment') }}" class="form-container" enctype="multipart/form-data">
             @csrf
             
