@@ -41,19 +41,36 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
         </div>
     </div>
 
-    <!-- Uploaded Personal Documents -->
-    @if($personalDocuments->isNotEmpty())
+    <!-- Show Info Banner if No Assignment -->
+    @if(!$assignment)
     <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Upload Your Documents Early!</h6>
+                <p class="mb-0">
+                    You can upload your documents now, even before applying for a property. This will speed up the application process when you find a place you like!
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Existing Documents -->
+    @if($personalDocuments->count() > 0)
+    <div class="row mb-3">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="mdi mdi-file-document-multiple me-2"></i>Your Personal Documents
-                    </h5>
-                    
+                    <h5 class="card-title"><i class="fas fa-folder-open me-2"></i>Your Uploaded Documents ({{ $personalDocuments->count() }})</h5>
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -62,44 +79,51 @@
                                     <th>File Name</th>
                                     <th>Size</th>
                                     <th>Uploaded</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($personalDocuments as $doc)
                                 <tr>
-                                    <td><strong>{{ $doc->document_type_label }}</strong></td>
+                                    <td>
+                                        <i class="fas fa-file-{{ $doc->mime_type == 'application/pdf' ? 'pdf' : 'image' }} me-1"></i>
+                                        {{ $doc->document_type_label }}
+                                    </td>
                                     <td>{{ $doc->file_name }}</td>
                                     <td>{{ $doc->file_size_formatted }}</td>
                                     <td>{{ $doc->uploaded_at->format('M d, Y') }}</td>
                                     <td>
-                                        <div class="action-buttons">
-                                            @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                                <button type="button" onclick="viewImage('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" 
-                                                        class="btn btn-sm btn-success" 
-                                                        title="View Image">
-                                                    <i class="mdi mdi-eye"></i> View
-                                                </button>
-                                            @elseif($doc->mime_type === 'application/pdf')
-                                                <button type="button" onclick="viewPDF('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" 
-                                                        class="btn btn-sm btn-success" 
-                                                        title="View PDF">
-                                                    <i class="mdi mdi-file-pdf-box"></i> View
-                                                </button>
-                                            @endif
-                                            <a href="{{ route('tenant.download-document', $doc->id) }}" 
-                                               class="btn btn-sm btn-primary" 
-                                               title="Download">
-                                                <i class="mdi mdi-download"></i> Download
+                                        <span class="badge bg-{{ $doc->verification_status_badge_class }}">
+                                            {{ ucfirst($doc->verification_status) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        @elseif($doc->mime_type === 'application/pdf')
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        @else
+                                            <a href="{{ $doc->file_path }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View
                                             </a>
-                                            <form method="POST" action="{{ route('tenant.delete-document', $doc->id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                                    <i class="mdi mdi-delete"></i> Delete
-                                                </button>
-                                            </form>
-                                        </div>
+                                        @endif
+                                        
+                                        <a href="{{ $doc->file_path }}" download="{{ $doc->file_name }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        
+                                        <form method="POST" action="{{ route('tenant.delete-document', $doc->id) }}" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this document?')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -111,7 +135,6 @@
         </div>
     </div>
     @endif
-
     <div class="row">
         <div class="col-xl-8">
             <div class="card">
@@ -195,7 +218,7 @@
                 </div>
             </div>
 
-            <!-- Assignment Info (if exists) -->
+            <!-- Assignment Info -->
             @if($assignment)
             <div class="card">
                 <div class="card-body">
@@ -260,6 +283,27 @@
     </div>
 </div>
 
+@else
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Next Steps</h5>
+        <p>After uploading your documents:</p>
+        <ol>
+            <li>Browse available properties</li>
+            <li>Apply for units you like</li>
+            <li>Your documents will automatically be included with your application</li>
+            <li>Landlords can review your application faster!</li>
+        </ol>
+        <a href="{{ route('explore') }}" class="btn btn-primary w-100 mt-2">
+            <i class="fas fa-search me-2"></i>Browse Properties
+        </a>
+    </div>
+</div>
+@endif
+        </div>
+    </div>
+</div>
+
 <!-- Document Type Options -->
 <template id="documentTypeOptions">
     <option value="">Select Document Type</option>
@@ -271,6 +315,52 @@
     <option value="rental_history">Rental History</option>
     <option value="other">Other Document</option>
 </template>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle">Image Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center" style="background-color: #f8f9fa;">
+                <img id="imagePreview" src="" alt="Document Preview" class="img-fluid" style="max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <a id="imageDownloadLink" href="" class="btn btn-success" download>
+                    <i class="fas fa-download me-1"></i> Download Image
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF Viewer Modal -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalTitle">PDF Viewer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="pdfViewer" src="" width="100%" height="600px" frameborder="0" style="border-radius: 0 0 8px 8px;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <a id="pdfDownloadLink" href="" class="btn btn-success" download>
+                    <i class="fas fa-download me-1"></i> Download PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -289,6 +379,28 @@
 @push('scripts')
 <script>
 let documentFieldCount = 0;
+
+// Image viewer function
+function viewImage(imageUrl, fileName) {
+    document.getElementById('imagePreview').src = imageUrl;
+    document.getElementById('imageModalTitle').textContent = fileName;
+    document.getElementById('imageDownloadLink').href = imageUrl;
+    document.getElementById('imageDownloadLink').download = fileName;
+    
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    imageModal.show();
+}
+
+// PDF viewer function
+function viewPDF(pdfUrl, fileName) {
+    document.getElementById('pdfViewer').src = pdfUrl;
+    document.getElementById('pdfModalTitle').textContent = fileName;
+    document.getElementById('pdfDownloadLink').href = pdfUrl;
+    document.getElementById('pdfDownloadLink').download = fileName;
+    
+    const pdfModal = new bootstrap.Modal(document.getElementById('pdfModal'));
+    pdfModal.show();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Add initial document field
@@ -334,7 +446,7 @@ function removeDocumentField(button) {
 }
 
 // Form validation
-document.getElementById('documentForm').addEventListener('submit', function(e) {
+document.getElementById('documentForm')?.addEventListener('submit', function(e) {
     const fileInputs = document.querySelectorAll('input[type="file"]');
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     

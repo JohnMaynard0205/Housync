@@ -419,14 +419,55 @@ class LandlordController extends Controller
         return $unitsCreated;
     }
 
-    public function deleteApartment($id)
+    public function deleteApartment(Request $request, $id)
     {
         $apartment = Auth::user()->apartments()->findOrFail($id);
         
         try {
             $unitCount = $apartment->units()->count();
+            $forceDelete = $request->boolean('force_delete');
             
-            // Check if apartment has units
+            // If force delete is requested, verify password
+            if ($forceDelete) {
+                $request->validate([
+                    'password' => 'required|string',
+                ]);
+                
+                // Verify landlord's password
+                if (!Hash::check($request->password, Auth::user()->password)) {
+                    return back()->with('error', 'Incorrect password. Force delete cancelled.');
+                }
+                
+                // Check if any units have active tenant assignments
+                $activeTenantsCount = $apartment->units()
+                    ->whereHas('tenantAssignments', function($query) {
+                        $query->whereIn('status', ['active', 'pending']);
+                    })->count();
+                
+                if ($activeTenantsCount > 0) {
+                    return back()->with('error', "Cannot force delete property with active tenant assignments. Found {$activeTenantsCount} unit(s) with active tenants. Please terminate all tenant assignments first.");
+                }
+                
+                // Force delete: Delete all units first, then the apartment
+                $apartmentName = $apartment->name;
+                
+                // Delete all terminated/completed tenant assignments for all units
+                foreach ($apartment->units as $unit) {
+                    // Delete all tenant assignments (only terminated ones should exist at this point)
+                    $unit->tenantAssignments()->delete();
+                }
+                
+                // Delete all units
+                $deletedUnitsCount = $apartment->units()->count();
+                $apartment->units()->delete();
+                
+                // Delete the apartment
+                $apartment->delete();
+                
+                return redirect()->route('landlord.apartments')->with('success', "Property '{$apartmentName}' and {$deletedUnitsCount} unit(s) force deleted successfully.");
+            }
+            
+            // Normal delete: Check if apartment has units
             if ($unitCount > 0) {
                 // Check if any units have active tenants
                 $activeTenantsCount = $apartment->units()
@@ -438,7 +479,7 @@ class LandlordController extends Controller
                     return back()->with('error', "Cannot delete property with active tenant assignments. Found {$activeTenantsCount} unit(s) with active tenants. Please terminate all tenant assignments first, then delete the units.");
                 }
                 
-                return back()->with('error', "Cannot delete property with existing units. Found {$unitCount} unit(s). Please delete all units first from the Units page.");
+                return back()->with('error', "Cannot delete property with existing units. Found {$unitCount} unit(s). Please delete all units first from the Units page, or use Force Delete.");
             }
             
             $apartmentName = $apartment->name;
