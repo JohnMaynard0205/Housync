@@ -325,7 +325,7 @@ class TenantAssignmentController extends Controller
             'document_types' => $request->input('document_types', []),
             'user_id' => Auth::id(),
         ]);
-
+    
         // Enhanced validation rules
         $request->validate([
             'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -335,45 +335,58 @@ class TenantAssignmentController extends Controller
             'documents.*.max' => 'Each file must not exceed 5MB',
             'document_types.*.in' => 'Invalid document type selected',
         ]);
-
+    
         $tenant = Auth::user();
         
-        // No assignment required - these are personal documents
         try {
             $uploadedDocuments = [];
-            $supabase = new \App\Services\SupabaseService();
             
-            // Test Supabase connection
-            Log::info('Testing Supabase connection', [
-                'url' => config('services.supabase.url'),
-                'has_key' => !empty(config('services.supabase.key')),
-                'has_service_key' => !empty(config('services.supabase.service_key')),
-            ]);
-            
-            // Use database transaction for document uploads
-            DB::transaction(function() use ($request, $tenant, $supabase, &$uploadedDocuments) {
+            // --- START FIX: Determine Storage Mechanism ---
+            $useSupabase = config('app.env') !== 'local' || config('services.supabase.key');
+    
+            if ($useSupabase) {
+                $supabase = new \App\Services\SupabaseService();
+                Log::info('Using Supabase for document upload.');
+            } else {
+                Log::info('Using Local Storage (public disk) for document upload.');
+            }
+            $supabaseInstance = $useSupabase ? $supabase : null;
+            DB::transaction(function() use ($request, $tenant, $useSupabase, $supabaseInstance, &$uploadedDocuments) {
                 foreach ($request->file('documents') as $index => $file) {
                     $documentType = $request->document_types[$index];
                     
                     // Generate unique filename
                     $extension = $file->getClientOriginalExtension();
                     $fileName = 'tenant-doc-' . $tenant->id . '-' . time() . '-' . $index . '-' . uniqid() . '.' . $extension;
-                    $path = 'tenant-documents/' . $fileName;
-                    
-                    // Upload to Supabase
-                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
-                    
-                    Log::info('Tenant document uploaded', [
+                    $uploadResult = ['success' => false, 'message' => 'Upload failed'];
+    
+                    if ($useSupabase) {
+                        $path = 'tenant-documents/' . $fileName;
+                        // Upload to Supabase
+                        $uploadResult = $supabaseInstance->uploadFile('house-sync', $path, $file->getRealPath());
+                    } else {
+                        // Upload to local disk: storage/app/public/tenant-documents
+                        $storagePath = 'tenant-documents';
+                        $filePathOnDisk = $file->storeAs($storagePath, $fileName, 'public');
+                        
+                        $uploadResult = [
+                            'success' => true,
+                            // This path will be asset('storage/' . path) handled by document_url()
+                            'url' => $filePathOnDisk, 
+                            'message' => 'Uploaded to local storage'
+                        ];
+                    }
+    
+                    // --- START FIX: Remove debug echo statement ---
+                    // The debug echo statements were the cause of the page refresh issue.
+                    // Log the result instead of echoing to the browser.
+                    Log::info('Tenant document upload result', [
                         'tenant_id' => $tenant->id,
                         'index' => $index,
                         'type' => $documentType,
-                        'result' => $uploadResult
+                        'result_summary' => ['success' => $uploadResult['success'], 'message' => $uploadResult['message']]
                     ]);
-                    
-                    // Output to browser console
-                    echo "<script>
-                        console.log('📄 Tenant Document " . ($index + 1) . " (" . $documentType . "):', " . json_encode($uploadResult) . ");
-                    </script>";
+                    // --- END FIX ---
                     
                     // Only create record if successful
                     if ($uploadResult['success']) {
@@ -382,13 +395,13 @@ class TenantAssignmentController extends Controller
                             'tenant_assignment_id' => null, // No assignment yet - these are profile documents
                             'document_type' => $documentType,
                             'file_name' => $file->getClientOriginalName(),
-                            'file_path' => $uploadResult['url'],
+                            'file_path' => $uploadResult['url'], // Now holds either Supabase URL or local storage path
                             'file_size' => $file->getSize(),
                             'mime_type' => $file->getMimeType(),
                             'uploaded_at' => now(),
                             'verification_status' => 'pending',
                         ]);
-
+    
                         $uploadedDocuments[] = $document;
                     } else {
                         Log::error('Failed to upload tenant document', [
@@ -400,7 +413,7 @@ class TenantAssignmentController extends Controller
                     }
                 }
             });
-
+    
             // Audit log for successful document upload
             Log::info('Personal documents uploaded successfully', [
                 'tenant_id' => $tenant->id,
@@ -410,9 +423,9 @@ class TenantAssignmentController extends Controller
                 'total_size' => array_sum(array_map(fn($doc) => $doc->file_size, $uploadedDocuments)),
                 'timestamp' => now()
             ]);
-
+    
             return back()->with('success', 'Documents uploaded successfully! They will be available when you apply for properties.');
-
+    
         } catch (\Exception $e) {
             // Detailed error logging
             Log::error('Personal document upload failed', [
@@ -424,14 +437,10 @@ class TenantAssignmentController extends Controller
                 'files_count' => count($request->file('documents', [])),
                 'timestamp' => now()
             ]);
-
+    
             return back()->with('error', 'Failed to upload documents. Please try again.');
         }
     }
-
-    /**
-     * Download document
-     */
     public function downloadDocument($documentId)
     {
         $document = TenantDocument::with(['tenantAssignment', 'tenant'])->findOrFail($documentId);

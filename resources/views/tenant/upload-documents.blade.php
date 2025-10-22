@@ -79,7 +79,6 @@
                                     <th>File Name</th>
                                     <th>Size</th>
                                     <th>Uploaded</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -93,11 +92,6 @@
                                     <td>{{ $doc->file_name }}</td>
                                     <td>{{ $doc->file_size_formatted }}</td>
                                     <td>{{ $doc->uploaded_at->format('M d, Y') }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $doc->verification_status_badge_class }}">
-                                            {{ ucfirst($doc->verification_status) }}
-                                        </span>
-                                    </td>
                                     <td>
                                         @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
                                             <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
@@ -146,11 +140,7 @@
                         @csrf
                         
                         <div id="documentFields">
-                            <!-- Document fields will be added here dynamically -->
-                        </div>
-                        
-                        <!-- Add a default document field if none exist -->
-                        <div id="defaultDocumentField" style="display: none;">
+                            <!-- Initial document field -->
                             <div class="row mb-3 document-field">
                                 <div class="col-md-4">
                                     <label class="form-label">Document Type <span class="text-danger">*</span></label>
@@ -173,7 +163,7 @@
                                 <div class="col-md-2">
                                     <label class="form-label">&nbsp;</label>
                                     <div>
-                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDocumentField(this)">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDocumentField(this)" style="display: none;">
                                             <i class="mdi mdi-delete"></i>
                                         </button>
                                     </div>
@@ -434,14 +424,8 @@ function viewPDF(pdfUrl, fileName) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Add initial document field
-    addDocumentField();
-    
-    // Ensure at least one document field exists
-    const documentFields = document.querySelectorAll('.document-field');
-    if (documentFields.length === 0) {
-        addDocumentField();
-    }
+    // Initialize delete button visibility
+    updateDeleteButtons();
 });
 
 function addDocumentField() {
@@ -475,11 +459,26 @@ function addDocumentField() {
     `;
     
     container.appendChild(fieldDiv);
+    
+    // Show delete buttons for all fields if there are multiple
+    updateDeleteButtons();
+}
+
+function updateDeleteButtons() {
+    const fields = document.querySelectorAll('.document-field');
+    const deleteButtons = document.querySelectorAll('.document-field button[onclick="removeDocumentField(this)"]');
+    
+    if (fields.length > 1) {
+        deleteButtons.forEach(btn => btn.style.display = 'inline-block');
+    } else {
+        deleteButtons.forEach(btn => btn.style.display = 'none');
+    }
 }
 
 function removeDocumentField(button) {
     const fieldDiv = button.closest('.document-field');
     fieldDiv.remove();
+    updateDeleteButtons();
 }
 
 // Form validation
