@@ -129,20 +129,6 @@ class LandlordController extends Controller
                 // Log upload result
                 \Log::info('Supabase upload result', ['result' => $uploadResult]);
                 
-                // Output to browser console for debugging
-                echo "<script>
-                    console.group('🚀 Supabase Cover Image Upload');
-                    console.log('📁 Upload Path:', " . json_encode($path) . ");
-                    console.log('📊 File Info:', {
-                        filename: " . json_encode($filename) . ",
-                        size: " . json_encode($request->file('cover_image')->getSize()) . ",
-                        mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
-                    });
-                    console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                    console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
-                    console.groupEnd();
-                </script>";
-                
                 // Check if upload was successful
                 if ($uploadResult['success']) {
                     $coverPath = $uploadResult['url'];
@@ -165,11 +151,6 @@ class LandlordController extends Controller
                     $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
                     
                     \Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
-                    
-                    // Output to browser console
-                    echo "<script>
-                        console.log('🖼️ Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
-                    </script>";
                     
                     // Only add if successful
                     if ($uploadResult['success']) {
@@ -566,15 +547,6 @@ class LandlordController extends Controller
             
             \Log::info('Unit cover image upload', ['result' => $uploadResult]);
             
-            // Output to browser console for debugging
-            echo "<script>
-                console.group('🏠 Supabase Unit Cover Image Upload');
-                console.log('📁 Upload Path:', " . json_encode($path) . ");
-                console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
-                console.groupEnd();
-            </script>";
-            
             // Check if upload was successful
             if ($uploadResult['success']) {
                 $coverPath = $uploadResult['url'];
@@ -597,11 +569,6 @@ class LandlordController extends Controller
                 $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
                 
                 \Log::info('Unit gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
-                
-                // Output to browser console
-                echo "<script>
-                    console.log('🖼️ Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
-                </script>";
                 
                 // Only add if successful
                 if ($uploadResult['success']) {
@@ -873,11 +840,6 @@ class LandlordController extends Controller
                 'type' => $docType,
                 'result' => $uploadResult
             ]);
-            
-            // Output to browser console
-            echo "<script>
-                console.log('📄 Landlord Document " . ($index + 1) . " (" . $docType . "):', " . json_encode($uploadResult) . ");
-            </script>";
             
             // Only create record if successful
             if ($uploadResult['success']) {
