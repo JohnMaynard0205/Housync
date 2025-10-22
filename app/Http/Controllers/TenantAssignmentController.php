@@ -324,17 +324,31 @@ class TenantAssignmentController extends Controller
             'documents_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
             'document_types' => $request->input('document_types', []),
             'user_id' => Auth::id(),
+            'request_size' => $request->header('Content-Length'),
+            'user_agent' => $request->header('User-Agent'),
         ]);
     
         // Enhanced validation rules
-        $request->validate([
-            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
-        ], [
-            'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
-            'documents.*.max' => 'Each file must not exceed 5MB',
-            'document_types.*.in' => 'Invalid document type selected',
-        ]);
+        try {
+            $request->validate([
+                'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
+            ], [
+                'documents.*.required' => 'Please select at least one document to upload',
+                'documents.*.file' => 'The uploaded file is not valid',
+                'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
+                'documents.*.max' => 'Each file must not exceed 5MB',
+                'document_types.*.required' => 'Please select a document type for each file',
+                'document_types.*.in' => 'Invalid document type selected',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Document upload validation failed', [
+                'tenant_id' => Auth::id(),
+                'errors' => $e->errors(),
+                'input' => $request->all(),
+            ]);
+            throw $e;
+        }
     
         $tenant = Auth::user();
         
@@ -374,6 +388,19 @@ class TenantAssignmentController extends Controller
                         $path = 'tenant-documents/' . $fileName;
                         // Upload to Supabase
                         $uploadResult = $supabaseInstance->uploadFile('house-sync', $path, $file->getRealPath());
+                        
+                        // Enhanced error handling for Supabase uploads
+                        if (!$uploadResult['success']) {
+                            Log::error('Supabase upload failed', [
+                                'tenant_id' => $tenant->id,
+                                'file_name' => $fileName,
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $file->getMimeType(),
+                                'supabase_error' => $uploadResult['error'] ?? 'Unknown Supabase error',
+                                'supabase_response' => $uploadResult['response'] ?? null,
+                                'status_code' => $uploadResult['status_code'] ?? null
+                            ]);
+                        }
                     } else {
                         // Upload to local disk: storage/app/public/tenant-documents
                         $storagePath = 'tenant-documents';
@@ -436,21 +463,101 @@ class TenantAssignmentController extends Controller
     
             return back()->with('success', 'Documents uploaded successfully! They will be available when you apply for properties.');
     
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors specifically
+            $errorCode = 'DOC_VALIDATION_' . strtoupper(substr(md5($e->getMessage() . time()), 0, 8));
+            
+            Log::error('Document upload validation failed', [
+                'error_code' => $errorCode,
+                'tenant_id' => $tenant->id,
+                'validation_errors' => $e->errors(),
+            ]);
+            
+            return back()->withErrors($e->errors())->with('error', "Validation failed. Please check the form and try again. Error Code: {$errorCode}");
+            
         } catch (\Exception $e) {
+            // Generate error code for tracking
+            $errorCode = 'DOC_UPLOAD_' . strtoupper(substr(md5($e->getMessage() . time()), 0, 8));
+            
             // Detailed error logging
             Log::error('Personal document upload failed', [
+                'error_code' => $errorCode,
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),
                 'files_count' => count($request->file('documents', [])),
+                'request_data' => [
+                    'has_files' => $request->hasFile('documents'),
+                    'file_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
+                    'document_types' => $request->input('document_types', []),
+                ],
                 'timestamp' => now()
             ]);
     
-            return back()->with('error', 'Failed to upload documents. Please try again.');
+            // Determine user-friendly error message based on error type
+            $userMessage = $this->getUserFriendlyErrorMessage($e, $errorCode);
+    
+            return back()->with('error', $userMessage);
         }
     }
+
+    /**
+     * Generate user-friendly error messages based on exception type
+     */
+    private function getUserFriendlyErrorMessage(\Exception $e, string $errorCode)
+    {
+        $baseMessage = "Failed to upload documents. Error Code: {$errorCode}";
+        
+        // Check for specific error patterns
+        if (str_contains($e->getMessage(), 'No files uploaded')) {
+            return "Please select at least one document to upload. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'Number of files must match')) {
+            return "Please ensure each file has a corresponding document type selected. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'Failed to upload document')) {
+            $uploadError = $e->getMessage();
+            if (str_contains($uploadError, 'Supabase')) {
+                return "Upload service temporarily unavailable. Please try again in a few minutes. {$baseMessage}";
+            }
+            if (str_contains($uploadError, 'storage')) {
+                return "File storage error. Please check your file size and format. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '401') || str_contains($uploadError, 'Unauthorized')) {
+                return "Authentication error with upload service. Please refresh the page and try again. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '413') || str_contains($uploadError, 'too large')) {
+                return "File too large. Please ensure each file is under 5MB. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '415') || str_contains($uploadError, 'Unsupported Media Type')) {
+                return "File format not supported. Please use PDF, JPG, or PNG files only. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '500') || str_contains($uploadError, 'Internal Server Error')) {
+                return "Server error occurred. Please try again in a few minutes. {$baseMessage}";
+            }
+            return "File upload failed. Please check your file size (max 5MB) and format (PDF, JPG, PNG). {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'validation')) {
+            return "File validation failed. Please ensure files are PDF, JPG, or PNG format and under 5MB. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'database')) {
+            return "Database error occurred. Please try again. If the problem persists, contact support. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'permission')) {
+            return "Permission denied. Please ensure you have the right to upload documents. {$baseMessage}";
+        }
+        
+        // Default message for unknown errors
+        return "An unexpected error occurred during upload. Please try again. If the problem persists, contact support with error code: {$errorCode}";
+    }
+
     public function downloadDocument($documentId)
     {
         $document = TenantDocument::with(['tenantAssignment', 'tenant'])->findOrFail($documentId);

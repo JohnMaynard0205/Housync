@@ -29,7 +29,15 @@
             
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="mdi mdi-alert-circle me-2"></i>{{ session('error') }}
+                    <i class="mdi mdi-alert-circle me-2"></i>
+                    <div>
+                        <strong>Upload Error:</strong> {{ session('error') }}
+                        <br>
+                        <small class="text-muted">
+                            <i class="mdi mdi-information-outline me-1"></i>
+                            If this error persists, please contact support with the error code above.
+                        </small>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
@@ -487,6 +495,10 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
     const documentTypeSelects = document.querySelectorAll('select[name="document_types[]"]');
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     
+    // Clear any previous error messages
+    const existingAlerts = document.querySelectorAll('.alert-danger');
+    existingAlerts.forEach(alert => alert.remove());
+    
     // Check if at least one document is selected
     let hasFiles = false;
     for (let input of fileInputs) {
@@ -498,7 +510,7 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
     
     if (!hasFiles) {
         e.preventDefault();
-        alert('Please select at least one document to upload.');
+        showError('Please select at least one document to upload.');
         return false;
     }
     
@@ -513,7 +525,7 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
             // Check file size
             if (file.size > maxSize) {
                 e.preventDefault();
-                alert(`File "${file.name}" is too large. Maximum size is 5MB.`);
+                showError(`File "${file.name}" is too large. Maximum size is 5MB.`);
                 return false;
             }
             
@@ -521,14 +533,14 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
             if (!allowedTypes.includes(file.type)) {
                 e.preventDefault();
-                alert(`File "${file.name}" is not an accepted format. Please use PDF, JPG, JPEG, or PNG.`);
+                showError(`File "${file.name}" is not an accepted format. Please use PDF, JPG, JPEG, or PNG.`);
                 return false;
             }
             
             // Check if document type is selected
             if (!select.value) {
                 e.preventDefault();
-                alert(`Please select a document type for "${file.name}".`);
+                showError(`Please select a document type for "${file.name}".`);
                 return false;
             }
         }
@@ -541,6 +553,24 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
         submitButton.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Uploading...';
     }
 });
+
+// Function to show error messages
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+    errorDiv.innerHTML = `
+        <i class="mdi mdi-alert-circle me-2"></i>
+        <strong>Validation Error:</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at the top of the form
+    const form = document.getElementById('documentForm');
+    form.parentNode.insertBefore(errorDiv, form);
+    
+    // Scroll to error
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 // Image viewer functions
 function viewImage(imagePath, fileName) {
