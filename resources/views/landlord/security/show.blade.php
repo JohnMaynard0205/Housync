@@ -95,6 +95,11 @@
                 </div>
                 <div class="card-footer">
                     <div class="d-grid gap-2">
+                        <a href="{{ route('landlord.security.reassign-card-form', $card->id) }}" 
+                           class="btn btn-info">
+                            <i class="fas fa-exchange-alt"></i> Reassign to Another Tenant
+                        </a>
+                        
                         <form method="POST" 
                               action="{{ route('landlord.security.toggle-card-status', $card->id) }}" 
                               style="display: inline;">

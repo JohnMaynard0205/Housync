@@ -159,6 +159,11 @@
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             
+                                            <a href="{{ route('landlord.security.reassign-card-form', $card->id) }}" 
+                                               class="btn btn-outline-info" title="Reassign to Another Tenant">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </a>
+                                            
                                             <form method="POST" 
                                                   action="{{ route('landlord.security.toggle-card-status', $card->id) }}" 
                                                   style="display: inline;">

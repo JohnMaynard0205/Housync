@@ -188,19 +188,19 @@ class AccessLog extends Model
     // Static methods for statistics
     public static function getAccessStats($apartmentId = null, $days = 30)
     {
-        $query = static::query();
+        $baseQuery = static::query();
         
         if ($apartmentId) {
-            $query->where('apartment_id', $apartmentId);
+            $baseQuery->where('apartment_id', $apartmentId);
         }
         
-        $query->where('access_time', '>=', now()->subDays($days));
+        $baseQuery->where('access_time', '>=', now()->subDays($days));
         
         return [
-            'total_attempts' => $query->count(),
-            'granted' => $query->where('access_result', 'granted')->count(),
-            'denied' => $query->where('access_result', 'denied')->count(),
-            'unique_cards' => $query->distinct('card_uid')->count(),
+            'total_attempts' => (clone $baseQuery)->count(),
+            'granted' => (clone $baseQuery)->where('access_result', 'granted')->count(),
+            'denied' => (clone $baseQuery)->where('access_result', 'denied')->count(),
+            'unique_cards' => (clone $baseQuery)->distinct()->count('card_uid'),
         ];
     }
 
