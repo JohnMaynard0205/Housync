@@ -352,8 +352,18 @@ class TenantAssignmentController extends Controller
             }
             $supabaseInstance = $useSupabase ? $supabase : null;
             DB::transaction(function() use ($request, $tenant, $useSupabase, $supabaseInstance, &$uploadedDocuments) {
-                foreach ($request->file('documents') as $index => $file) {
-                    $documentType = $request->document_types[$index];
+                $files = $request->file('documents', []);
+                if (empty($files)) {
+                    throw new \Exception('No files uploaded');
+                }
+                
+                $documentTypes = $request->input('document_types', []);
+                if (count($files) !== count($documentTypes)) {
+                    throw new \Exception('Number of files must match number of document types');
+                }
+                
+                foreach ($files as $index => $file) {
+                    $documentType = $documentTypes[$index];
                     
                     // Generate unique filename
                     $extension = $file->getClientOriginalExtension();
