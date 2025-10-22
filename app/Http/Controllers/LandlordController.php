@@ -206,7 +206,15 @@ class LandlordController extends Controller
             ]);
 
             // Auto-generate units if requested
-            if ($request->has('auto_generate_units') && $request->auto_generate_units) {
+            $autoGenerate = $request->has('auto_generate_units') && $request->auto_generate_units == '1';
+            \Log::info('Auto-generation check', [
+                'has_auto_generate' => $request->has('auto_generate_units'),
+                'auto_generate_value' => $request->auto_generate_units,
+                'auto_generate_boolean' => $autoGenerate,
+                'all_request_data' => $request->all()
+            ]);
+            
+            if ($autoGenerate) {
                 \Log::info('Auto-generating units for apartment', [
                     'apartment_id' => $apartment->id,
                     'total_units' => $request->total_units,
@@ -214,10 +222,13 @@ class LandlordController extends Controller
                 ]);
                 $this->autoGenerateUnits($apartment, $request);
             } else {
-                \Log::info('Auto-generation disabled for apartment', ['apartment_id' => $apartment->id]);
+                \Log::info('Auto-generation disabled for apartment', [
+                    'apartment_id' => $apartment->id,
+                    'reason' => 'Checkbox not checked or value not 1'
+                ]);
             }
 
-            $successMessage = ($request->has('auto_generate_units') && $request->auto_generate_units)
+            $successMessage = $autoGenerate
                 ? "Apartment created successfully with {$request->total_units} units!" 
                 : 'Apartment created successfully.';
 
@@ -334,6 +345,7 @@ class LandlordController extends Controller
                 return ($floor * 100) + $unitOnFloor;
         }
     }
+
 
     public function editApartment($id)
     {
@@ -621,7 +633,7 @@ class LandlordController extends Controller
         $apartment = Auth::user()->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|max:50|unique:units,unit_number',
+            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'status' => 'required|in:available,maintenance',
@@ -722,7 +734,7 @@ class LandlordController extends Controller
 
         try {
             $request->validate([
-                'unit_number' => 'required|string|max:50|unique:units,unit_number,' . $unit->id,
+                'unit_number' => 'required|string|max:50|unique:units,unit_number,' . $unit->id . ',id,apartment_id,' . $unit->apartment_id,
                 'unit_type' => 'required|string|max:100',
                 'rent_amount' => 'required|numeric|min:0',
                 'status' => 'required|in:available,occupied,maintenance',
@@ -1266,7 +1278,7 @@ class LandlordController extends Controller
         $apartment = Auth::user()->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|max:50|unique:units,unit_number',
+            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'bedrooms' => 'required|integer|min:0',
