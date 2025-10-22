@@ -803,6 +803,11 @@ class LandlordController extends Controller
     public function bulkGenerateUnits(Request $request)
     {
         try {
+            \Log::info('Bulk generate units request received', [
+                'data' => $request->all(),
+                'user_id' => Auth::id()
+            ]);
+
             $validated = $request->validate([
                 'apartment_id' => 'required|exists:apartments,id',
                 'num_units' => 'required|integer|min:1|max:500',
@@ -815,12 +820,16 @@ class LandlordController extends Controller
                 'units_per_floor' => 'nullable|integer|min:1',
             ]);
 
+            \Log::info('Validation passed', ['validated' => $validated]);
+
             $apartment = Auth::user()->apartments()->findOrFail($validated['apartment_id']);
+            
+            \Log::info('Apartment found', ['apartment_id' => $apartment->id, 'apartment_name' => $apartment->name]);
             
             // Prepare default data
             $defaultData = [
                 'unit_type' => $validated['default_unit_type'] ?? 'Two Bedroom',
-                'rent_amount' => $validated['default_rent'] ?? null,
+                'rent_amount' => $validated['default_rent'] ?? 15000,
                 'bedrooms' => $validated['default_bedrooms'] ?? 2,
                 'bathrooms' => $validated['default_bathrooms'] ?? 1,
                 'status' => 'available',
@@ -831,25 +840,59 @@ class LandlordController extends Controller
             $unitsCreated = 0;
 
             for ($i = 1; $i <= $numToGenerate; $i++) {
-                // Generate unit number based on pattern
-                $unitNumber = $this->generateUnitNumber(
-                    $i,
-                    $pattern,
-                    $validated['num_floors'] ?? 1,
-                    $validated['units_per_floor'] ?? 1
-                );
+                try {
+                    // Calculate floor and unit on floor for proper numbering
+                    $numFloors = $validated['num_floors'] ?? 1;
+                    $unitsPerFloor = $validated['units_per_floor'] ?? ceil($numToGenerate / $numFloors);
+                    $currentFloor = ceil($i / $unitsPerFloor);
+                    $unitOnFloor = (($i - 1) % $unitsPerFloor) + 1;
+                    
+                    // Generate unit number based on pattern
+                    $unitNumber = $this->generateUnitNumber(
+                        $i,
+                        $currentFloor,
+                        $unitOnFloor,
+                        $pattern
+                    );
 
-                // Check if unit number already exists for this apartment
-                if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
-                    continue; // Skip if exists
+                    \Log::info("Generating unit {$i}/{$numToGenerate}", [
+                        'unit_number' => $unitNumber,
+                        'floor' => $currentFloor,
+                        'unit_on_floor' => $unitOnFloor,
+                        'pattern' => $pattern
+                    ]);
+
+                    // Check if unit number already exists for this apartment
+                    if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
+                        \Log::info("Unit number {$unitNumber} already exists, skipping");
+                        continue; // Skip if exists
+                    }
+
+                    // Create the unit
+                    $unitData = array_merge($defaultData, [
+                        'unit_number' => $unitNumber,
+                        'floor_number' => $currentFloor,
+                        'leasing_type' => 'separate',
+                        'tenant_count' => 0,
+                        'max_occupants' => ($defaultData['bedrooms'] * 2) + 1, // Default calculation
+                        'is_furnished' => false,
+                        'description' => 'Auto-generated unit',
+                        'amenities' => $apartment->amenities ?? [],
+                    ]);
+
+                    \Log::info("Creating unit with data", $unitData);
+
+                    $unit = $apartment->units()->create($unitData);
+                    
+                    \Log::info("Unit created successfully", ['unit_id' => $unit->id]);
+                    $unitsCreated++;
+                } catch (\Exception $e) {
+                    \Log::error("Failed to create unit {$i}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Continue with next unit
                 }
-
-                // Create the unit
-                $apartment->units()->create(array_merge($defaultData, [
-                    'unit_number' => $unitNumber,
-                ]));
-                
-                $unitsCreated++;
             }
 
             return response()->json([
