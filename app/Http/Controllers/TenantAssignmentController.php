@@ -574,21 +574,22 @@ class TenantAssignmentController extends Controller
 
     public function downloadDocument($documentId)
     {
-        $document = TenantDocument::with(['tenantAssignment', 'tenant'])->findOrFail($documentId);
+        $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
         
         // Check if user has access to this document
         $user = Auth::user();
         $hasAccess = false;
         
         if ($user->isLandlord()) {
-            // Landlord can view if document belongs to their tenant assignment
-            if ($document->tenantAssignment && $document->tenantAssignment->landlord_id === $user->id) {
+            // Landlord can view if document belongs to their tenant
+            // We need to check through tenant assignments
+            $tenantAssignments = $user->landlordAssignments()->pluck('tenant_id');
+            if ($tenantAssignments->contains($document->tenant_id)) {
                 $hasAccess = true;
             }
         } elseif ($user->isTenant()) {
             // Tenant can view their own documents
-            if ($document->tenant_id === $user->id || 
-                ($document->tenantAssignment && $document->tenantAssignment->tenant_id === $user->id)) {
+            if ($document->tenant_id === $user->id) {
                 $hasAccess = true;
             }
         }
@@ -597,8 +598,20 @@ class TenantAssignmentController extends Controller
             abort(403, 'Unauthorized access to document');
         }
 
-        // Redirect to Supabase URL for viewing/downloading
-        return redirect($document->file_path);
+        // Check if it's a Supabase URL or local storage path
+        if (str_starts_with($document->file_path, 'http')) {
+            // It's a Supabase URL, redirect directly
+            return redirect($document->file_path);
+        } else {
+            // It's a local storage path, serve the file
+            $filePath = storage_path('app/public/' . $document->file_path);
+            
+            if (!file_exists($filePath)) {
+                abort(404, 'File not found');
+            }
+            
+            return response()->file($filePath);
+        }
     }
 
     /**

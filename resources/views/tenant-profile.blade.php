@@ -131,15 +131,15 @@
                                 </div>
                                 <div style="display: flex; gap: 8px;">
                                     @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                        <button onclick="viewImage('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                                        <button onclick="viewImage('{{ $doc->file_path }}', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
                                             <i class="fas fa-eye" style="margin-right: 4px;"></i>View
                                         </button>
                                     @elseif($doc->mime_type === 'application/pdf')
-                                        <button onclick="viewPDF('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                                        <button onclick="viewPDF('{{ $doc->file_path }}', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
                                             <i class="fas fa-file-pdf" style="margin-right: 4px;"></i>View
                                         </button>
                                     @else
-                                        <a href="{{ route('tenant.download-document', $doc->id) }}" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; text-align: center; text-decoration: none; display: block;">
+                                        <a href="{{ $doc->file_path }}" target="_blank" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; text-align: center; text-decoration: none; display: block;">
                                             <i class="fas fa-download" style="margin-right: 4px;"></i>Download
                                         </a>
                                     @endif
