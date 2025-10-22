@@ -239,6 +239,98 @@ class RfidController extends Controller
     }
     
     /**
+     * Show form to reassign an existing RFID card to a new tenant
+     */
+    public function reassignForm($id)
+    {
+        $user = Auth::user();
+        
+        $card = RfidCard::with(['activeTenantAssignment.tenantAssignment.tenant', 'apartment'])
+                       ->where('landlord_id', $user->id)
+                       ->findOrFail($id);
+        
+        // Get active tenant assignments for the same apartment (excluding current tenant if any)
+        $tenantAssignments = TenantAssignment::with(['tenant', 'unit'])
+                                           ->where('landlord_id', $user->id)
+                                           ->whereHas('unit', function($q) use ($card) {
+                                               $q->where('apartment_id', $card->apartment_id);
+                                           })
+                                           ->when($card->activeTenantAssignment, function($query) use ($card) {
+                                               // Exclude the currently assigned tenant
+                                               return $query->where('id', '!=', $card->activeTenantAssignment->tenant_assignment_id);
+                                           })
+                                           ->active()
+                                           ->get();
+        
+        return view('landlord.security.reassign', compact('card', 'tenantAssignments'));
+    }
+    
+    /**
+     * Process the reassignment of an RFID card to a new tenant
+     */
+    public function reassign(Request $request, $id)
+    {
+        $request->validate([
+            'tenant_assignment_id' => 'required|exists:tenant_assignments,id',
+            'expires_at' => 'nullable|date|after:today',
+            'notes' => 'nullable|string|max:1000'
+        ]);
+        
+        $user = Auth::user();
+        
+        $card = RfidCard::where('landlord_id', $user->id)->findOrFail($id);
+        
+        // Verify the tenant assignment belongs to this landlord and apartment
+        $tenantAssignment = TenantAssignment::where('id', $request->tenant_assignment_id)
+                                          ->where('landlord_id', $user->id)
+                                          ->whereHas('unit', function($q) use ($card) {
+                                              $q->where('apartment_id', $card->apartment_id);
+                                          })
+                                          ->first();
+        
+        if (!$tenantAssignment) {
+            return back()->withErrors(['tenant_assignment_id' => 'Invalid tenant assignment.']);
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // Deactivate any existing active assignments for this card
+            TenantRfidAssignment::where('rfid_card_id', $card->id)
+                              ->where('status', 'active')
+                              ->update([
+                                  'status' => 'inactive',
+                                  'notes' => 'Reassigned to another tenant'
+                              ]);
+            
+            // Create new assignment
+            TenantRfidAssignment::create([
+                'rfid_card_id' => $card->id,
+                'tenant_assignment_id' => $request->tenant_assignment_id,
+                'assigned_at' => now(),
+                'expires_at' => $request->expires_at,
+                'status' => 'active',
+                'notes' => $request->notes ?: 'Card reassigned',
+            ]);
+            
+            // Update card status and expiry
+            $card->update([
+                'status' => 'active',
+                'expires_at' => $request->expires_at,
+            ]);
+            
+            DB::commit();
+            
+            return redirect()->route('landlord.security', ['apartment_id' => $card->apartment_id])
+                           ->with('success', 'RFID card reassigned successfully to ' . $tenantAssignment->tenant->name . '!');
+                           
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withErrors(['error' => 'Failed to reassign RFID card: ' . $e->getMessage()]);
+        }
+    }
+    
+    /**
      * API endpoint for ESP32 to verify card access
      */
     public function verifyAccess(Request $request)

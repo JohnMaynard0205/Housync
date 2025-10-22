@@ -116,6 +116,8 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::post('/security/cards', [RfidController::class, 'store'])->name('security.store-card');
     Route::get('/security/cards/{id}', [RfidController::class, 'show'])->name('security.card-details');
     Route::put('/security/cards/{id}/toggle-status', [RfidController::class, 'toggleStatus'])->name('security.toggle-card-status');
+    Route::get('/security/cards/{id}/reassign', [RfidController::class, 'reassignForm'])->name('security.reassign-card-form');
+    Route::post('/security/cards/{id}/reassign', [RfidController::class, 'reassign'])->name('security.reassign-card');
     Route::get('/security/access-logs', [RfidController::class, 'accessLogs'])->name('security.access-logs');
     
     // API endpoints for apartment management
