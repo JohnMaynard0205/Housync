@@ -110,10 +110,24 @@ class SupabaseService
     public function uploadFile($bucket, $path, $file)
     {
         try {
-            $fileContents = is_string($file) ? file_get_contents($file) : $file;
+            // Handle both file paths and direct content
+            if (is_string($file)) {
+                // If it's a string, check if it's a file path or direct content
+                if (file_exists($file)) {
+                    $fileContents = file_get_contents($file);
+                    if ($fileContents === false) {
+                        throw new \Exception('Failed to read file contents from path: ' . $file);
+                    }
+                } else {
+                    // It's direct content, not a file path
+                    $fileContents = $file;
+                }
+            } else {
+                $fileContents = $file;
+            }
             
-            if ($fileContents === false) {
-                throw new \Exception('Failed to read file contents');
+            if (empty($fileContents)) {
+                throw new \Exception('File contents are empty');
             }
 
             Log::info('Attempting Supabase upload', [
