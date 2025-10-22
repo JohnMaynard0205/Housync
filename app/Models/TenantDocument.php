@@ -26,6 +26,7 @@ class TenantDocument extends Model
     use HasFactory;
 
     protected $fillable = [
+        'tenant_id',
         'tenant_assignment_id',
         'document_type',
         'file_name',
@@ -48,6 +49,11 @@ class TenantDocument extends Model
     ];
 
     // Relationships
+    public function tenant()
+    {
+        return $this->belongsTo(User::class, 'tenant_id');
+    }
+
     public function tenantAssignment()
     {
         return $this->belongsTo(TenantAssignment::class);

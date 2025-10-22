@@ -911,6 +911,11 @@
                             <button type="button" class="btn btn-danger" onclick="confirmDelete()">
                                 <i class="fas fa-trash"></i> Delete Property
                             </button>
+                            @if($apartment->units()->count() > 0)
+                            <button type="button" class="btn btn-danger" onclick="showForceDeleteModal()" style="background-color: #dc3545; border-color: #dc3545;">
+                                <i class="fas fa-exclamation-triangle"></i> Force Delete ({{ $apartment->units()->count() }} units)
+                            </button>
+                            @endif
                         </div>
                         <div class="form-actions-right">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -925,9 +930,96 @@
                     @csrf
                     @method('DELETE')
                 </form>
+
+                <!-- Force Delete Form -->
+                <form id="force-delete-form" method="POST" action="{{ route('landlord.delete-apartment', $apartment->id) }}" style="display: none;">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="force_delete" value="1">
+                    <input type="hidden" name="password" id="force-delete-password">
+                </form>
             </div>
         </div>
     </div>
+
+    <!-- Force Delete Modal -->
+    <div id="force-delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="color: #dc3545; margin-bottom: 20px;">
+                <i class="fas fa-exclamation-triangle"></i> Force Delete Property
+            </h3>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">
+                    <strong>Warning:</strong> This will permanently delete the property "{{ $apartment->name }}" and all {{ $apartment->units()->count() }} unit(s) associated with it.
+                </p>
+                <p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">
+                    This action cannot be undone!
+                </p>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Please enter your password to confirm:
+                </p>
+                <input type="password" id="modal-password" class="form-control" placeholder="Enter your password" style="margin-bottom: 10px;">
+                <div id="password-error" style="color: #dc3545; font-size: 14px; display: none; margin-top: 5px;">
+                    Please enter your password
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeForceDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmForceDelete()">
+                    <i class="fas fa-exclamation-triangle"></i> Confirm Force Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Force Delete Modal Functions
+        function showForceDeleteModal() {
+            const modal = document.getElementById('force-delete-modal');
+            modal.style.display = 'flex';
+            document.getElementById('modal-password').value = '';
+            document.getElementById('password-error').style.display = 'none';
+        }
+
+        function closeForceDeleteModal() {
+            const modal = document.getElementById('force-delete-modal');
+            modal.style.display = 'none';
+            document.getElementById('modal-password').value = '';
+            document.getElementById('password-error').style.display = 'none';
+        }
+
+        function confirmForceDelete() {
+            const password = document.getElementById('modal-password').value;
+            const errorDiv = document.getElementById('password-error');
+            
+            if (!password) {
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Set password in hidden form field
+            document.getElementById('force-delete-password').value = password;
+            
+            // Submit the force delete form
+            document.getElementById('force-delete-form').submit();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('force-delete-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeForceDeleteModal();
+            }
+        });
+
+        // Allow Enter key to submit
+        document.getElementById('modal-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmForceDelete();
+            }
+        });
+    </script>
 
     <script>
         // Form validation and enhancement

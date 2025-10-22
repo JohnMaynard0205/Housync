@@ -279,6 +279,11 @@
                                 <a href="{{ route('landlord.units', $apartment->id) }}" class="btn-icon" title="View Units">
                                     <i class="fas fa-door-open"></i>
                                 </a>
+                                @if($totalUnits > 0)
+                                <button onclick="showForceDeleteModal({{ $apartment->id }}, '{{ addslashes($apartment->name) }}', {{ $totalUnits }})" class="btn-icon" title="Force Delete" style="color: #dc3545; border-color: #dc3545;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -330,6 +335,46 @@
         </div>
     </div>
 </div>
+
+<!-- Force Delete Modal -->
+<div id="force-delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h3 style="color: #dc3545; margin-bottom: 20px;">
+            <i class="fas fa-exclamation-triangle"></i> Force Delete Property
+        </h3>
+        <div style="margin-bottom: 20px;">
+            <p style="color: #666; margin-bottom: 15px;">
+                <strong>Warning:</strong> This will permanently delete the property "<span id="force-delete-property-name"></span>" and all <span id="force-delete-unit-count"></span> unit(s) associated with it.
+            </p>
+            <p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">
+                This action cannot be undone!
+            </p>
+            <p style="color: #666; margin-bottom: 15px;">
+                Please enter your password to confirm:
+            </p>
+            <input type="password" id="modal-password" class="form-control" placeholder="Enter your password" style="margin-bottom: 10px;">
+            <div id="password-error" style="color: #dc3545; font-size: 14px; display: none; margin-top: 5px;">
+                Please enter your password
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeForceDeleteModal()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="button" class="btn btn-danger" onclick="confirmForceDelete()">
+                <i class="fas fa-exclamation-triangle"></i> Confirm Force Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Force Delete Form -->
+<form id="force-delete-form" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+    <input type="hidden" name="force_delete" value="1">
+    <input type="hidden" name="password" id="force-delete-password">
+</form>
 
 @endsection
 
@@ -465,6 +510,43 @@ function viewApartmentDetails(apartmentId) {
                 </div>
             `;
         });
+}
+
+// Force Delete Modal Functions
+let currentApartmentId = null;
+
+function showForceDeleteModal(apartmentId, propertyName, unitCount) {
+    currentApartmentId = apartmentId;
+    document.getElementById('force-delete-property-name').textContent = propertyName;
+    document.getElementById('force-delete-unit-count').textContent = unitCount;
+    document.getElementById('modal-password').value = '';
+    document.getElementById('password-error').style.display = 'none';
+    document.getElementById('force-delete-modal').style.display = 'flex';
+}
+
+function closeForceDeleteModal() {
+    document.getElementById('force-delete-modal').style.display = 'none';
+    currentApartmentId = null;
+}
+
+function confirmForceDelete() {
+    const password = document.getElementById('modal-password').value;
+    const passwordError = document.getElementById('password-error');
+    
+    if (!password) {
+        passwordError.style.display = 'block';
+        return;
+    }
+    
+    passwordError.style.display = 'none';
+    
+    // Set the form action and password
+    const form = document.getElementById('force-delete-form');
+    form.action = `/landlord/apartments/${currentApartmentId}`;
+    document.getElementById('force-delete-password').value = password;
+    
+    // Submit the form
+    form.submit();
 }
 </script>
 @endpush 

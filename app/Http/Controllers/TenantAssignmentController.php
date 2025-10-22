@@ -304,12 +304,11 @@ class TenantAssignmentController extends Controller
     {
         $tenant = Auth::user();
         $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
+        
+        // Get tenant's personal documents (uploaded before assignment)
+        $personalDocuments = $tenant->documents()->orderBy('created_at', 'desc')->get();
 
-        if (!$assignment) {
-            return redirect()->route('tenant.dashboard')->with('error', 'No assignment found.');
-        }
-
-        return view('tenant.upload-documents', compact('assignment'));
+        return view('tenant.upload-documents', compact('assignment', 'personalDocuments'));
     }
 
     /**
@@ -328,31 +327,26 @@ class TenantAssignmentController extends Controller
         ]);
 
         $tenant = Auth::user();
-        $assignment = $tenant->tenantAssignments()->first();
-
-        if (!$assignment) {
-            return back()->with('error', 'No assignment found.');
-        }
 
         try {
             $uploadedDocuments = [];
             $supabase = new \App\Services\SupabaseService();
             
             // Use database transaction for document uploads
-            DB::transaction(function() use ($request, $assignment, $supabase, &$uploadedDocuments) {
+            DB::transaction(function() use ($request, $tenant, $supabase, &$uploadedDocuments) {
                 foreach ($request->file('documents') as $index => $file) {
                     $documentType = $request->document_types[$index];
                     
                     // Generate unique filename
                     $extension = $file->getClientOriginalExtension();
-                    $fileName = 'tenant-doc-' . $assignment->id . '-' . time() . '-' . $index . '-' . uniqid() . '.' . $extension;
+                    $fileName = 'tenant-doc-' . $tenant->id . '-' . time() . '-' . $index . '-' . uniqid() . '.' . $extension;
                     $path = 'tenant-documents/' . $fileName;
                     
                     // Upload to Supabase
                     $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
                     
                     Log::info('Tenant document uploaded', [
-                        'assignment_id' => $assignment->id,
+                        'tenant_id' => $tenant->id,
                         'index' => $index,
                         'type' => $documentType,
                         'result' => $uploadResult
@@ -366,7 +360,8 @@ class TenantAssignmentController extends Controller
                     // Only create record if successful
                     if ($uploadResult['success']) {
                         $document = TenantDocument::create([
-                            'tenant_assignment_id' => $assignment->id,
+                            'tenant_id' => $tenant->id,
+                            'tenant_assignment_id' => null, // No assignment yet - these are profile documents
                             'document_type' => $documentType,
                             'file_name' => $file->getClientOriginalName(),
                             'file_path' => $uploadResult['url'],
@@ -379,36 +374,26 @@ class TenantAssignmentController extends Controller
                         $uploadedDocuments[] = $document;
                     } else {
                         Log::error('Failed to upload tenant document', [
-                            'assignment_id' => $assignment->id,
+                            'tenant_id' => $tenant->id,
                             'index' => $index,
                             'result' => $uploadResult
                         ]);
                         throw new \Exception('Failed to upload document: ' . ($uploadResult['message'] ?? 'Unknown error'));
                     }
                 }
-
-                // Mark documents as uploaded and update assignment status
-                $assignment->update([
-                    'documents_uploaded' => true,
-                    'documents_verified' => false, // New documents are always pending verification
-                ]);
             });
 
             // Audit log for successful document upload
             Log::info('Documents uploaded successfully', [
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
-                'assignment_id' => $assignment->id,
-                'unit_id' => $assignment->unit_id,
-                'landlord_id' => $assignment->landlord_id,
                 'documents_count' => count($uploadedDocuments),
                 'document_types' => $request->document_types,
                 'total_size' => array_sum(array_map(fn($doc) => $doc->file_size, $uploadedDocuments)),
                 'timestamp' => now()
             ]);
 
-            return redirect()->route('tenant.dashboard')
-                ->with('success', 'Documents uploaded successfully. They will be reviewed by your landlord.');
+            return back()->with('success', 'Documents uploaded successfully! They will be available when you apply for properties.');
 
         } catch (\Exception $e) {
             // Detailed error logging
@@ -534,29 +519,32 @@ class TenantAssignmentController extends Controller
      */
     public function downloadDocument($documentId)
     {
-        $document = TenantDocument::with('tenantAssignment')->findOrFail($documentId);
+        $document = TenantDocument::with(['tenantAssignment', 'tenant'])->findOrFail($documentId);
         
         // Check if user has access to this document
         $user = Auth::user();
+        $hasAccess = false;
+        
         if ($user->isLandlord()) {
-            if ($document->tenantAssignment->landlord_id !== $user->id) {
-                abort(403);
+            // Landlord can view if document belongs to their tenant assignment
+            if ($document->tenantAssignment && $document->tenantAssignment->landlord_id === $user->id) {
+                $hasAccess = true;
             }
         } elseif ($user->isTenant()) {
-            if ($document->tenantAssignment->tenant_id !== $user->id) {
-                abort(403);
+            // Tenant can view their own documents
+            if ($document->tenant_id === $user->id || 
+                ($document->tenantAssignment && $document->tenantAssignment->tenant_id === $user->id)) {
+                $hasAccess = true;
             }
-        } else {
-            abort(403);
+        }
+        
+        if (!$hasAccess) {
+            abort(403, 'Unauthorized access to document');
         }
 
-        if (!Storage::disk('public')->exists($document->file_path)) {
-            abort(404);
-        }
-
-        return response()->file(Storage::disk('public')->path($document->file_path), [
-            'Content-Disposition' => 'attachment; filename="' . $document->file_name . '"'
-        ]);
+        // Since files are stored in Supabase, redirect to the URL
+        // The URL is already public and accessible
+        return redirect($document->file_path);
     }
 
     /**
@@ -565,10 +553,12 @@ class TenantAssignmentController extends Controller
     public function deleteDocument($documentId)
     {
         try {
-            $document = TenantDocument::with('tenantAssignment.tenant')->findOrFail($documentId);
+            $document = TenantDocument::with(['tenantAssignment.tenant', 'tenant'])->findOrFail($documentId);
             
             // Check if user is the tenant who uploaded this document
-            if ($document->tenantAssignment->tenant_id !== Auth::id()) {
+            // Check both tenant_id (for profile documents) and assignment tenant_id
+            if ($document->tenant_id !== Auth::id() && 
+                (!$document->tenantAssignment || $document->tenantAssignment->tenant_id !== Auth::id())) {
                 abort(403, 'Unauthorized access to document.');
             }
 
@@ -579,48 +569,45 @@ class TenantAssignmentController extends Controller
 
             // Use database transaction for document deletion
             DB::transaction(function() use ($document, $assignment) {
-                // Delete the file from storage
-                if (Storage::disk('public')->exists($document->file_path)) {
-                    Storage::disk('public')->delete($document->file_path);
-                }
-
                 // Delete the document record
                 $document->delete();
 
-                // Update assignment status based on remaining documents
-                $remainingDocuments = $assignment->documents()->count();
-                
-                if ($remainingDocuments === 0) {
-                    // No documents left, mark as not uploaded
-                    $assignment->update([
-                        'documents_uploaded' => false,
-                        'documents_verified' => false,
-                    ]);
-                } else {
-                    // Check if all remaining documents are verified
-                    $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-                    $allVerified = $pendingDocuments === 0;
+                // Update assignment status based on remaining documents (if assignment exists)
+                if ($assignment) {
+                    $remainingDocuments = $assignment->documents()->count();
                     
-                    $assignment->update([
-                        'documents_uploaded' => true,
-                        'documents_verified' => $allVerified,
-                    ]);
+                    if ($remainingDocuments === 0) {
+                        // No documents left, mark as not uploaded
+                        $assignment->update([
+                            'documents_uploaded' => false,
+                            'documents_verified' => false,
+                        ]);
+                    } else {
+                        // Check if all remaining documents are verified
+                        $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
+                        $allVerified = $pendingDocuments === 0;
+                        
+                        $assignment->update([
+                            'documents_uploaded' => true,
+                            'documents_verified' => $allVerified,
+                        ]);
+                    }
                 }
             });
 
             // Audit log for document deletion
             Log::info('Document deleted successfully', [
                 'tenant_id' => Auth::id(),
-                'tenant_name' => $assignment->tenant->name,
+                'tenant_name' => $document->tenant->name ?? ($assignment ? $assignment->tenant->name : 'Unknown'),
                 'document_id' => $documentId,
-                'assignment_id' => $assignment->id,
-                'unit_id' => $assignment->unit_id,
-                'landlord_id' => $assignment->landlord_id,
+                'assignment_id' => $assignment?->id,
+                'unit_id' => $assignment?->unit_id,
+                'landlord_id' => $assignment?->landlord_id,
                 'document_type' => $documentType,
                 'document_name' => $fileName,
                 'file_size' => $fileSize,
                 'verification_status' => $document->verification_status,
-                'remaining_documents' => $assignment->documents()->count(),
+                'remaining_documents' => $assignment ? $assignment->documents()->count() : 0,
                 'timestamp' => now()
             ]);
 
@@ -690,10 +677,8 @@ class TenantAssignmentController extends Controller
 
                 // Delete all associated documents first
                 foreach ($assignment->documents as $document) {
-                    // Delete the file from storage
-                    if (Storage::disk('public')->exists($document->file_path)) {
-                        Storage::disk('public')->delete($document->file_path);
-                    }
+                    // Note: Files are stored in Supabase, not local storage
+                    // Supabase files will remain accessible unless explicitly deleted from Supabase
                     // Delete the document record
                     $document->delete();
                 }
@@ -1163,9 +1148,8 @@ class TenantAssignmentController extends Controller
 
                 // Delete all uploaded documents
                 foreach ($assignment->documents as $document) {
-                    if (Storage::disk('public')->exists($document->file_path)) {
-                        Storage::disk('public')->delete($document->file_path);
-                    }
+                    // Note: Files are stored in Supabase, not local storage
+                    // Supabase files will remain accessible unless explicitly deleted from Supabase
                     $document->delete();
                 }
 
