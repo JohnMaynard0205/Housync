@@ -84,8 +84,19 @@ class LandlordController extends Controller
 
     public function storeApartment(Request $request)
     {
+        \Log::info('Property creation request received', [
+            'data' => $request->all(),
+            'auto_generate_units' => $request->auto_generate_units,
+            'total_units' => $request->total_units,
+            'floors' => $request->floors,
+            'method' => $request->method(),
+            'url' => $request->url(),
+            'route' => $request->route()->getName()
+        ]);
+
         $request->validate([
             'name' => 'required|string|max:255',
+            'property_type' => 'required|string|in:apartment,condominium,townhouse,house,duplex,others',
             'address' => 'required|string|max:500',
             'description' => 'nullable|string|max:1000',
             'total_units' => 'required|integer|min:1',
@@ -97,6 +108,7 @@ class LandlordController extends Controller
             'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
             // Auto-generation fields
             'auto_generate_units' => 'nullable|boolean',
+            'floors' => 'required|integer|min:1',
             'default_unit_type' => 'nullable|string|max:100',
             'default_rent' => 'nullable|numeric|min:0',
             'units_per_floor' => 'nullable|integer|min:1',
@@ -180,6 +192,7 @@ class LandlordController extends Controller
 
             $apartment = Auth::user()->apartments()->create([
                 'name' => $request->name,
+                'property_type' => $request->property_type,
                 'address' => $request->address,
                 'description' => $request->description,
                 'total_units' => $request->total_units,
@@ -193,11 +206,18 @@ class LandlordController extends Controller
             ]);
 
             // Auto-generate units if requested
-            if ($request->auto_generate_units) {
+            if ($request->has('auto_generate_units') && $request->auto_generate_units) {
+                \Log::info('Auto-generating units for apartment', [
+                    'apartment_id' => $apartment->id,
+                    'total_units' => $request->total_units,
+                    'floors' => $request->floors
+                ]);
                 $this->autoGenerateUnits($apartment, $request);
+            } else {
+                \Log::info('Auto-generation disabled for apartment', ['apartment_id' => $apartment->id]);
             }
 
-            $successMessage = $request->auto_generate_units 
+            $successMessage = ($request->has('auto_generate_units') && $request->auto_generate_units)
                 ? "Apartment created successfully with {$request->total_units} units!" 
                 : 'Apartment created successfully.';
 
@@ -218,6 +238,14 @@ class LandlordController extends Controller
         $unitsPerFloor = $request->units_per_floor ?? ceil($totalUnits / $numFloors);
         $numberingPattern = $request->numbering_pattern ?? 'floor_based';
         
+        \Log::info('Auto-generating units with parameters', [
+            'apartment_id' => $apartment->id,
+            'total_units' => $totalUnits,
+            'numFloors' => $numFloors,
+            'unitsPerFloor' => $unitsPerFloor,
+            'numberingPattern' => $numberingPattern
+        ]);
+        
         $defaultData = [
             'unit_type' => $request->default_unit_type ?? '2-Bedroom',
             'rent_amount' => $request->default_rent ?? 15000,
@@ -234,34 +262,49 @@ class LandlordController extends Controller
         $unitOnFloor = 1;
 
         for ($i = 1; $i <= $totalUnits; $i++) {
-            // Generate unit number based on pattern
-            $unitNumber = $this->generateUnitNumber($i, $currentFloor, $unitOnFloor, $numberingPattern);
+            try {
+                // Generate unit number based on pattern
+                $unitNumber = $this->generateUnitNumber($i, $currentFloor, $unitOnFloor, $numberingPattern);
 
-            // Create the unit
-            $apartment->units()->create([
-                'unit_number' => $unitNumber,
-                'unit_type' => $defaultData['unit_type'],
-                'rent_amount' => $defaultData['rent_amount'],
-                'status' => $defaultData['status'],
-                'leasing_type' => $defaultData['leasing_type'],
-                'bedrooms' => $defaultData['bedrooms'],
-                'bathrooms' => $defaultData['bathrooms'],
-                'tenant_count' => $defaultData['tenant_count'],
-                'max_occupants' => $defaultData['max_occupants'],
-                'floor_number' => $currentFloor,
-                'description' => "Auto-generated unit",
-                'amenities' => $request->amenities ?? [],
-                'is_furnished' => false,
-            ]);
+                // Create the unit
+                $unit = $apartment->units()->create([
+                    'unit_number' => $unitNumber,
+                    'unit_type' => $defaultData['unit_type'],
+                    'rent_amount' => $defaultData['rent_amount'],
+                    'status' => $defaultData['status'],
+                    'leasing_type' => $defaultData['leasing_type'],
+                    'bedrooms' => $defaultData['bedrooms'],
+                    'bathrooms' => $defaultData['bathrooms'],
+                    'tenant_count' => $defaultData['tenant_count'],
+                    'max_occupants' => $defaultData['max_occupants'],
+                    'floor_number' => $currentFloor,
+                    'description' => "Auto-generated unit",
+                    'amenities' => $request->amenities ?? [],
+                    'is_furnished' => false,
+                ]);
 
-            $unitsCreated++;
+                $unitsCreated++;
+                \Log::info("Created unit {$i}/{$totalUnits}", [
+                    'unit_id' => $unit->id,
+                    'unit_number' => $unitNumber,
+                    'floor' => $currentFloor,
+                    'unit_on_floor' => $unitOnFloor
+                ]);
 
-            // Move to next floor if needed
-            if ($unitOnFloor >= $unitsPerFloor && $currentFloor < $numFloors) {
-                $currentFloor++;
-                $unitOnFloor = 1;
-            } else {
-                $unitOnFloor++;
+                // Move to next floor if needed
+                if ($unitOnFloor >= $unitsPerFloor && $currentFloor < $numFloors) {
+                    $currentFloor++;
+                    $unitOnFloor = 1;
+                } else {
+                    $unitOnFloor++;
+                }
+            } catch (\Exception $e) {
+                \Log::error("Failed to create unit {$i}", [
+                    'error' => $e->getMessage(),
+                    'apartment_id' => $apartment->id,
+                    'unit_number' => $unitNumber ?? 'unknown'
+                ]);
+                // Continue with next unit
             }
         }
 
