@@ -51,10 +51,17 @@ class RfidCard extends Model
                     ->with('tenantAssignment');
     }
 
-    // Legacy method for backward compatibility
+    // Direct relationship to TenantAssignment through TenantRfidAssignment
     public function tenantAssignment()
     {
-        return $this->activeTenantAssignment()?->tenantAssignment();
+        return $this->hasOneThrough(
+            TenantAssignment::class,
+            TenantRfidAssignment::class,
+            'rfid_card_id',        // Foreign key on TenantRfidAssignment table
+            'id',                  // Foreign key on TenantAssignment table
+            'id',                  // Local key on RfidCard table
+            'tenant_assignment_id' // Local key on TenantRfidAssignment table
+        )->where('tenant_rfid_assignments.status', 'active');
     }
 
     public function landlord()
