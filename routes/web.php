@@ -86,8 +86,6 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::put('/tenant-assignments/{id}/status', [TenantAssignmentController::class, 'updateStatus'])->name('update-assignment-status');
     Route::post('/tenant-assignments/{id}/reassign', [TenantAssignmentController::class, 'reassign'])->name('reassign-tenant');
     Route::delete('/tenant-assignments/{id}', [TenantAssignmentController::class, 'destroy'])->name('delete-tenant-assignment');
-    Route::post('/tenant-assignments/{id}/verify-documents', [TenantAssignmentController::class, 'verifyDocuments'])->name('verify-documents');
-    Route::post('/documents/{documentId}/verify', [TenantAssignmentController::class, 'verifyIndividualDocument'])->name('verify-individual-document');
     Route::get('/tenant-assignments/{id}/credentials', [TenantAssignmentController::class, 'getCredentials'])->name('get-credentials');
     Route::get('/available-units', [TenantAssignmentController::class, 'getAvailableUnits'])->name('available-units');
     Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
@@ -164,7 +162,6 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::delete('/delete-document/{documentId}', [TenantAssignmentController::class, 'deleteDocument'])->name('delete-document');
     Route::get('/profile', [TenantAssignmentController::class, 'tenantProfile'])->name('profile');
     Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
-    Route::post('/get-password', [TenantAssignmentController::class, 'getTenantPassword'])->name('get-password');
     Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
     
     // Apply for property

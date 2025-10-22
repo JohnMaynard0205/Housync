@@ -115,14 +115,6 @@
                                         </span>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td><strong>Documents Status:</strong></td>
-                                    <td>
-                                        <span class="badge bg-{{ $assignment->documents_status_badge_class }}">
-                                            {{ ucfirst($assignment->documents_status) }}
-                                        </span>
-                                    </td>
-                                </tr>
                             </table>
                         </div>
                     </div>
@@ -194,50 +186,26 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Document Verification -->
-            @if($assignment->documents_uploaded && !$assignment->documents_verified)
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Document Verification</h5>
-                    
-                    <form method="POST" action="{{ route('landlord.verify-documents', $assignment->id) }}">
-                        @csrf
-                        <div class="mb-3">
-                            <label for="verification_notes" class="form-label">Verification Notes (Optional)</label>
-                            <textarea class="form-control" id="verification_notes" name="verification_notes" rows="3" placeholder="Add any notes about the document verification..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="mdi mdi-check me-1"></i> Verify Documents
-                        </button>
-                    </form>
-                </div>
-            </div>
-            @endif
         </div>
     </div>
 
-    <!-- Uploaded Documents -->
-    @if($assignment->documents->count() > 0)
+    <!-- Tenant Documents -->
+    @if($assignment->tenant && $assignment->tenant->documents && $assignment->tenant->documents->count() > 0)
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Uploaded Documents</h5>
+                    <h5 class="card-title">Tenant Documents</h5>
+                    <p class="text-muted">Personal documents uploaded by {{ $assignment->tenant->name }}</p>
                     
                     <div class="row">
-                        @foreach($assignment->documents as $document)
+                        @foreach($assignment->tenant->documents as $document)
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card document-card">
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <div>
-                                            <h6 class="card-title mb-1">{{ $document->document_type_label }}</h6>
-                                            <small class="text-muted">{{ $document->file_name }}</small>
-                                        </div>
-                                        <span class="badge bg-{{ $document->verification_status_badge_class }}">
-                                            {{ ucfirst($document->verification_status) }}
-                                        </span>
+                                    <div class="mb-3">
+                                        <h6 class="card-title mb-1">{{ $document->document_type_label }}</h6>
+                                        <small class="text-muted">{{ $document->file_name }}</small>
                                     </div>
                                     
                                     <div class="mb-3">
@@ -255,44 +223,25 @@
                                     <div class="d-flex gap-2">
                                         @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
                                             <!-- Image Preview -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-eye me-1"></i> View Image
                                             </button>
                                         @elseif($document->mime_type === 'application/pdf')
                                             <!-- PDF Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-file-pdf me-1"></i> View PDF
                                             </button>
                                         @else
                                             <!-- Generic File Viewer -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                 <i class="mdi mdi-eye me-1"></i> View File
                                             </button>
                                         @endif
                                         
-                                        <a href="{{ route('tenant.download-document', $document->id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <a href="{{ route('landlord.download-document', $document->id) }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="mdi mdi-download me-1"></i> Download
                                         </a>
-
-                                        @if($document->verification_status === 'pending')
-                                            <button type="button" class="btn btn-sm btn-success" onclick="verifyDocument({{ $document->id }}, '{{ $document->file_name }}')">
-                                                <i class="mdi mdi-check me-1"></i> Verify
-                                            </button>
-                                        @elseif($document->verification_status === 'verified')
-                                            <span class="btn btn-sm btn-success disabled">
-                                                <i class="mdi mdi-check me-1"></i> Verified
-                                            </span>
-                                        @endif
                                     </div>
-
-                                    @if($document->verification_notes)
-                                    <div class="mt-3">
-                                        <small class="text-muted">
-                                            <strong>Verification Notes:</strong><br>
-                                            {{ $document->verification_notes }}
-                                        </small>
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -383,74 +332,59 @@
     </div>
 </div>
 
-<!-- Document Verification Modal -->
-<div class="modal fade" id="documentVerificationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Verify Document</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="documentVerificationForm" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">Document Verification</h6>
-                        <p class="mb-2">You are about to verify: <strong id="documentName"></strong></p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="verification_notes" class="form-label">Verification Notes (Optional)</label>
-                        <textarea class="form-control" id="verification_notes" name="verification_notes" rows="3" placeholder="Add any notes about this document verification..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="mdi mdi-check me-1"></i> Verify Document
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-
 @endsection
 
 @push('scripts')
 <script>
 function viewImage(imageUrl, fileName) {
-    document.getElementById('imagePreview').src = imageUrl;
+    console.log('Loading image:', imageUrl);
+    
+    const imgElement = document.getElementById('imagePreview');
+    const downloadLink = document.getElementById('imageDownloadLink');
+    
+    // Remove ?inline=true for download link
+    const downloadUrl = imageUrl.replace('?inline=true', '');
+    
+    // Add error handling
+    imgElement.onerror = function() {
+        console.error('Failed to load image:', imageUrl);
+        alert('Failed to load image. Please try downloading it instead.');
+    };
+    
+    imgElement.onload = function() {
+        console.log('Image loaded successfully');
+    };
+    
+    imgElement.src = imageUrl;
     document.getElementById('imageModalTitle').textContent = fileName;
-    document.getElementById('imageDownloadLink').href = imageUrl;
+    downloadLink.href = downloadUrl;
     
     const modal = new bootstrap.Modal(document.getElementById('imageModal'));
     modal.show();
 }
 
 function viewPDF(pdfUrl, fileName) {
+    console.log('Loading PDF:', pdfUrl);
+    
+    const downloadLink = document.getElementById('pdfDownloadLink');
+    const downloadUrl = pdfUrl.replace('?inline=true', '');
+    
     document.getElementById('pdfViewer').src = pdfUrl;
     document.getElementById('pdfModalTitle').textContent = fileName;
-    document.getElementById('pdfDownloadLink').href = pdfUrl;
+    downloadLink.href = downloadUrl;
     
     const modal = new bootstrap.Modal(document.getElementById('pdfModal'));
     modal.show();
 }
 
 function viewFile(fileUrl, fileName) {
+    const downloadLink = document.getElementById('fileDownloadLink');
+    const downloadUrl = fileUrl.replace('?inline=true', '');
+    
     document.getElementById('fileModalTitle').textContent = fileName;
-    document.getElementById('fileDownloadLink').href = fileUrl;
+    downloadLink.href = downloadUrl;
     
     const modal = new bootstrap.Modal(document.getElementById('fileModal'));
-    modal.show();
-}
-
-function verifyDocument(documentId, fileName) {
-    document.getElementById('documentName').textContent = fileName;
-    document.getElementById('documentVerificationForm').action = `/landlord/documents/${documentId}/verify`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('documentVerificationModal'));
     modal.show();
 }
 

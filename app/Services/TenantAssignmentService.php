@@ -81,14 +81,6 @@ class TenantAssignmentService
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['documents_uploaded'])) {
-            $query->where('documents_uploaded', $filters['documents_uploaded']);
-        }
-
-        if (isset($filters['documents_verified'])) {
-            $query->where('documents_verified', $filters['documents_verified']);
-        }
-
         return $query->latest()->paginate(15);
     }
 
@@ -97,7 +89,11 @@ class TenantAssignmentService
      */
     public function getAssignmentDetails($assignmentId, $landlordId = null)
     {
-        $query = TenantAssignment::with(['tenant', 'unit.apartment', 'documents']);
+        // Load tenant with their personal documents (not assignment-specific documents)
+        $query = TenantAssignment::with([
+            'tenant.documents', // Load all tenant documents
+            'unit.apartment'
+        ]);
         
         if ($landlordId) {
             $query->where('landlord_id', $landlordId);
@@ -128,47 +124,6 @@ class TenantAssignmentService
     }
 
     /**
-     * Mark documents as uploaded
-     */
-    public function markDocumentsUploaded($assignmentId, $tenantId)
-    {
-        $assignment = TenantAssignment::where('tenant_id', $tenantId)
-            ->findOrFail($assignmentId);
-
-        $assignment->update(['documents_uploaded' => true]);
-
-        return $assignment;
-    }
-
-    /**
-     * Verify documents
-     */
-    public function verifyDocuments($assignmentId, $verifiedBy, $notes = null)
-    {
-        $assignment = TenantAssignment::findOrFail($assignmentId);
-        
-        // Update all documents for this assignment to verified
-        $assignment->documents()->update([
-            'verification_status' => 'verified',
-            'verified_by' => $verifiedBy,
-            'verified_at' => now(),
-            'verification_notes' => $notes,
-        ]);
-        
-        $assignment->update([
-            'documents_verified' => true,
-            'verification_notes' => $notes,
-        ]);
-
-        // Update assignment status to active if documents are verified
-        if ($assignment->status === 'pending') {
-            $assignment->update(['status' => 'active']);
-        }
-
-        return $assignment;
-    }
-
-    /**
      * Get statistics for landlord
      */
     public function getLandlordStats($landlordId)
@@ -179,9 +134,7 @@ class TenantAssignmentService
             'total_assignments' => $assignments->count(),
             'active_assignments' => $assignments->where('status', 'active')->count(),
             'pending_assignments' => $assignments->where('status', 'pending')->count(),
-            'pending_documents' => $assignments->where('documents_uploaded', false)->count(),
-            'documents_uploaded' => $assignments->where('documents_uploaded', true)->count(),
-            'documents_verified' => $assignments->where('documents_verified', true)->count(),
+            'pending_approval' => $assignments->where('status', 'pending_approval')->count(),
             'total_revenue' => $assignments->where('status', 'active')->sum('rent_amount'),
         ];
     }

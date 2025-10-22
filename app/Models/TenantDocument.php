@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
- * @property int $tenant_assignment_id
+ * @property int $tenant_id
  * @property string $document_type
  * @property string $file_name
  * @property string $file_path
@@ -26,7 +26,7 @@ class TenantDocument extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tenant_assignment_id',
+        'tenant_id',
         'document_type',
         'file_name',
         'file_path',
@@ -48,9 +48,9 @@ class TenantDocument extends Model
     ];
 
     // Relationships
-    public function tenantAssignment()
+    public function tenant()
     {
-        return $this->belongsTo(TenantAssignment::class);
+        return $this->belongsTo(User::class, 'tenant_id');
     }
 
     public function verifiedBy()

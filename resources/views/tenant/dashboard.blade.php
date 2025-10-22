@@ -168,42 +168,6 @@
                             </div>
                             @endif
 
-                            <!-- Document Status for this Assignment -->
-                            @if($assignment->status === 'active' || $assignment->status === 'pending_approval')
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="border-top pt-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Document Status</h6>
-                                            <span class="badge bg-{{ $assignment->documents_status_badge_class }} fs-6">
-                                                {{ ucfirst($assignment->documents_status) }}
-                                            </span>
-                                        </div>
-
-                                        @if(!$assignment->documents_uploaded)
-                                            <div class="alert alert-warning mb-0">
-                                                <h6 class="alert-heading">Documents Required</h6>
-                                                <p class="mb-2">Please upload the required documents to complete your assignment.</p>
-                                                <a href="{{ route('tenant.upload-documents') }}" class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-upload me-1"></i> Upload Documents
-                                                </a>
-                                            </div>
-                                        @elseif(!$assignment->documents_verified)
-                                            <div class="alert alert-info mb-0">
-                                                <h6 class="alert-heading">Documents Under Review</h6>
-                                                <p class="mb-0">Your documents have been uploaded and are being reviewed by your landlord.</p>
-                                            </div>
-                                        @else
-                                            <div class="alert alert-success mb-0">
-                                                <h6 class="alert-heading">Documents Verified</h6>
-                                                <p class="mb-0">All your documents have been verified and approved.</p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-
                             <!-- Quick Actions for this Assignment -->
                             <div class="row mt-3">
                                 <div class="col-12">
@@ -215,11 +179,9 @@
                                                     <i class="fas fa-clock me-1"></i> Awaiting Approval
                                                 </button>
                                             @else
-                                                @if(!$assignment->documents_uploaded)
-                                                    <a href="{{ route('tenant.upload-documents') }}" class="btn btn-sm btn-warning">
-                                                        <i class="fas fa-upload me-1"></i> Upload Documents
-                                                    </a>
-                                                @endif
+                                                <a href="{{ route('tenant.upload-documents') }}" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-upload me-1"></i> Upload Documents
+                                                </a>
                                                 
                                                 <button class="btn btn-sm btn-outline-secondary" onclick="viewAssignmentDocuments({{ $assignment->id }})">
                                                     <i class="fas fa-file-alt me-1"></i> View Documents
@@ -234,12 +196,12 @@
                                 </div>
                             </div>
 
-                            <!-- Documents for this Assignment -->
-                            @if($assignment->documents->count() > 0)
+                            <!-- Tenant Documents -->
+                            @if(Auth::user()->documents && Auth::user()->documents->count() > 0)
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <div class="border-top pt-3">
-                                        <h6 class="mb-3"><i class="fas fa-folder-open me-2"></i>Uploaded Documents ({{ $assignment->documents->count() }})</h6>
+                                        <h6 class="mb-3"><i class="fas fa-folder-open me-2"></i>Your Personal Documents ({{ Auth::user()->documents->count() }})</h6>
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover">
                                                 <thead class="table-light">
@@ -247,33 +209,27 @@
                                                         <th>Document Type</th>
                                                         <th>File Name</th>
                                                         <th>Uploaded</th>
-                                                        <th>Status</th>
                                                         <th>Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @foreach($assignment->documents as $document)
+                                                    @foreach(Auth::user()->documents as $document)
                                                     <tr>
                                                         <td>{{ $document->document_type_label }}</td>
                                                         <td>{{ $document->file_name }}</td>
                                                         <td>{{ $document->created_at->format('M d, Y H:i') }}</td>
                                                         <td>
-                                                            <span class="badge bg-{{ $document->verification_status_badge_class }}">
-                                                                {{ ucfirst($document->verification_status) }}
-                                                            </span>
-                                                        </td>
-                                                        <td>
                                                             <div class="btn-group btn-group-sm" role="group">
                                                                 @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-eye"></i>
                                                                     </button>
                                                                 @elseif($document->mime_type === 'application/pdf')
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-file-pdf"></i>
                                                                     </button>
                                                                 @else
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ asset('storage/' . $document->file_path) }}', '{{ $document->file_name }}')">
+                                                                    <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
                                                                         <i class="fas fa-eye"></i>
                                                                     </button>
                                                                 @endif

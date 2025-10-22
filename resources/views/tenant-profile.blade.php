@@ -58,24 +58,11 @@
                             <div style="margin-bottom: 20px;">
                                 <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Password</label>
                                 <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                    <span id="passwordDisplay" style="color: #1f2937; flex: 1;">••••••••••</span>
-                                    <button onclick="togglePasswordVisibility()" id="passwordToggle" style="background: #10b981; border: none; color: white; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: all 0.2s;">
-                                        <i class="fas fa-eye"></i>
+                                    <span style="color: #1f2937; flex: 1;">••••••••••</span>
+                                    <button onclick="showChangePasswordModal()" style="background: #10b981; border: none; color: white; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: all 0.2s;">
+                                        <i class="fas fa-edit"></i> Change Password
                                     </button>
-                                    @if($assignment && $assignment->documents_verified)
-                                    <button onclick="showChangePasswordModal()" style="background: #059669; border: none; color: white; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: all 0.2s;">
-                                        <i class="fas fa-edit"></i> Change
-                                    </button>
-                                    @endif
                                 </div>
-                                @if(!$assignment || !$assignment->documents_verified)
-                                <div style="margin-top: 8px; padding: 8px 12px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-info-circle" style="color: #d97706;"></i>
-                                        <span style="color: #92400e; font-size: 14px; font-weight: 500;">Password change will be available after your documents are verified by the landlord.</span>
-                                    </div>
-                                </div>
-                                @endif
                             </div>
                         </div>
                         <div style="space-y: 16px;">
@@ -104,6 +91,76 @@
                         </div>
                         @endif
                     </div>
+                </div>
+
+                <!-- Personal Documents -->
+                <div style="background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); border-left: 4px solid #10b981;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h3 style="color: #1f2937; margin: 0; font-size: 20px; font-weight: 600;">
+                            <i class="fas fa-file-alt" style="color: #10b981; margin-right: 8px;"></i>
+                            Personal Documents
+                        </h3>
+                        <a href="{{ route('tenant.upload-documents') }}" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;">
+                            <i class="fas fa-plus" style="margin-right: 6px;"></i>Upload Documents
+                        </a>
+                    </div>
+                    
+                    @if($personalDocuments && $personalDocuments->count() > 0)
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        @foreach($personalDocuments as $doc)
+                        <div style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; color: #1f2937; font-size: 16px; margin-bottom: 4px;">
+                                        {{ $doc->document_type_label }}
+                                    </div>
+                                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">
+                                        {{ $doc->file_name }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <div style="font-size: 12px; color: #6b7280;">
+                                        <i class="fas fa-calendar" style="margin-right: 4px;"></i>
+                                        {{ $doc->uploaded_at->format('M d, Y') }}
+                                    </div>
+                                    <div style="font-size: 12px; color: #6b7280;">
+                                        {{ $doc->file_size_formatted }}
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
+                                        <button onclick="viewImage('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                                            <i class="fas fa-eye" style="margin-right: 4px;"></i>View
+                                        </button>
+                                    @elseif($doc->mime_type === 'application/pdf')
+                                        <button onclick="viewPDF('{{ route('tenant.download-document', $doc->id) }}?inline=true', '{{ $doc->file_name }}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                                            <i class="fas fa-file-pdf" style="margin-right: 4px;"></i>View
+                                        </button>
+                                    @else
+                                        <a href="{{ route('tenant.download-document', $doc->id) }}" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; text-align: center; text-decoration: none; display: block;">
+                                            <i class="fas fa-download" style="margin-right: 4px;"></i>Download
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('tenant.download-document', $doc->id) }}" style="flex: 1; background: #6b7280; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; text-align: center; text-decoration: none; display: block;">
+                                        <i class="fas fa-download" style="margin-right: 4px;"></i>Download
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @else
+                    <div style="text-align: center; padding: 40px; background: #f9fafb; border-radius: 12px; border: 2px dashed #e5e7eb;">
+                        <i class="fas fa-file-upload" style="font-size: 48px; color: #d1d5db; margin-bottom: 16px;"></i>
+                        <h4 style="color: #6b7280; margin-bottom: 8px; font-weight: 600;">No Documents Uploaded</h4>
+                        <p style="color: #9ca3af; margin-bottom: 20px;">Upload your personal documents to apply for properties.</p>
+                        <a href="{{ route('tenant.upload-documents') }}" style="background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block;">
+                            <i class="fas fa-plus" style="margin-right: 6px;"></i>Upload Documents Now
+                        </a>
+                    </div>
+                    @endif
                 </div>
 
                 @if($rfidCards && $rfidCards->count() > 0)
@@ -179,21 +236,39 @@
             <form id="changePasswordForm">
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Current Password</label>
-                    <input type="password" id="currentPassword" name="current_password" required
-                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                    <div style="position: relative;">
+                        <input type="password" id="currentPassword" name="current_password" required
+                               style="width: 100%; padding: 12px 45px 12px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                        <button type="button" onclick="togglePasswordVisibility('currentPassword', 'currentPasswordEye')" 
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; font-size: 16px;">
+                            <i id="currentPasswordEye" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">New Password</label>
-                    <input type="password" id="newPassword" name="new_password" required minlength="8"
-                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                    <div style="position: relative;">
+                        <input type="password" id="newPassword" name="new_password" required minlength="8"
+                               style="width: 100%; padding: 12px 45px 12px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                        <button type="button" onclick="togglePasswordVisibility('newPassword', 'newPasswordEye')" 
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; font-size: 16px;">
+                            <i id="newPasswordEye" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     <div style="margin-top: 4px; font-size: 12px; color: #6b7280;">Minimum 8 characters required</div>
                 </div>
                 
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px;">Confirm New Password</label>
-                    <input type="password" id="confirmPassword" name="new_password_confirmation" required minlength="8"
-                           style="width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                    <div style="position: relative;">
+                        <input type="password" id="confirmPassword" name="new_password_confirmation" required minlength="8"
+                               style="width: 100%; padding: 12px 45px 12px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f9fafb;">
+                        <button type="button" onclick="togglePasswordVisibility('confirmPassword', 'confirmPasswordEye')" 
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; font-size: 16px;">
+                            <i id="confirmPasswordEye" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="passwordError" style="display: none; margin-bottom: 16px; padding: 12px; background: #fee2e2; border-radius: 8px; border-left: 4px solid #ef4444;">
@@ -215,6 +290,36 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="imageViewerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 1100; padding: 20px;">
+        <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <button onclick="closeImageViewer()" style="position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.2); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; z-index: 1101; transition: all 0.2s;">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 id="imageViewerTitle" style="color: white; margin: 0; font-size: 20px; font-weight: 600;"></h3>
+            </div>
+            <div style="max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;">
+                <img id="imageViewerImage" src="" alt="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);">
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Viewer Modal -->
+    <div id="pdfViewerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 1100; padding: 20px;">
+        <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="pdfViewerTitle" style="color: white; margin: 0; font-size: 20px; font-weight: 600;"></h3>
+                <button onclick="closePDFViewer()" style="background: rgba(255, 255, 255, 0.2); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; transition: all 0.2s;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="flex: 1; background: white; border-radius: 8px; overflow: hidden;">
+                <iframe id="pdfViewerFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
         </div>
     </div>
 
@@ -257,40 +362,18 @@
             alert('Profile photo upload functionality will be implemented in a future update.');
         }
 
-        function togglePasswordVisibility() {
-            const passwordDisplay = document.getElementById('passwordDisplay');
-            const passwordToggle = document.getElementById('passwordToggle');
+        function togglePasswordVisibility(inputId, eyeIconId) {
+            const input = document.getElementById(inputId);
+            const eyeIcon = document.getElementById(eyeIconId);
             
-            if (passwordDisplay.textContent === '••••••••••••') {
-                // Show actual password
-                passwordDisplay.textContent = 'Loading...';
-                passwordToggle.classList.remove('fa-eye');
-                passwordToggle.classList.add('fa-eye-slash');
-                
-                // Fetch the actual password
-                fetch('{{ route("tenant.get-password") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.password) {
-                        passwordDisplay.textContent = data.password;
-                    } else {
-                        passwordDisplay.textContent = 'Unable to retrieve password';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    passwordDisplay.textContent = 'Error loading password';
-                });
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
             } else {
-                passwordDisplay.textContent = '••••••••••••';
-                passwordToggle.classList.remove('fa-eye-slash');
-                passwordToggle.classList.add('fa-eye');
+                input.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
             }
         }
 
@@ -385,6 +468,92 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save" style="margin-right: 4px;"></i>Update Password';
             });
+        });
+
+        // Image viewer functions
+        function viewImage(imagePath, fileName) {
+            console.log('Loading image:', imagePath); // Debug log
+            const modal = document.getElementById('imageViewerModal');
+            const image = document.getElementById('imageViewerImage');
+            const title = document.getElementById('imageViewerTitle');
+            
+            // Reset image first
+            image.src = '';
+            image.alt = fileName;
+            title.textContent = fileName;
+            
+            // Set new image source
+            image.src = imagePath;
+            
+            // Add error handler
+            image.onerror = function() {
+                console.error('Failed to load image:', imagePath);
+                title.textContent = 'Error loading image: ' + fileName;
+                image.alt = 'Failed to load image';
+            };
+            
+            // Add load handler
+            image.onload = function() {
+                console.log('Image loaded successfully');
+            };
+            
+            modal.style.display = 'block';
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageViewer() {
+            const modal = document.getElementById('imageViewerModal');
+            modal.style.display = 'none';
+            
+            // Re-enable body scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // PDF viewer functions
+        function viewPDF(pdfPath, fileName) {
+            const modal = document.getElementById('pdfViewerModal');
+            const iframe = document.getElementById('pdfViewerFrame');
+            const title = document.getElementById('pdfViewerTitle');
+            
+            iframe.src = pdfPath;
+            title.textContent = fileName;
+            modal.style.display = 'block';
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePDFViewer() {
+            const modal = document.getElementById('pdfViewerModal');
+            const iframe = document.getElementById('pdfViewerFrame');
+            modal.style.display = 'none';
+            iframe.src = ''; // Clear iframe to stop loading
+            
+            // Re-enable body scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageViewer();
+                closePDFViewer();
+            }
+        });
+
+        // Close modals on background click
+        document.getElementById('imageViewerModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeImageViewer();
+            }
+        });
+
+        document.getElementById('pdfViewerModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closePDFViewer();
+            }
         });
     </script>
 @endsection

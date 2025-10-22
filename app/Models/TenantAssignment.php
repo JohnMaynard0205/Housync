@@ -17,9 +17,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property float $security_deposit
  * @property string $status
  * @property string|null $notes
- * @property bool $documents_uploaded
- * @property bool $documents_verified
- * @property string|null $verification_notes
  * @property string|null $generated_password
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
@@ -41,9 +38,6 @@ class TenantAssignment extends Model
         'notes',
         'occupation',
         'monthly_income',
-        'documents_uploaded',
-        'documents_verified',
-        'verification_notes',
         'generated_password',
     ];
 
@@ -54,8 +48,6 @@ class TenantAssignment extends Model
         'rent_amount' => 'decimal:2',
         'security_deposit' => 'decimal:2',
         'monthly_income' => 'decimal:2',
-        'documents_uploaded' => 'boolean',
-        'documents_verified' => 'boolean',
     ];
 
     // Relationships
@@ -74,10 +66,7 @@ class TenantAssignment extends Model
         return $this->belongsTo(User::class, 'landlord_id');
     }
 
-    public function documents()
-    {
-        return $this->hasMany(TenantDocument::class);
-    }
+    // Documents are now at tenant level, access via: $assignment->tenant->documents
 
     public function rfidCards()
     {
@@ -115,21 +104,6 @@ class TenantAssignment extends Model
         return $query->where('status', 'active');
     }
 
-    public function scopePendingDocuments($query)
-    {
-        return $query->where('documents_uploaded', false);
-    }
-
-    public function scopeDocumentsUploaded($query)
-    {
-        return $query->where('documents_uploaded', true);
-    }
-
-    public function scopeDocumentsVerified($query)
-    {
-        return $query->where('documents_verified', true);
-    }
-
     // Helper methods
     public function isActive()
     {
@@ -156,38 +130,4 @@ class TenantAssignment extends Model
         };
     }
 
-    public function getDocumentsStatusAttribute()
-    {
-        // Check if there are any documents uploaded
-        $hasDocuments = $this->documents()->count() > 0;
-        
-        if (!$hasDocuments) {
-            return 'pending';
-        }
-        
-        // Check if all documents are verified
-        $pendingDocuments = $this->documents()->where('verification_status', 'pending')->count();
-        $verifiedDocuments = $this->documents()->where('verification_status', 'verified')->count();
-        $totalDocuments = $this->documents()->count();
-        
-        if ($pendingDocuments > 0) {
-            return 'uploaded'; // Some documents are pending verification
-        }
-        
-        if ($verifiedDocuments === $totalDocuments && $totalDocuments > 0) {
-            return 'verified'; // All documents are verified
-        }
-        
-        return 'uploaded'; // Default fallback
-    }
-
-    public function getDocumentsStatusBadgeClassAttribute()
-    {
-        return match($this->getDocumentsStatusAttribute()) {
-            'pending' => 'danger',
-            'uploaded' => 'warning',
-            'verified' => 'success',
-            default => 'secondary'
-        };
-    }
 } 

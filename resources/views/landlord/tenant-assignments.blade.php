@@ -73,24 +73,6 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="text-muted fw-normal mt-0" title="Pending Documents">Pending Documents</h5>
-                            <h3 class="mt-3 mb-3">{{ $stats['pending_documents'] }}</h3>
-                        </div>
-                        <div class="avatar-sm">
-                            <span class="avatar-title bg-soft-warning rounded">
-                                <i class="mdi mdi-file-document font-20 text-warning"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
                             <h5 class="text-muted fw-normal mt-0" title="Total Revenue">Total Revenue</h5>
                             <h3 class="mt-3 mb-3">₱{{ number_format($stats['total_revenue'], 2) }}</h3>
                         </div>
@@ -121,121 +103,14 @@
                             </select>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-3">
-                            <label for="documents_uploaded" class="form-label">Documents Uploaded</label>
-                            <select name="documents_uploaded" id="documents_uploaded" class="form-select">
-                                <option value="">All</option>
-                                <option value="1" {{ request('documents_uploaded') == '1' ? 'selected' : '' }}>Yes</option>
-                                <option value="0" {{ request('documents_uploaded') == '0' ? 'selected' : '' }}>No</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <label for="documents_verified" class="form-label">Documents Verified</label>
-                            <select name="documents_verified" id="documents_verified" class="form-select">
-                                <option value="">All</option>
-                                <option value="1" {{ request('documents_verified') == '1' ? 'selected' : '' }}>Yes</option>
-                                <option value="0" {{ request('documents_verified') == '0' ? 'selected' : '' }}>No</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-3">
                             <label class="form-label d-none d-lg-block">&nbsp;</label>
                             <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch">
                                 <button type="submit" class="btn btn-primary flex-grow-1 flex-sm-grow-0">Filter</button>
                                 <a href="{{ route('landlord.tenant-assignments') }}" class="btn btn-secondary flex-grow-1 flex-sm-grow-0">Clear</a>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <button class="btn btn-primary w-100 w-sm-auto" type="button" data-bs-toggle="modal" data-bs-target="#assignTenantModal">
-                                <i class="mdi mdi-account-plus me-1"></i> Assign Tenant
-                            </button>
-                        </div>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assign Tenant Modal -->
-    <div class="modal fade" id="assignTenantModal" tabindex="-1" aria-labelledby="assignTenantModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignTenantModalLabel">Assign Tenant to Unit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="#" id="assignTenantForm">
-                    @csrf
-                    <div class="modal-body">
-                        <!-- Display validation errors -->
-                        @if ($errors->any())
-                            <div class="alert alert-danger">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="unit_id" class="form-label">Select Unit <span class="text-danger">*</span></label>
-                                <select class="form-select" id="unit_id" name="unit_id" required>
-                                    <option value="">-- Select an Available Unit --</option>
-                                    @foreach(\App\Models\Unit::available()->whereHas('apartment', function($q){ $q->where('landlord_id', auth()->id()); })->get() as $unit)
-                                        <option value="{{ $unit->id }}">
-                                            {{ $unit->unit_number }} ({{ $unit->apartment->name ?? 'N/A' }}) - ₱{{ number_format($unit->rent_amount, 2) }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="name" class="form-label">Tenant Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="name" name="name" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="phone" class="form-label">Phone Number</label>
-                                <input type="text" class="form-control" id="phone" name="phone">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="address" class="form-label">Address</label>
-                                <input type="text" class="form-control" id="address" name="address">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="lease_start_date" class="form-label">Lease Start Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="lease_start_date" name="lease_start_date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="lease_end_date" class="form-label">Lease End Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="lease_end_date" name="lease_end_date" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="rent_amount" class="form-label">Monthly Rent <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control" id="rent_amount" name="rent_amount" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="security_deposit" class="form-label">Security Deposit</label>
-                                <input type="number" step="0.01" class="form-control" id="security_deposit" name="security_deposit">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Additional Notes</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
-                        </div>
-                        
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="assignTenantSubmit" disabled>
-                            <i class="mdi mdi-account-plus me-1"></i> Assign Tenant
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -302,13 +177,13 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @if($assignment->documents_uploaded)
-                                            <button class="btn btn-sm btn-info" onclick="viewApplicationDocuments({{ $assignment->id }})">
-                                                <i class="mdi mdi-file-document"></i> {{ $assignment->documents->count() }} Docs
-                                            </button>
+                                        @if($assignment->tenant && $assignment->tenant->documents && $assignment->tenant->documents->count() > 0)
+                                            <span class="badge bg-info">
+                                                <i class="mdi mdi-file-document"></i> {{ $assignment->tenant->documents->count() }} Doc{{ $assignment->tenant->documents->count() > 1 ? 's' : '' }}
+                                            </span>
                                         @else
-                                            <span class="badge bg-{{ $assignment->documents_status_badge_class ?? 'secondary' }}">
-                                                {{ $assignment->documents_status ?? 'No Documents' }}
+                                            <span class="badge bg-secondary">
+                                                No Documents
                                             </span>
                                         @endif
                                     </td>
@@ -332,9 +207,6 @@
                                                     <li><a class="dropdown-item" href="{{ route('landlord.assignment-details', $assignment->id) }}">
                                                         <i class="mdi mdi-eye me-1"></i> View Details
                                                     </a></li>
-                                                    <li><a class="dropdown-item" href="#" onclick="viewCredentials({{ $assignment->id }}, '{{ $assignment->tenant->email }}')" title="View Login Credentials">
-                                                        <i class="mdi mdi-key me-1"></i> View Credentials
-                                                    </a></li>
                                                     @if($assignment->status === 'pending')
                                                     <li><a class="dropdown-item" href="#" onclick="updateStatus({{ $assignment->id }}, 'active')" title="Activate Assignment">
                                                         <i class="mdi mdi-check me-1"></i> Activate
@@ -346,9 +218,7 @@
                                                     </a></li>
                                                     @endif
                                                     @if($assignment->status === 'terminated')
-                                                    <li><button type="button" class="dropdown-item" onclick="window.reassignExistingTenant({{ $assignment->id }}, '{{ addslashes($assignment->tenant->name) }}', '{{ addslashes($assignment->tenant->phone ?? '') }}');" title="Assign Tenant Again">
-                                                        <i class="mdi mdi-account-plus me-1"></i> Assign
-                                                    </button></li>
+                                                    {{-- Reassignment removed - tenants can only apply through the application system --}}
                                                     @endif
                                                 @endif
                                                 <li><hr class="dropdown-divider"></li>
@@ -545,102 +415,6 @@ window.testAssignButton = function(assignmentId) {
 };
 
 // Simple function to open assign modal for existing tenant reassignment
-window.reassignExistingTenant = function(assignmentId, tenantName, tenantPhone) {
-    console.log('Reassigning existing tenant:', { assignmentId, tenantName, tenantPhone });
-    
-    // Set global flag to indicate this is a reassignment
-    window.isReassigning = true;
-    
-    // Get form elements
-    const form = document.getElementById('assignTenantForm');
-    const nameInput = document.getElementById('name');
-    const phoneInput = document.getElementById('phone');
-    const unitSelect = document.getElementById('unit_id');
-    const submitButton = document.getElementById('assignTenantSubmit');
-    const modalTitle = document.getElementById('assignTenantModalLabel');
-    
-    if (!form || !nameInput || !phoneInput) {
-        alert('Error: Form elements not found. Please refresh the page.');
-        return;
-    }
-    
-    // Set form action to reassign endpoint
-    form.action = `/landlord/tenant-assignments/${assignmentId}/reassign`;
-    
-    // Reset form first
-    form.reset();
-    
-    // Pre-fill and lock tenant name
-    nameInput.value = tenantName || '';
-    nameInput.readOnly = true;
-    nameInput.style.backgroundColor = '#f8f9fa';
-    nameInput.placeholder = 'Existing tenant (locked)';
-    
-    // Pre-fill and lock tenant phone
-    phoneInput.value = tenantPhone || '';
-    phoneInput.readOnly = true;
-    phoneInput.style.backgroundColor = '#f8f9fa';
-    phoneInput.placeholder = tenantPhone ? 'Existing phone (locked)' : 'No phone on file (locked)';
-    
-    // Reset unit selection
-    if (unitSelect) {
-        unitSelect.value = '';
-    }
-    
-    // Update modal title
-    if (modalTitle) {
-        modalTitle.textContent = 'Reassign Existing Tenant to New Unit';
-    }
-    
-    // Update submit button
-    if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<i class="mdi mdi-account-plus me-1"></i> Reassign Tenant';
-    }
-    
-    // Open the modal
-    const modal = new bootstrap.Modal(document.getElementById('assignTenantModal'));
-    modal.show();
-};
-
-// Check if there are validation errors and reopen modal if needed
-document.addEventListener('DOMContentLoaded', function() {
-    @if ($errors->any())
-        // Reopen the modal if there are validation errors
-        const modal = new bootstrap.Modal(document.getElementById('assignTenantModal'));
-        modal.show();
-        
-        // Restore form values from old input
-        @if (old('unit_id'))
-            document.getElementById('unit_id').value = '{{ old('unit_id') }}';
-            document.getElementById('unit_id').dispatchEvent(new Event('change'));
-        @endif
-        @if (old('name'))
-            document.getElementById('name').value = '{{ old('name') }}';
-        @endif
-        @if (old('phone'))
-            document.getElementById('phone').value = '{{ old('phone') }}';
-        @endif
-        @if (old('address'))
-            document.getElementById('address').value = '{{ old('address') }}';
-        @endif
-        @if (old('lease_start_date'))
-            document.getElementById('lease_start_date').value = '{{ old('lease_start_date') }}';
-        @endif
-        @if (old('lease_end_date'))
-            document.getElementById('lease_end_date').value = '{{ old('lease_end_date') }}';
-        @endif
-        @if (old('rent_amount'))
-            document.getElementById('rent_amount').value = '{{ old('rent_amount') }}';
-        @endif
-        @if (old('security_deposit'))
-            document.getElementById('security_deposit').value = '{{ old('security_deposit') }}';
-        @endif
-        @if (old('notes'))
-            document.getElementById('notes').value = '{{ old('notes') }}';
-        @endif
-    @endif
-});
 function updateStatus(assignmentId, status) {
     if (confirm('Are you sure you want to update this assignment status?')) {
         const form = document.getElementById('statusForm');
@@ -651,114 +425,6 @@ function updateStatus(assignmentId, status) {
         form.submit();
     }
 }
-
-// Simple reassign function - make sure it's in global scope
-window.reassignTenant = function(assignmentId, tenantName, tenantPhone) {
-    alert('reassignTenant function called successfully!'); // Debug alert
-    console.log('reassignTenant called with:', { assignmentId, tenantName, tenantPhone }); // Debug log
-    
-    // Wait for DOM to be ready if needed
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            window.reassignTenant(assignmentId, tenantName, tenantPhone);
-        });
-        return;
-    }
-    
-    // Open assign modal pre-filled for re-assigning an existing vacated tenant
-    const form = document.getElementById('assignTenantForm');
-    const nameInput = document.getElementById('name');
-    const phoneInput = document.getElementById('phone');
-    const unitSelect = document.getElementById('unit_id');
-    const assignTenantSubmit = document.getElementById('assignTenantSubmit');
-    
-    console.log('Form elements found:', { 
-        form: !!form, 
-        nameInput: !!nameInput, 
-        phoneInput: !!phoneInput, 
-        unitSelect: !!unitSelect, 
-        assignTenantSubmit: !!assignTenantSubmit 
-    }); // Debug log
-    
-    // Check if all required elements are present
-    if (!form || !nameInput || !phoneInput || !unitSelect || !assignTenantSubmit) {
-        console.error('Missing required form elements');
-        console.log('Available form elements on page:', {
-            allForms: document.querySelectorAll('form').length,
-            allInputs: document.querySelectorAll('input').length,
-            allSelects: document.querySelectorAll('select').length,
-            allButtons: document.querySelectorAll('button').length
-        });
-        alert('Error: Some form elements are missing. Please refresh the page and try again.');
-        return;
-    }
-    
-    // Set reassigning mode first
-    window.isReassigning = true;
-    
-    // Post to a reassign endpoint using the assignment id
-    form.action = `/landlord/tenant-assignments/${assignmentId}/reassign`;
-    console.log('Reassign form action set to:', form.action); // Debug log
-    
-    // Clear previous values
-    form.reset();
-    
-    // Populate and lock tenant fields for existing tenant
-    if (tenantName) {
-        nameInput.value = tenantName;
-        nameInput.readOnly = true;
-        nameInput.classList.add('bg-light');
-        nameInput.setAttribute('placeholder', 'Tenant name (locked for reassignment)');
-    }
-    if (tenantPhone) {
-        phoneInput.value = tenantPhone;
-        phoneInput.readOnly = true;
-        phoneInput.classList.add('bg-light');
-        phoneInput.setAttribute('placeholder', 'Phone number (locked for reassignment)');
-    } else {
-        // still lock the field to avoid editing; leave empty if unknown
-        phoneInput.readOnly = true;
-        phoneInput.classList.add('bg-light');
-        phoneInput.setAttribute('placeholder', 'Phone number not available (locked)');
-    }
-    
-    // Reset unit selection and enable submit button once unit is selected
-    unitSelect.value = '';
-    assignTenantSubmit.disabled = true;
-    assignTenantSubmit.innerHTML = '<i class="mdi mdi-account-plus me-1"></i> Reassign Tenant';
-    
-    // Update modal title for reassignment
-    const modalTitle = document.getElementById('assignTenantModalLabel');
-    if (modalTitle) {
-        modalTitle.textContent = 'Reassign Tenant to New Unit';
-    }
-    
-    // Show modal
-    try {
-        const modalElement = document.getElementById('assignTenantModal');
-        console.log('Modal element found:', !!modalElement); // Debug log
-        
-        if (!modalElement) {
-            console.error('Modal element not found!');
-            alert('Error: Modal not found. Please refresh the page and try again.');
-            return;
-        }
-        
-        // Check if Bootstrap is available
-        if (typeof bootstrap === 'undefined') {
-            console.error('Bootstrap is not loaded!');
-            alert('Error: Bootstrap is not loaded. Please refresh the page and try again.');
-            return;
-        }
-        
-        const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-        console.log('Modal should be showing now'); // Debug log
-    } catch (error) {
-        console.error('Error showing modal:', error);
-        alert('Error opening modal: ' + error.message);
-}
-};
 
 function viewCredentials(assignmentId, email) {
     // Fetch credentials from the server
@@ -916,146 +582,6 @@ function deleteTenantAssignment(assignmentId, tenantName) {
         deleteForm.submit();
     }
 }
-
-// Set up modal form to update action URL with selected unit
-const assignTenantForm = document.getElementById('assignTenantForm');
-const unitSelect = document.getElementById('unit_id');
-const assignTenantSubmit = document.getElementById('assignTenantSubmit');
-
-if (assignTenantForm && unitSelect && assignTenantSubmit) {
-    unitSelect.addEventListener('change', function() {
-        console.log('Unit selected:', this.value, 'isReassigning:', window.isReassigning); // Debug log
-        if (this.value) {
-            if (!window.isReassigning) {
-                const fullAction = `/landlord/units/${this.value}/assign-tenant`;
-                assignTenantForm.action = fullAction; // still posts to POST assign route
-                console.log('Form action set to:', fullAction); // Debug log
-            } else {
-                console.log('Reassigning mode - keeping existing form action:', assignTenantForm.action); // Debug log
-            }
-            
-            // Auto-populate rent amount from selected unit
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.textContent) {
-                // Extract rent amount from option text (format: "Unit Number (Apartment Name) - ₱XX,XXX.XX")
-                const rentMatch = selectedOption.textContent.match(/₱([\d,]+\.?\d*)/);
-                if (rentMatch) {
-                    const rentAmount = rentMatch[1].replace(/,/g, '');
-                    document.getElementById('rent_amount').value = rentAmount;
-                }
-            }
-            
-            assignTenantSubmit.disabled = false;
-            
-            // Update button text based on mode
-            if (window.isReassigning) {
-                assignTenantSubmit.innerHTML = '<i class="mdi mdi-account-plus me-1"></i> Reassign Tenant';
-        } else {
-                assignTenantSubmit.innerHTML = '<i class="mdi mdi-account-plus me-1"></i> Assign Tenant';
-            }
-        } else {
-            if (!window.isReassigning) {
-            assignTenantForm.action = '#';
-            }
-            assignTenantSubmit.disabled = true;
-            // Clear rent amount when no unit selected
-            document.getElementById('rent_amount').value = '';
-        }
-    });
-    
-    // Prevent form submission if no unit is selected or action is not set
-    assignTenantForm.addEventListener('submit', function(e) {
-        console.log('Form submitting with action:', this.action); // Debug log
-        console.log('Unit selected:', unitSelect.value); // Debug log
-        
-        if (!unitSelect.value) {
-            e.preventDefault();
-            alert('Please select a unit to assign.');
-            return false;
-        }
-        
-        if (this.action === '#' || this.action.endsWith('#')) {
-            e.preventDefault();
-            alert('Form action not properly set. Please select a unit again.');
-            return false;
-        }
-        
-        // Show loading state
-        assignTenantSubmit.disabled = true;
-        if (window.isReassigning) {
-            assignTenantSubmit.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Reassigning...';
-        } else {
-            assignTenantSubmit.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Assigning...';
-        }
-    });
-}
-// Reset modal state when closed for fresh new assignment flow
-const assignModalEl = document.getElementById('assignTenantModal');
-if (assignModalEl) {
-    assignModalEl.addEventListener('hidden.bs.modal', function () {
-        console.log('Modal closing, resetting state'); // Debug log
-        
-        // Reset reassigning flag
-        window.isReassigning = false;
-        
-        const nameInput = document.getElementById('name');
-        const phoneInput = document.getElementById('phone');
-        
-        // Reset name input
-        if (nameInput) {
-            nameInput.readOnly = false;
-            nameInput.classList.remove('bg-light');
-            nameInput.value = '';
-            nameInput.removeAttribute('placeholder');
-        }
-        
-        // Reset phone input
-        if (phoneInput) {
-            phoneInput.readOnly = false;
-            phoneInput.classList.remove('bg-light');
-            phoneInput.value = '';
-            phoneInput.removeAttribute('placeholder');
-        }
-        
-        // Reset form action and disable submit until unit selected in new-assignment mode
-        if (assignTenantForm) {
-        assignTenantForm.action = '#';
-            assignTenantForm.reset(); // Reset all form fields
-        }
-        
-        if (assignTenantSubmit) {
-        assignTenantSubmit.disabled = true;
-            assignTenantSubmit.innerHTML = '<i class="mdi mdi-account-plus me-1"></i> Assign Tenant'; // Reset button text
-        }
-        
-        if (unitSelect) {
-        unitSelect.value = '';
-        }
-        
-        // Reset modal title
-        const modalTitle = document.getElementById('assignTenantModalLabel');
-        if (modalTitle) {
-            modalTitle.textContent = 'Assign Tenant to Unit';
-        }
-        
-        // Remove any error messages
-        const errorAlert = document.querySelector('#assignTenantModal .alert-danger');
-        if (errorAlert) {
-            errorAlert.remove();
-        }
-    });
-}
-// Set minimum date for lease start date to today
-const today = new Date().toISOString().split('T')[0];
-document.getElementById('lease_start_date').min = today;
-document.getElementById('lease_start_date').addEventListener('change', function() {
-    const startDate = this.value;
-    const endDateInput = document.getElementById('lease_end_date');
-    endDateInput.min = startDate;
-    if (endDateInput.value && endDateInput.value < startDate) {
-        endDateInput.value = '';
-    }
-});
 
 // New functions for the new credentials modal
 function copyAllNewCredentials() {

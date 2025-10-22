@@ -238,6 +238,11 @@ class User extends Authenticatable
         return $this->hasMany(TenantAssignment::class, 'tenant_id');
     }
 
+    public function documents()
+    {
+        return $this->hasMany(TenantDocument::class, 'tenant_id');
+    }
+
     public function landlordAssignments()
     {
         return $this->hasMany(TenantAssignment::class, 'landlord_id');
