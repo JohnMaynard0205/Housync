@@ -311,9 +311,20 @@
                 <p class="section-subtitle">Fill in the details for your new property</p>
             </div>
         </div>
-
+        
+        <!-- Test: Form should be visible -->
+        <div style="background: #ff6b6b; color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; text-align: center; font-weight: bold;">
+            🚨 FORM TEST: If you can see this, the form section is working!
+        </div>
+        
         <form method="POST" action="{{ route('landlord.store-apartment') }}" class="form-container" enctype="multipart/form-data">
             @csrf
+            
+            <!-- Test Form Field -->
+            <div style="background: #4ecdc4; color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">TEST FIELD (Should be visible):</label>
+                <input type="text" name="test_field" placeholder="If you can see this input, the form is working!" style="width: 100%; padding: 0.75rem; border: 2px solid #fff; border-radius: 0.25rem; background: white; color: #333;">
+            </div>
             
             <!-- Basic Information -->
             <div class="form-section">
