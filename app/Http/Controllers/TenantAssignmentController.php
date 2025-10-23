@@ -305,7 +305,7 @@ class TenantAssignmentController extends Controller
         $tenant = Auth::user();
         
         // Get the active assignment if one exists (optional now)
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
+        $assignment = $tenant->tenantAssignments()->with(['unit.apartment'])->first();
         
         // Get tenant's personal documents (uploaded before assignment)
         $personalDocuments = $tenant->documents()->orderBy('created_at', 'desc')->get();
@@ -319,22 +319,36 @@ class TenantAssignmentController extends Controller
     public function storeDocuments(Request $request)
     {
         // Log the incoming request for debugging
-        Log::info('Document upload request received', [
+        Log::info('=== DOCUMENT UPLOAD START ===', [
             'has_documents' => $request->hasFile('documents'),
             'documents_count' => $request->hasFile('documents') ? count($request->file('documents')) : 0,
             'document_types' => $request->input('document_types', []),
             'user_id' => Auth::id(),
+            'request_size' => $request->header('Content-Length'),
+            'user_agent' => $request->header('User-Agent'),
         ]);
     
         // Enhanced validation rules
-        $request->validate([
-            'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
-        ], [
-            'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
-            'documents.*.max' => 'Each file must not exceed 5MB',
-            'document_types.*.in' => 'Invalid document type selected',
-        ]);
+        try {
+            $request->validate([
+                'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'document_types.*' => 'required|string|in:government_id,proof_of_income,employment_contract,bank_statement,character_reference,rental_history,other',
+            ], [
+                'documents.*.required' => 'Please select at least one document to upload',
+                'documents.*.file' => 'The uploaded file is not valid',
+                'documents.*.mimes' => 'Only PDF, JPG, JPEG, and PNG files are allowed',
+                'documents.*.max' => 'Each file must not exceed 5MB',
+                'document_types.*.required' => 'Please select a document type for each file',
+                'document_types.*.in' => 'Invalid document type selected',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Document upload validation failed', [
+                'tenant_id' => Auth::id(),
+                'errors' => $e->errors(),
+                'input' => $request->all(),
+            ]);
+            throw $e;
+        }
     
         $tenant = Auth::user();
         
@@ -374,6 +388,19 @@ class TenantAssignmentController extends Controller
                         $path = 'tenant-documents/' . $fileName;
                         // Upload to Supabase
                         $uploadResult = $supabaseInstance->uploadFile('house-sync', $path, $file->getRealPath());
+                        
+                        // Enhanced error handling for Supabase uploads
+                        if (!$uploadResult['success']) {
+                            Log::error('Supabase upload failed', [
+                                'tenant_id' => $tenant->id,
+                                'file_name' => $fileName,
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $file->getMimeType(),
+                                'supabase_error' => $uploadResult['error'] ?? 'Unknown Supabase error',
+                                'supabase_response' => $uploadResult['response'] ?? null,
+                                'status_code' => $uploadResult['status_code'] ?? null
+                            ]);
+                        }
                     } else {
                         // Upload to local disk: storage/app/public/tenant-documents
                         $storagePath = 'tenant-documents';
@@ -402,7 +429,6 @@ class TenantAssignmentController extends Controller
                     if ($uploadResult['success']) {
                         $document = TenantDocument::create([
                             'tenant_id' => $tenant->id,
-                            'tenant_assignment_id' => null, // No assignment yet - these are profile documents
                             'document_type' => $documentType,
                             'file_name' => $file->getClientOriginalName(),
                             'file_path' => $uploadResult['url'], // Now holds either Supabase URL or local storage path
@@ -436,38 +462,134 @@ class TenantAssignmentController extends Controller
     
             return back()->with('success', 'Documents uploaded successfully! They will be available when you apply for properties.');
     
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors specifically
+            $errorCode = 'DOC_VALIDATION_' . strtoupper(substr(md5($e->getMessage() . time()), 0, 8));
+            
+            Log::error('Document upload validation failed', [
+                'error_code' => $errorCode,
+                'tenant_id' => $tenant->id,
+                'validation_errors' => $e->errors(),
+            ]);
+            
+            return back()->withErrors($e->errors())->with('error', "Validation failed. Please check the form and try again. Error Code: {$errorCode}");
+            
         } catch (\Exception $e) {
-            // Detailed error logging
+            // Generate error code for tracking
+            $errorCode = 'DOC_UPLOAD_' . strtoupper(substr(md5($e->getMessage() . time()), 0, 8));
+            
+            // Enhanced error logging with more details
+            $files = $request->file('documents', []);
+            $fileDetails = [];
+            foreach ($files as $index => $file) {
+                $fileDetails[] = [
+                    'index' => $index,
+                    'original_name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'extension' => $file->getClientOriginalExtension(),
+                ];
+            }
+            
             Log::error('Personal document upload failed', [
+                'error_code' => $errorCode,
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),
-                'files_count' => count($request->file('documents', [])),
+                'error_trace' => $e->getTraceAsString(),
+                'files_count' => count($files),
+                'file_details' => $fileDetails,
+                'document_types' => $request->input('document_types', []),
+                'supabase_config' => [
+                    'url' => config('services.supabase.url'),
+                    'has_key' => !empty(config('services.supabase.key')),
+                    'has_service_key' => !empty(config('services.supabase.service_key')),
+                ],
                 'timestamp' => now()
             ]);
     
-            return back()->with('error', 'Failed to upload documents. Please try again.');
+            // Determine user-friendly error message based on error type
+            $userMessage = $this->getUserFriendlyErrorMessage($e, $errorCode);
+    
+            return back()->with('error', $userMessage);
         }
     }
+
+    /**
+     * Generate user-friendly error messages based on exception type
+     */
+    private function getUserFriendlyErrorMessage(\Exception $e, string $errorCode)
+    {
+        $baseMessage = "Failed to upload documents. Error Code: {$errorCode}";
+        
+        // Check for specific error patterns
+        if (str_contains($e->getMessage(), 'No files uploaded')) {
+            return "Please select at least one document to upload. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'Number of files must match')) {
+            return "Please ensure each file has a corresponding document type selected. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'Failed to upload document')) {
+            $uploadError = $e->getMessage();
+            if (str_contains($uploadError, 'Supabase')) {
+                return "Upload service temporarily unavailable. Please try again in a few minutes. {$baseMessage}";
+            }
+            if (str_contains($uploadError, 'storage')) {
+                return "File storage error. Please check your file size and format. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '401') || str_contains($uploadError, 'Unauthorized')) {
+                return "Authentication error with upload service. Please refresh the page and try again. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '413') || str_contains($uploadError, 'too large')) {
+                return "File too large. Please ensure each file is under 5MB. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '415') || str_contains($uploadError, 'Unsupported Media Type')) {
+                return "File format not supported. Please use PDF, JPG, or PNG files only. {$baseMessage}";
+            }
+            if (str_contains($uploadError, '500') || str_contains($uploadError, 'Internal Server Error')) {
+                return "Server error occurred. Please try again in a few minutes. {$baseMessage}";
+            }
+            return "File upload failed. Please check your file size (max 5MB) and format (PDF, JPG, PNG). {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'validation')) {
+            return "File validation failed. Please ensure files are PDF, JPG, or PNG format and under 5MB. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'database')) {
+            return "Database error occurred. Please try again. If the problem persists, contact support. {$baseMessage}";
+        }
+        
+        if (str_contains($e->getMessage(), 'permission')) {
+            return "Permission denied. Please ensure you have the right to upload documents. {$baseMessage}";
+        }
+        
+        // Default message for unknown errors
+        return "An unexpected error occurred during upload. Please try again. If the problem persists, contact support with error code: {$errorCode}";
+    }
+
     public function downloadDocument($documentId)
     {
-        $document = TenantDocument::with(['tenantAssignment', 'tenant'])->findOrFail($documentId);
+        $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
         
         // Check if user has access to this document
         $user = Auth::user();
         $hasAccess = false;
         
         if ($user->isLandlord()) {
-            // Landlord can view if document belongs to their tenant assignment
-            if ($document->tenantAssignment && $document->tenantAssignment->landlord_id === $user->id) {
+            // Landlord can view if document belongs to their tenant
+            // We need to check through tenant assignments
+            $tenantAssignments = $user->landlordAssignments()->pluck('tenant_id');
+            if ($tenantAssignments->contains($document->tenant_id)) {
                 $hasAccess = true;
             }
         } elseif ($user->isTenant()) {
             // Tenant can view their own documents
-            if ($document->tenant_id === $user->id || 
-                ($document->tenantAssignment && $document->tenantAssignment->tenant_id === $user->id)) {
+            if ($document->tenant_id === $user->id) {
                 $hasAccess = true;
             }
         }
@@ -476,8 +598,20 @@ class TenantAssignmentController extends Controller
             abort(403, 'Unauthorized access to document');
         }
 
-        // Redirect to Supabase URL for viewing/downloading
-        return redirect($document->file_path);
+        // Check if it's a Supabase URL or local storage path
+        if (str_starts_with($document->file_path, 'http')) {
+            // It's a Supabase URL, redirect directly
+            return redirect($document->file_path);
+        } else {
+            // It's a local storage path, serve the file
+            $filePath = storage_path('app/public/' . $document->file_path);
+            
+            if (!file_exists($filePath)) {
+                abort(404, 'File not found');
+            }
+            
+            return response()->file($filePath);
+        }
     }
 
     /**
@@ -486,61 +620,33 @@ class TenantAssignmentController extends Controller
     public function deleteDocument($documentId)
     {
         try {
-            $document = TenantDocument::with(['tenantAssignment.tenant', 'tenant'])->findOrFail($documentId);
+            $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
             
             // Check if user is the tenant who uploaded this document
-            // Check both tenant_id (for profile documents) and assignment tenant_id
-            if ($document->tenant_id !== Auth::id() && 
-                (!$document->tenantAssignment || $document->tenantAssignment->tenant_id !== Auth::id())) {
+            if ($document->tenant_id !== Auth::id()) {
                 abort(403, 'Unauthorized access to document.');
             }
 
-            $assignment = $document->tenantAssignment;
+            $assignment = null; // Documents are now directly associated with tenants, not assignments
             $documentType = $document->document_type;
             $fileName = $document->file_name;
             $fileSize = $document->file_size;
 
             // Use database transaction for document deletion
-            DB::transaction(function() use ($document, $assignment) {
+            DB::transaction(function() use ($document) {
                 // Delete the document record
                 $document->delete();
-
-                // Update assignment status based on remaining documents (if assignment exists)
-                if ($assignment) {
-                    $remainingDocuments = $assignment->documents()->count();
-                    
-                    if ($remainingDocuments === 0) {
-                        // No documents left, mark as not uploaded
-                        $assignment->update([
-                            'documents_uploaded' => false,
-                            'documents_verified' => false,
-                        ]);
-                    } else {
-                        // Check if all remaining documents are verified
-                        $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
-                        $allVerified = $pendingDocuments === 0;
-                        
-                        $assignment->update([
-                            'documents_uploaded' => true,
-                            'documents_verified' => $allVerified,
-                        ]);
-                    }
-                }
             });
 
             // Audit log for document deletion
             Log::info('Document deleted successfully', [
                 'tenant_id' => Auth::id(),
-                'tenant_name' => $document->tenant->name ?? ($assignment ? $assignment->tenant->name : 'Unknown'),
+                'tenant_name' => $document->tenant->name ?? 'Unknown',
                 'document_id' => $documentId,
-                'assignment_id' => $assignment?->id,
-                'unit_id' => $assignment?->unit_id,
-                'landlord_id' => $assignment?->landlord_id,
                 'document_type' => $documentType,
                 'document_name' => $fileName,
                 'file_size' => $fileSize,
                 'verification_status' => $document->verification_status,
-                'remaining_documents' => $assignment ? $assignment->documents()->count() : 0,
                 'timestamp' => now()
             ]);
 
@@ -608,13 +714,9 @@ class TenantAssignmentController extends Controller
                 $documentsCount = $assignment->tenant->documents->count();
                 $totalFileSize = $assignment->tenant->documents->sum('file_size');
 
-                // Delete all associated documents first
-                foreach ($assignment->documents as $document) {
-                    // Note: Files are stored in Supabase, not local storage
-                    // Supabase files will remain accessible unless explicitly deleted from Supabase
-                    // Delete the document record
-                    $document->delete();
-                }
+                // Note: Documents are now personal to tenants, not assignment-specific
+                // We don't delete tenant documents when deleting assignments
+                // Documents remain with the tenant for future applications
 
                 // Update the unit status back to available
                 $assignment->unit->update([

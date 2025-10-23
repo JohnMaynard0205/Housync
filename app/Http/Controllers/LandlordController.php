@@ -11,11 +11,13 @@ use App\Models\TenantAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Services\SupabaseService;
 class LandlordController extends Controller
 {
     public function dashboard()
     {
+        /** @var \App\Models\User $landlord */
         $landlord = Auth::user();
         
         $stats = [
@@ -44,7 +46,9 @@ class LandlordController extends Controller
 
     public function apartments(Request $request)
     {
-        $query = Auth::user()->apartments()->with('units');
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $query = $landlord->apartments()->with('units');
         
         // Sorting
         $sortBy = $request->get('sort', 'name'); // Default: alphabetical by name
@@ -84,7 +88,7 @@ class LandlordController extends Controller
 
     public function storeApartment(Request $request)
     {
-        \Log::info('Property creation request received', [
+        Log::info('Property creation request received', [
             'data' => $request->all(),
             'auto_generate_units' => $request->auto_generate_units,
             'total_units' => $request->total_units,
@@ -127,7 +131,7 @@ class LandlordController extends Controller
                 $path = 'apartments/' . $filename;
                 
                 // Log file info
-                \Log::info('Uploading file to Supabase', [
+                Log::info('Uploading file to Supabase', [
                     'bucket' => 'house-sync',
                     'path' => $path,
                     'filename' => $filename,
@@ -139,13 +143,13 @@ class LandlordController extends Controller
                 $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
                 
                 // Log upload result
-                \Log::info('Supabase upload result', ['result' => $uploadResult]);
+                Log::info('Supabase upload result', ['result' => $uploadResult]);
                 
                 // Check if upload was successful
                 if ($uploadResult['success']) {
                     $coverPath = $uploadResult['url'];
                 } else {
-                    \Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
                     throw new \Exception('Failed to upload cover image: ' . ($uploadResult['message'] ?? 'Unknown error'));
                 }
             }
@@ -162,7 +166,7 @@ class LandlordController extends Controller
                     // Upload to Supabase
                     $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
                     
-                    \Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
+                    Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
                     
                     // Only add if successful
                     if ($uploadResult['success']) {
@@ -171,7 +175,9 @@ class LandlordController extends Controller
                 }
             }
 
-            $apartment = Auth::user()->apartments()->create([
+            /** @var \App\Models\User $landlord */
+            $landlord = Auth::user();
+            $apartment = $landlord->apartments()->create([
                 'name' => $request->name,
                 'property_type' => $request->property_type,
                 'address' => $request->address,
@@ -188,7 +194,7 @@ class LandlordController extends Controller
 
             // Auto-generate units if requested
             $autoGenerate = $request->has('auto_generate_units') && $request->auto_generate_units == '1';
-            \Log::info('Auto-generation check', [
+            Log::info('Auto-generation check', [
                 'has_auto_generate' => $request->has('auto_generate_units'),
                 'auto_generate_value' => $request->auto_generate_units,
                 'auto_generate_boolean' => $autoGenerate,
@@ -196,14 +202,14 @@ class LandlordController extends Controller
             ]);
             
             if ($autoGenerate) {
-                \Log::info('Auto-generating units for apartment', [
+                Log::info('Auto-generating units for apartment', [
                     'apartment_id' => $apartment->id,
                     'total_units' => $request->total_units,
                     'floors' => $request->floors
                 ]);
                 $this->autoGenerateUnits($apartment, $request);
             } else {
-                \Log::info('Auto-generation disabled for apartment', [
+                Log::info('Auto-generation disabled for apartment', [
                     'apartment_id' => $apartment->id,
                     'reason' => 'Checkbox not checked or value not 1'
                 ]);
@@ -215,7 +221,7 @@ class LandlordController extends Controller
 
             return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
-            \Log::error('Error creating apartment: ' . $e->getMessage());
+            Log::error('Error creating apartment: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to create apartment. Please try again.');
         }
     }
@@ -230,7 +236,7 @@ class LandlordController extends Controller
         $unitsPerFloor = $request->units_per_floor ?? ceil($totalUnits / $numFloors);
         $numberingPattern = $request->numbering_pattern ?? 'floor_based';
         
-        \Log::info('Auto-generating units with parameters', [
+        Log::info('Auto-generating units with parameters', [
             'apartment_id' => $apartment->id,
             'total_units' => $totalUnits,
             'numFloors' => $numFloors,
@@ -276,7 +282,7 @@ class LandlordController extends Controller
                 ]);
 
                 $unitsCreated++;
-                \Log::info("Created unit {$i}/{$totalUnits}", [
+                Log::info("Created unit {$i}/{$totalUnits}", [
                     'unit_id' => $unit->id,
                     'unit_number' => $unitNumber,
                     'floor' => $currentFloor,
@@ -291,7 +297,7 @@ class LandlordController extends Controller
                     $unitOnFloor++;
                 }
             } catch (\Exception $e) {
-                \Log::error("Failed to create unit {$i}", [
+                Log::error("Failed to create unit {$i}", [
                     'error' => $e->getMessage(),
                     'apartment_id' => $apartment->id,
                     'unit_number' => $unitNumber ?? 'unknown'
@@ -300,7 +306,7 @@ class LandlordController extends Controller
             }
         }
 
-        \Log::info("Auto-generated {$unitsCreated} units for apartment: {$apartment->name}");
+        Log::info("Auto-generated {$unitsCreated} units for apartment: {$apartment->name}");
     }
 
     /**
@@ -330,13 +336,17 @@ class LandlordController extends Controller
 
     public function editApartment($id)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($id);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($id);
         return view('landlord.edit-apartment', compact('apartment'));
     }
 
     public function updateApartment(Request $request, $id)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($id);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -389,7 +399,7 @@ class LandlordController extends Controller
 
             return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
-            \Log::error('Error updating apartment: ' . $e->getMessage());
+            Log::error('Error updating apartment: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to update apartment. Please try again.');
         }
     }
@@ -451,13 +461,15 @@ class LandlordController extends Controller
             }
         }
 
-        \Log::info("Auto-generated {$unitsCreated} additional units for apartment: {$apartment->name}");
+        Log::info("Auto-generated {$unitsCreated} additional units for apartment: {$apartment->name}");
         return $unitsCreated;
     }
 
     public function deleteApartment(Request $request, $id)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($id);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($id);
         
         try {
             $unitCount = $apartment->units()->count();
@@ -470,7 +482,7 @@ class LandlordController extends Controller
                 ]);
                 
                 // Verify landlord's password
-                if (!Hash::check($request->password, Auth::user()->password)) {
+                if (!Hash::check($request->password, $landlord->password)) {
                     return back()->with('error', 'Incorrect password. Force delete cancelled.');
                 }
                 
@@ -523,13 +535,14 @@ class LandlordController extends Controller
             
             return redirect()->route('landlord.apartments')->with('success', "Property '{$apartmentName}' deleted successfully.");
         } catch (\Exception $e) {
-            \Log::error('Error deleting apartment: ' . $e->getMessage());
+            Log::error('Error deleting apartment: ' . $e->getMessage());
             return back()->with('error', 'Failed to delete property. Please try again.');
         }
     }
 
     public function units(Request $request, $apartmentId = null)
     {
+        /** @var \App\Models\User $landlord */
         $landlord = Auth::user();
         
         // Sorting
@@ -599,19 +612,23 @@ class LandlordController extends Controller
 
     public function createUnit($apartmentId = null)
     {
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
         if ($apartmentId) {
-            $apartment = Auth::user()->apartments()->findOrFail($apartmentId);
+            $apartment = $landlord->apartments()->findOrFail($apartmentId);
             return view('landlord.create-unit', compact('apartment'));
         } else {
             // Show property selection first
-            $apartments = Auth::user()->apartments()->get();
+            $apartments = $landlord->apartments()->get();
             return view('landlord.select-property-for-unit', compact('apartments'));
         }
     }
 
     public function storeUnit(Request $request, $apartmentId)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($apartmentId);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
             'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
@@ -641,13 +658,13 @@ class LandlordController extends Controller
             // Upload file
             $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
             
-            \Log::info('Unit cover image upload', ['result' => $uploadResult]);
+            Log::info('Unit cover image upload', ['result' => $uploadResult]);
             
             // Check if upload was successful
             if ($uploadResult['success']) {
                 $coverPath = $uploadResult['url'];
             } else {
-                \Log::error('Failed to upload unit cover image', ['result' => $uploadResult]);
+                Log::error('Failed to upload unit cover image', ['result' => $uploadResult]);
                 return back()->withInput()->with('error', 'Failed to upload cover image: ' . ($uploadResult['message'] ?? 'Unknown error'));
             }
         }
@@ -664,7 +681,7 @@ class LandlordController extends Controller
                 // Upload to Supabase
                 $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
                 
-                \Log::info('Unit gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
+                Log::info('Unit gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
                 
                 // Only add if successful
                 if ($uploadResult['success']) {
@@ -753,7 +770,7 @@ class LandlordController extends Controller
 
             return redirect()->route('landlord.units')->with('success', 'Unit updated successfully.');
         } catch (\Exception $e) {
-            \Log::error('Error updating unit: ' . $e->getMessage());
+            Log::error('Error updating unit: ' . $e->getMessage());
             
             // Return JSON error response for AJAX requests
             if ($request->ajax() || $request->wantsJson()) {
@@ -770,6 +787,11 @@ class LandlordController extends Controller
     public function bulkGenerateUnits(Request $request)
     {
         try {
+            Log::info('Bulk generate units request received', [
+                'data' => $request->all(),
+                'user_id' => Auth::id()
+            ]);
+
             $validated = $request->validate([
                 'apartment_id' => 'required|exists:apartments,id',
                 'num_units' => 'required|integer|min:1|max:500',
@@ -782,12 +804,18 @@ class LandlordController extends Controller
                 'units_per_floor' => 'nullable|integer|min:1',
             ]);
 
-            $apartment = Auth::user()->apartments()->findOrFail($validated['apartment_id']);
+            Log::info('Validation passed', ['validated' => $validated]);
+
+            /** @var \App\Models\User $landlord */
+            $landlord = Auth::user();
+            $apartment = $landlord->apartments()->findOrFail($validated['apartment_id']);
+            
+            Log::info('Apartment found', ['apartment_id' => $apartment->id, 'apartment_name' => $apartment->name]);
             
             // Prepare default data
             $defaultData = [
                 'unit_type' => $validated['default_unit_type'] ?? 'Two Bedroom',
-                'rent_amount' => $validated['default_rent'] ?? null,
+                'rent_amount' => $validated['default_rent'] ?? 15000,
                 'bedrooms' => $validated['default_bedrooms'] ?? 2,
                 'bathrooms' => $validated['default_bathrooms'] ?? 1,
                 'status' => 'available',
@@ -798,25 +826,59 @@ class LandlordController extends Controller
             $unitsCreated = 0;
 
             for ($i = 1; $i <= $numToGenerate; $i++) {
-                // Generate unit number based on pattern
-                $unitNumber = $this->generateUnitNumber(
-                    $i,
-                    $pattern,
-                    $validated['num_floors'] ?? 1,
-                    $validated['units_per_floor'] ?? 1
-                );
+                try {
+                    // Calculate floor and unit on floor for proper numbering
+                    $numFloors = $validated['num_floors'] ?? 1;
+                    $unitsPerFloor = $validated['units_per_floor'] ?? ceil($numToGenerate / $numFloors);
+                    $currentFloor = ceil($i / $unitsPerFloor);
+                    $unitOnFloor = (($i - 1) % $unitsPerFloor) + 1;
+                    
+                    // Generate unit number based on pattern
+                    $unitNumber = $this->generateUnitNumber(
+                        $i,
+                        $currentFloor,
+                        $unitOnFloor,
+                        $pattern
+                    );
 
-                // Check if unit number already exists for this apartment
-                if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
-                    continue; // Skip if exists
+                    Log::info("Generating unit {$i}/{$numToGenerate}", [
+                        'unit_number' => $unitNumber,
+                        'floor' => $currentFloor,
+                        'unit_on_floor' => $unitOnFloor,
+                        'pattern' => $pattern
+                    ]);
+
+                    // Check if unit number already exists for this apartment
+                    if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
+                        Log::info("Unit number {$unitNumber} already exists, skipping");
+                        continue; // Skip if exists
+                    }
+
+                    // Create the unit
+                    $unitData = array_merge($defaultData, [
+                        'unit_number' => $unitNumber,
+                        'floor_number' => $currentFloor,
+                        'leasing_type' => 'separate',
+                        'tenant_count' => 0,
+                        'max_occupants' => ($defaultData['bedrooms'] * 2) + 1, // Default calculation
+                        'is_furnished' => false,
+                        'description' => 'Auto-generated unit',
+                        'amenities' => $apartment->amenities ?? [],
+                    ]);
+
+                    Log::info("Creating unit with data", $unitData);
+
+                    $unit = $apartment->units()->create($unitData);
+                    
+                    Log::info("Unit created successfully", ['unit_id' => $unit->id]);
+                    $unitsCreated++;
+                } catch (\Exception $e) {
+                    Log::error("Failed to create unit {$i}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Continue with next unit
                 }
-
-                // Create the unit
-                $apartment->units()->create(array_merge($defaultData, [
-                    'unit_number' => $unitNumber,
-                ]));
-                
-                $unitsCreated++;
             }
 
             return response()->json([
@@ -826,7 +888,7 @@ class LandlordController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Bulk unit generation error: ' . $e->getMessage());
+            Log::error('Bulk unit generation error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate units: ' . $e->getMessage(),
@@ -860,7 +922,7 @@ class LandlordController extends Controller
             
             return back()->with('success', "Unit '{$unitNumber}' deleted successfully.");
         } catch (\Exception $e) {
-            \Log::error('Error deleting unit: ' . $e->getMessage());
+            Log::error('Error deleting unit: ' . $e->getMessage());
             return back()->with('error', 'Failed to delete unit. Please try again.');
         }
     }
@@ -930,7 +992,7 @@ class LandlordController extends Controller
             // Upload to Supabase
             $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
             
-            \Log::info('Landlord document uploaded', [
+            Log::info('Landlord document uploaded', [
                 'landlord_id' => $landlord->id,
                 'index' => $index,
                 'type' => $docType,
@@ -950,7 +1012,7 @@ class LandlordController extends Controller
                     'verification_status' => 'pending',
                 ]);
             } else {
-                \Log::error('Failed to upload landlord document', [
+                Log::error('Failed to upload landlord document', [
                     'landlord_id' => $landlord->id,
                     'index' => $index,
                     'result' => $uploadResult
@@ -968,6 +1030,7 @@ class LandlordController extends Controller
 
     public function rejected()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         return view('landlord.rejected', compact('user'));
     }
@@ -1027,7 +1090,9 @@ class LandlordController extends Controller
         $assignments = $query->orderBy('lease_start_date', 'desc')->paginate(20);
         
         // Get all apartments for filter dropdown
-        $apartments = Auth::user()->apartments()->orderBy('name')->get();
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartments = $landlord->apartments()->orderBy('name')->get();
         
         // Get all units for filter dropdown
         $units = Unit::whereHas('apartment', function($q) use ($landlordId) {
@@ -1153,7 +1218,9 @@ class LandlordController extends Controller
     // API endpoints for apartment management
     public function getApartmentDetails($id)
     {
-        $apartment = Auth::user()->apartments()->with('units')->findOrFail($id);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->with('units')->findOrFail($id);
         
         return response()->json([
             'id' => $apartment->id,
@@ -1169,7 +1236,9 @@ class LandlordController extends Controller
 
     public function getApartmentUnits($id)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($id);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($id);
         $units = $apartment->units()->orderBy('unit_number')->get();
         
         return response()->json([
@@ -1237,7 +1306,9 @@ class LandlordController extends Controller
 
     public function storeApartmentUnit(Request $request, $apartmentId)
     {
-        $apartment = Auth::user()->apartments()->findOrFail($apartmentId);
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
             'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
@@ -1276,7 +1347,7 @@ class LandlordController extends Controller
                 'unit' => $unit
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error creating unit: ' . $e->getMessage());
+            Log::error('Error creating unit: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create unit. Please try again.'

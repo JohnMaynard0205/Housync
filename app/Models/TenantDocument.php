@@ -27,7 +27,6 @@ class TenantDocument extends Model
 
     protected $fillable = [
         'tenant_id',
-        'tenant_assignment_id',
         'document_type',
         'file_name',
         'file_path',
@@ -54,10 +53,8 @@ class TenantDocument extends Model
         return $this->belongsTo(User::class, 'tenant_id');
     }
 
-    public function tenantAssignment()
-    {
-        return $this->belongsTo(TenantAssignment::class, 'tenant_assignment_id');
-    }
+    // Note: tenant_assignment_id column was removed from the database
+    // Documents are now associated directly with tenants, not assignments
 
     public function verifiedBy()
     {
