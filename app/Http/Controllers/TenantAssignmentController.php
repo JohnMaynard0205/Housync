@@ -305,7 +305,7 @@ class TenantAssignmentController extends Controller
         $tenant = Auth::user();
         
         // Get the active assignment if one exists (optional now)
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment'])->first();
+        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
         
         // Get tenant's personal documents (uploaded before assignment)
         $personalDocuments = $tenant->documents()->orderBy('created_at', 'desc')->get();
@@ -620,33 +620,61 @@ class TenantAssignmentController extends Controller
     public function deleteDocument($documentId)
     {
         try {
-            $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
+            $document = TenantDocument::with(['tenantAssignment.tenant', 'tenant'])->findOrFail($documentId);
             
             // Check if user is the tenant who uploaded this document
-            if ($document->tenant_id !== Auth::id()) {
+            // Check both tenant_id (for profile documents) and assignment tenant_id
+            if ($document->tenant_id !== Auth::id() && 
+                (!$document->tenantAssignment || $document->tenantAssignment->tenant_id !== Auth::id())) {
                 abort(403, 'Unauthorized access to document.');
             }
 
-            $assignment = null; // Documents are now directly associated with tenants, not assignments
+            $assignment = $document->tenantAssignment;
             $documentType = $document->document_type;
             $fileName = $document->file_name;
             $fileSize = $document->file_size;
 
             // Use database transaction for document deletion
-            DB::transaction(function() use ($document) {
+            DB::transaction(function() use ($document, $assignment) {
                 // Delete the document record
                 $document->delete();
+
+                // Update assignment status based on remaining documents (if assignment exists)
+                if ($assignment) {
+                    $remainingDocuments = $assignment->documents()->count();
+                    
+                    if ($remainingDocuments === 0) {
+                        // No documents left, mark as not uploaded
+                        $assignment->update([
+                            'documents_uploaded' => false,
+                            'documents_verified' => false,
+                        ]);
+                    } else {
+                        // Check if all remaining documents are verified
+                        $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
+                        $allVerified = $pendingDocuments === 0;
+                        
+                        $assignment->update([
+                            'documents_uploaded' => true,
+                            'documents_verified' => $allVerified,
+                        ]);
+                    }
+                }
             });
 
             // Audit log for document deletion
             Log::info('Document deleted successfully', [
                 'tenant_id' => Auth::id(),
-                'tenant_name' => $document->tenant->name ?? 'Unknown',
+                'tenant_name' => $document->tenant->name ?? ($assignment ? $assignment->tenant->name : 'Unknown'),
                 'document_id' => $documentId,
+                'assignment_id' => $assignment?->id,
+                'unit_id' => $assignment?->unit_id,
+                'landlord_id' => $assignment?->landlord_id,
                 'document_type' => $documentType,
                 'document_name' => $fileName,
                 'file_size' => $fileSize,
                 'verification_status' => $document->verification_status,
+                'remaining_documents' => $assignment ? $assignment->documents()->count() : 0,
                 'timestamp' => now()
             ]);
 
@@ -714,9 +742,13 @@ class TenantAssignmentController extends Controller
                 $documentsCount = $assignment->tenant->documents->count();
                 $totalFileSize = $assignment->tenant->documents->sum('file_size');
 
-                // Note: Documents are now personal to tenants, not assignment-specific
-                // We don't delete tenant documents when deleting assignments
-                // Documents remain with the tenant for future applications
+                // Delete all associated documents first
+                foreach ($assignment->documents as $document) {
+                    // Note: Files are stored in Supabase, not local storage
+                    // Supabase files will remain accessible unless explicitly deleted from Supabase
+                    // Delete the document record
+                    $document->delete();
+                }
 
                 // Update the unit status back to available
                 $assignment->unit->update([
