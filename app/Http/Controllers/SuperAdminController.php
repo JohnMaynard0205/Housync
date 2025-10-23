@@ -60,7 +60,14 @@ class SuperAdminController extends Controller
 
     public function pendingLandlords()
     {
-        $pendingLandlords = User::pendingLandlords()->with(['approvedBy', 'landlordDocuments'])->latest()->paginate(15);
+        // Get only landlords with 'pending' status in their profile
+        $pendingLandlords = User::where('role', 'landlord')
+            ->whereHas('landlordProfile', function($q) {
+                $q->where('status', 'pending');
+            })
+            ->with(['approvedBy', 'landlordDocuments', 'landlordProfile'])
+            ->latest()
+            ->paginate(15);
         return view('super-admin.pending-landlords', compact('pendingLandlords'));
     }
 

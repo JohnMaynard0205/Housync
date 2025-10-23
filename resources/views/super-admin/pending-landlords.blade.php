@@ -586,15 +586,15 @@
                                     <tr>
                                         <td>
                                             <div>
-                                                <div style="font-weight: 600;">{{ $landlord->name }}</div>
+                                                <div style="font-weight: 600;">{{ $landlord->landlordProfile->name ?? 'New User' }}</div>
                                                 <div style="font-size: 0.75rem; color: #64748b;">ID: #{{ $landlord->id }}</div>
                                             </div>
                                         </td>
                                         <td>{{ $landlord->email }}</td>
-                                        <td>{{ $landlord->phone ?? 'N/A' }}</td>
+                                        <td>{{ $landlord->landlordProfile->phone ?? 'N/A' }}</td>
                                         <td>
-                                            <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $landlord->business_info }}">
-                                                {{ $landlord->business_info ?? 'N/A' }}
+                                            <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $landlord->landlordProfile->business_info ?? 'N/A' }}">
+                                                {{ $landlord->landlordProfile->business_info ?? 'N/A' }}
                                             </div>
                                         </td>
                                         <td>
@@ -602,24 +602,30 @@
                                             <div style="font-size: 0.75rem; color: #64748b;">{{ $landlord->created_at->diffForHumans() }}</div>
                                         </td>
                                         <td>
-                                            <span class="status-badge status-{{ $landlord->status }}">
-                                                {{ ucfirst($landlord->status) }}
+                                            <span class="status-badge status-{{ $landlord->landlordProfile->status ?? 'pending' }}">
+                                                {{ ucfirst($landlord->landlordProfile->status ?? 'pending') }}
                                             </span>
                                         </td>
                                         <td>
                                             <div class="btn-group">
-                                                <button class="btn btn-primary btn-sm" onclick="showDocumentsModal({{ $landlord->id }}, '{{ $landlord->name }}')">
+                                                <button class="btn btn-primary btn-sm" onclick="showDocumentsModal({{ $landlord->id }}, '{{ $landlord->landlordProfile->name ?? 'New User' }}')">
                                                     <i class="fas fa-file-alt"></i> View Docs
                                                 </button>
-                                                <form method="POST" action="{{ route('super-admin.approve-landlord', $landlord->id) }}" style="display: inline;">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this landlord?')">
-                                                        <i class="fas fa-check"></i> Approve
+                                                @if(($landlord->landlordProfile->status ?? 'pending') === 'pending')
+                                                    <form method="POST" action="{{ route('super-admin.approve-landlord', $landlord->id) }}" style="display: inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this landlord?')">
+                                                            <i class="fas fa-check"></i> Approve
+                                                        </button>
+                                                    </form>
+                                                    <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ $landlord->id }}, '{{ $landlord->landlordProfile->name ?? 'New User' }}')">
+                                                        <i class="fas fa-times"></i> Reject
                                                     </button>
-                                                </form>
-                                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ $landlord->id }}, '{{ $landlord->name }}')">
-                                                    <i class="fas fa-times"></i> Reject
-                                                </button>
+                                                @else
+                                                    <span class="btn btn-secondary btn-sm" style="cursor: default;">
+                                                        <i class="fas fa-check-circle"></i> {{ ucfirst($landlord->landlordProfile->status ?? 'pending') }}
+                                                    </span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
