@@ -305,7 +305,7 @@ class TenantAssignmentController extends Controller
         $tenant = Auth::user();
         
         // Get the active assignment if one exists (optional now)
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
+        $assignment = $tenant->tenantAssignments()->with(['unit.apartment'])->first();
         
         // Get tenant's personal documents (uploaded before assignment)
         $personalDocuments = $tenant->documents()->orderBy('created_at', 'desc')->get();
@@ -714,13 +714,9 @@ class TenantAssignmentController extends Controller
                 $documentsCount = $assignment->tenant->documents->count();
                 $totalFileSize = $assignment->tenant->documents->sum('file_size');
 
-                // Delete all associated documents first
-                foreach ($assignment->documents as $document) {
-                    // Note: Files are stored in Supabase, not local storage
-                    // Supabase files will remain accessible unless explicitly deleted from Supabase
-                    // Delete the document record
-                    $document->delete();
-                }
+                // Note: Documents are now personal to tenants, not assignment-specific
+                // We don't delete tenant documents when deleting assignments
+                // Documents remain with the tenant for future applications
 
                 // Update the unit status back to available
                 $assignment->unit->update([
