@@ -181,7 +181,7 @@ class ESP32Reader
                                 echo "Access: DENIED\n";
                             }
                             if (isset($responseData['denial_reason'])) {
-                                echo "   Reason: {$responseData['denial_reason']}\n";
+                                echo "Reason: {$responseData['denial_reason']}\n";
                             }
                         }
                     }
@@ -345,7 +345,7 @@ class ESP32Reader
             echo "Found pure JSON data\n";
             // Data is already JSON, use as-is
         }
-        // Case 2: Prefixed JSON (📤 Sent to bridge: {...})
+        // Case 2: Prefixed JSON (Sent to bridge: {...})
         else if (strpos($data, 'Sent to bridge:') !== false) {
             $jsonStart = strpos($data, '{');
             if ($jsonStart !== false) {
@@ -353,7 +353,7 @@ class ESP32Reader
                 echo "Extracted JSON from prefixed message\n";
             }
         }
-        // Case 3: Card detected message (🔑 Card detected: 036E8DE4)
+        // Case 3: Card detected message (Card detected: 036E8DE4)
         else if (preg_match('/Card detected:\s*([A-F0-9]+)/i', $data, $matches)) {
             // Create JSON from the extracted UID
             $extractedUID = $matches[1];
