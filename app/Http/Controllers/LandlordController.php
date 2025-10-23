@@ -147,15 +147,15 @@ class LandlordController extends Controller
                 
                 // Output to browser console for debugging
                 echo "<script>
-                    console.group('🚀 Supabase Cover Image Upload');
-                    console.log('📁 Upload Path:', " . json_encode($path) . ");
-                    console.log('📊 File Info:', {
+                    console.group('Supabase Cover Image Upload');
+                    console.log('Upload Path:', " . json_encode($path) . ");
+                    console.log('File Info:', {
                         filename: " . json_encode($filename) . ",
                         size: " . json_encode($request->file('cover_image')->getSize()) . ",
                         mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
                     });
-                    console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                    console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                    console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                    console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
                     console.groupEnd();
                 </script>";
                 
@@ -184,7 +184,7 @@ class LandlordController extends Controller
                     
                     // Output to browser console
                     echo "<script>
-                        console.log('🖼️ Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                        console.log('Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
                     </script>";
                     
                     // Only add if successful
@@ -681,10 +681,10 @@ class LandlordController extends Controller
             
             // Output to browser console for debugging
             echo "<script>
-                console.group('🏠 Supabase Unit Cover Image Upload');
-                console.log('📁 Upload Path:', " . json_encode($path) . ");
-                console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                console.group('Supabase Unit Cover Image Upload');
+                console.log('Upload Path:', " . json_encode($path) . ");
+                console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
                 console.groupEnd();
             </script>";
             
@@ -713,7 +713,7 @@ class LandlordController extends Controller
                 
                 // Output to browser console
                 echo "<script>
-                    console.log('🖼️ Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                    console.log('Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
                 </script>";
                 
                 // Only add if successful

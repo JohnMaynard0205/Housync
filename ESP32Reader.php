@@ -353,7 +353,7 @@ class ESP32Reader
                 echo "Extracted JSON from prefixed message\n";
             }
         }
-        // Case 3: Card detected message (🔑 Card detected: 036E8DE4)
+        // Case 3: Card detected message (Card detected: 036E8DE4)
         else if (preg_match('/Card detected:\s*([A-F0-9]+)/i', $data, $matches)) {
             // Create JSON from the extracted UID
             $extractedUID = $matches[1];

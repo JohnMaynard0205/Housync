@@ -24,7 +24,8 @@ class ExploreController extends Controller
         $properties = Property::with(['amenities', 'landlord'])
             ->active()
             ->available()
-            ->latest()
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(12);
 
         $propertyTypes = ['apartment', 'house', 'condo', 'studio'];
@@ -72,16 +73,18 @@ class ExploreController extends Controller
         $sortBy = $request->get('sort_by', 'latest');
         switch ($sortBy) {
             case 'price_low':
-                $query->orderBy('price', 'asc');
+                $query->orderBy('price', 'asc')->orderBy('id', 'desc');
                 break;
             case 'price_high':
-                $query->orderBy('price', 'desc');
+                $query->orderBy('price', 'desc')->orderBy('id', 'desc');
                 break;
             case 'featured':
-                $query->orderBy('is_featured', 'desc')->latest();
+                $query->orderBy('is_featured', 'desc')
+                      ->orderBy('created_at', 'desc')
+                      ->orderBy('id', 'desc');
                 break;
             default:
-                $query->latest();
+                $query->orderBy('created_at', 'desc')->orderBy('id', 'desc');
         }
 
         $properties = $query->paginate(12);
