@@ -28,7 +28,7 @@ class LandlordProfile extends Model
 
     public function approvedBy()
     {
-        return $this->belongsTo(\App\Models\SuperAdmin::class, 'approved_by');
+        return $this->belongsTo(\App\Models\SuperAdminProfile::class, 'approved_by');
     }
 
     public function user()
