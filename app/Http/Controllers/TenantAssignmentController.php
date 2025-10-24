@@ -282,6 +282,7 @@ class TenantAssignmentController extends Controller
      */
     public function tenantDashboard()
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         $assignments = $tenant->tenantAssignments()
             ->with(['unit.apartment', 'tenant.documents']) // Documents are now at tenant level
@@ -302,6 +303,7 @@ class TenantAssignmentController extends Controller
      */
     public function uploadDocuments()
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         // Get the active assignment if one exists (optional now)
@@ -350,6 +352,7 @@ class TenantAssignmentController extends Controller
             throw $e;
         }
     
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         try {
@@ -577,6 +580,7 @@ class TenantAssignmentController extends Controller
         $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
         
         // Check if user has access to this document
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $hasAccess = false;
         
@@ -804,6 +808,7 @@ class TenantAssignmentController extends Controller
     public function tenantProfile()
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -839,7 +844,7 @@ class TenantAssignmentController extends Controller
             return view('tenant-profile', compact('tenant', 'assignment', 'rfidCards', 'personalDocuments'));
             
         } catch (\Exception $e) {
-            \Log::error('Tenant profile error: ' . $e->getMessage(), [
+            Log::error('Tenant profile error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -856,6 +861,7 @@ class TenantAssignmentController extends Controller
     public function tenantLease()
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -874,7 +880,7 @@ class TenantAssignmentController extends Controller
             return view('tenant-lease', compact('tenant', 'assignment'));
             
         } catch (\Exception $e) {
-            \Log::error('Tenant lease error: ' . $e->getMessage(), [
+            Log::error('Tenant lease error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -889,6 +895,7 @@ class TenantAssignmentController extends Controller
     public function updatePassword(Request $request)
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -922,7 +929,7 @@ class TenantAssignmentController extends Controller
             ]);
 
             // Log the password change
-            \Log::info('Tenant password updated', [
+            Log::info('Tenant password updated', [
                 'tenant_id' => $tenant->id,
                 'tenant_email' => $tenant->email,
                 'updated_at' => now()
@@ -931,7 +938,7 @@ class TenantAssignmentController extends Controller
             return response()->json(['success' => 'Password updated successfully!']);
 
         } catch (\Exception $e) {
-            \Log::error('Password update error: ' . $e->getMessage(), [
+            Log::error('Password update error: ' . $e->getMessage(), [
                 'tenant_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -945,6 +952,7 @@ class TenantAssignmentController extends Controller
      */
     public function applyForProperty(Request $request, $propertyId)
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         // Check if tenant has uploaded personal documents

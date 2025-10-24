@@ -147,15 +147,15 @@ class LandlordController extends Controller
                 
                 // Output to browser console for debugging
                 echo "<script>
-                    console.group('🚀 Supabase Cover Image Upload');
-                    console.log('📁 Upload Path:', " . json_encode($path) . ");
-                    console.log('📊 File Info:', {
+                    console.group('Supabase Cover Image Upload');
+                    console.log('Upload Path:', " . json_encode($path) . ");
+                    console.log('File Info:', {
                         filename: " . json_encode($filename) . ",
                         size: " . json_encode($request->file('cover_image')->getSize()) . ",
                         mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
                     });
-                    console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                    console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                    console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                    console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
                     console.groupEnd();
                 </script>";
                 
@@ -184,7 +184,7 @@ class LandlordController extends Controller
                     
                     // Output to browser console
                     echo "<script>
-                        console.log('🖼️ Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                        console.log('Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
                     </script>";
                     
                     // Only add if successful
@@ -352,6 +352,95 @@ class LandlordController extends Controller
         }
     }
 
+    /**
+     * Generate unit number for existing apartment, continuing from existing units
+     */
+    private function generateUnitNumberForExistingApartment($apartment, $index, $existingUnitsCount, $highestUnitNumber, $highestFloor, $pattern, $validated)
+    {
+        switch ($pattern) {
+            case 'floor_based':
+                // Continue from the highest unit number + 1
+                $numFloors = $validated['num_floors'] ?? 1;
+                $unitsPerFloor = $validated['units_per_floor'] ?? 10;
+                
+                // Calculate which floor this unit should be on
+                $currentFloor = $highestFloor;
+                $unitOnFloor = 1;
+                
+                // Find the next available unit number on the current floor
+                do {
+                    $unitNumber = ($currentFloor * 100) + $unitOnFloor;
+                    $unitOnFloor++;
+                    
+                    // Move to next floor if we've exceeded units per floor
+                    if ($unitOnFloor > $unitsPerFloor) {
+                        $currentFloor++;
+                        $unitOnFloor = 1;
+                    }
+                } while ($apartment->units()->where('unit_number', (string)$unitNumber)->exists());
+                
+                return (string)$unitNumber;
+                
+            case 'sequential':
+                // Continue from the highest sequential number
+                $nextNumber = $highestUnitNumber + $index;
+                return "Unit {$nextNumber}";
+                
+            case 'letter_number':
+                // Continue from the highest letter-number combination
+                $currentFloor = $highestFloor;
+                $unitOnFloor = 1;
+                
+                do {
+                    $letter = chr(64 + $currentFloor);
+                    $unitNumber = "{$letter}{$unitOnFloor}";
+                    $unitOnFloor++;
+                    
+                    // Move to next floor if we've exceeded units per floor
+                    if ($unitOnFloor > 10) {
+                        $currentFloor++;
+                        $unitOnFloor = 1;
+                    }
+                } while ($apartment->units()->where('unit_number', $unitNumber)->exists());
+                
+                return $unitNumber;
+                
+            default:
+                // Default to floor-based
+                return $this->generateUnitNumberForExistingApartment($apartment, $index, $existingUnitsCount, $highestUnitNumber, $highestFloor, 'floor_based', $validated);
+        }
+    }
+
+    /**
+     * Calculate floor number from unit number based on pattern
+     */
+    private function calculateFloorFromUnitNumber($unitNumber, $pattern)
+    {
+        switch ($pattern) {
+            case 'floor_based':
+                // For numbers like 101, 102, 201, 202, etc.
+                if (is_numeric($unitNumber)) {
+                    return floor($unitNumber / 100) + 1;
+                }
+                return 1;
+                
+            case 'sequential':
+                // For "Unit X" format, assume ground floor
+                return 1;
+                
+            case 'letter_number':
+                // For "A1", "B2", etc., extract letter and convert to floor
+                if (preg_match('/^([A-Z])(\d+)$/', $unitNumber, $matches)) {
+                    $letter = $matches[1];
+                    return ord($letter) - 64; // A=1, B=2, C=3, etc.
+                }
+                return 1;
+                
+            default:
+                return 1;
+        }
+    }
+
 
     public function editApartment($id)
     {
@@ -428,8 +517,10 @@ class LandlordController extends Controller
      */
     private function autoGenerateAdditionalUnits($apartment, $numUnitsToCreate, $startingIndex = 0)
     {
-        $currentMaxFloor = $apartment->units()->max('floor_number') ?? 0;
         $existingUnits = $apartment->units()->count();
+        
+        // Get the highest unit number from existing units to continue numbering
+        $highestUnitNumber = $apartment->units()->max('unit_number') ?? 0;
         
         // Use sensible defaults
         $defaultData = [
@@ -444,14 +535,17 @@ class LandlordController extends Controller
         ];
 
         $unitsCreated = 0;
-        $currentFloor = $currentMaxFloor > 0 ? $currentMaxFloor : 1;
-        $unitOnFloor = 1;
+        $currentUnitNumber = $highestUnitNumber;
 
         for ($i = 1; $i <= $numUnitsToCreate; $i++) {
-            $globalIndex = $existingUnits + $i;
-            
-            // Simple floor-based numbering
-            $unitNumber = ($currentFloor * 100) + $unitOnFloor;
+            // Find the next available unit number
+            do {
+                $currentUnitNumber++;
+                $unitNumber = (string) $currentUnitNumber;
+            } while ($apartment->units()->where('unit_number', $unitNumber)->exists());
+
+            // Calculate floor number based on unit number (assuming 100 units per floor)
+            $floorNumber = floor($currentUnitNumber / 100) + 1;
 
             // Create the unit
             $apartment->units()->create([
@@ -464,20 +558,19 @@ class LandlordController extends Controller
                 'bathrooms' => $defaultData['bathrooms'],
                 'tenant_count' => $defaultData['tenant_count'],
                 'max_occupants' => $defaultData['max_occupants'],
-                'floor_number' => $currentFloor,
+                'floor_number' => $floorNumber,
                 'description' => "Auto-generated unit",
                 'amenities' => $apartment->amenities ?? [],
                 'is_furnished' => false,
             ]);
 
             $unitsCreated++;
-            $unitOnFloor++;
-
-            // Move to next floor every 10 units (configurable)
-            if ($unitOnFloor > 10) {
-                $currentFloor++;
-                $unitOnFloor = 1;
-            }
+            
+            Log::info("Created additional unit {$i}/{$numUnitsToCreate}", [
+                'unit_number' => $unitNumber,
+                'floor' => $floorNumber,
+                'apartment_id' => $apartment->id
+            ]);
         }
 
         Log::info("Auto-generated {$unitsCreated} additional units for apartment: {$apartment->name}");
@@ -681,10 +774,10 @@ class LandlordController extends Controller
             
             // Output to browser console for debugging
             echo "<script>
-                console.group('🏠 Supabase Unit Cover Image Upload');
-                console.log('📁 Upload Path:', " . json_encode($path) . ");
-                console.log('✅ Upload Result:', " . json_encode($uploadResult) . ");
-                console.log('🔗 Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                console.group('Supabase Unit Cover Image Upload');
+                console.log('Upload Path:', " . json_encode($path) . ");
+                console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
                 console.groupEnd();
             </script>";
             
@@ -713,7 +806,7 @@ class LandlordController extends Controller
                 
                 // Output to browser console
                 echo "<script>
-                    console.log('🖼️ Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                    console.log('Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
                 </script>";
                 
                 // Only add if successful
@@ -858,26 +951,34 @@ class LandlordController extends Controller
             $pattern = $validated['numbering_pattern'];
             $unitsCreated = 0;
 
+            // Get existing units count and highest unit number to continue numbering
+            $existingUnitsCount = $apartment->units()->count();
+            $highestUnitNumber = $apartment->units()->max('unit_number') ?? 0;
+            
+            // For floor-based numbering, get the highest floor
+            $highestFloor = $apartment->units()->max('floor_number') ?? 0;
+            
+            Log::info('Starting bulk generation with existing data', [
+                'existing_units_count' => $existingUnitsCount,
+                'highest_unit_number' => $highestUnitNumber,
+                'highest_floor' => $highestFloor,
+                'pattern' => $pattern
+            ]);
+
             for ($i = 1; $i <= $numToGenerate; $i++) {
                 try {
-                    // Calculate floor and unit on floor for proper numbering
-                    $numFloors = $validated['num_floors'] ?? 1;
-                    $unitsPerFloor = $validated['units_per_floor'] ?? ceil($numToGenerate / $numFloors);
-                    $currentFloor = ceil($i / $unitsPerFloor);
-                    $unitOnFloor = (($i - 1) % $unitsPerFloor) + 1;
-                    
-                    // Generate unit number based on pattern
-                    $unitNumber = $this->generateUnitNumber(
+                    $unitNumber = $this->generateUnitNumberForExistingApartment(
+                        $apartment,
                         $i,
-                        $currentFloor,
-                        $unitOnFloor,
-                        $pattern
+                        $existingUnitsCount,
+                        $highestUnitNumber,
+                        $highestFloor,
+                        $pattern,
+                        $validated
                     );
 
                     Log::info("Generating unit {$i}/{$numToGenerate}", [
                         'unit_number' => $unitNumber,
-                        'floor' => $currentFloor,
-                        'unit_on_floor' => $unitOnFloor,
                         'pattern' => $pattern
                     ]);
 
@@ -887,10 +988,13 @@ class LandlordController extends Controller
                         continue; // Skip if exists
                     }
 
+                    // Calculate floor number based on unit number for floor-based patterns
+                    $floorNumber = $this->calculateFloorFromUnitNumber($unitNumber, $pattern);
+                    
                     // Create the unit
                     $unitData = array_merge($defaultData, [
                         'unit_number' => $unitNumber,
-                        'floor_number' => $currentFloor,
+                        'floor_number' => $floorNumber,
                         'leasing_type' => 'separate',
                         'tenant_count' => 0,
                         'max_occupants' => ($defaultData['bedrooms'] * 2) + 1, // Default calculation

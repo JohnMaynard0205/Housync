@@ -543,17 +543,17 @@ function printCredentials() {
         </head>
         <body>
             <div class="header">
-                <h2>🏠 HouseSync - Tenant Login Credentials</h2>
+                <h2>HouseSync - Tenant Login Credentials</h2>
                 <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
             </div>
             
             <div class="credentials">
                 <div class="credential-item">
-                    <span class="label">📧 Email Address:</span>
+                    <span class="label">Email Address:</span>
                     <span class="value">${email}</span>
                 </div>
                 <div class="credential-item">
-                    <span class="label">🔑 Password:</span>
+                    <span class="label">Password:</span>
                     <span class="value">${password}</span>
                 </div>
             </div>
@@ -587,10 +587,10 @@ function deleteTenantAssignment(assignmentId, tenantName) {
 function copyAllNewCredentials() {
     const email = document.getElementById('newTenantEmail').value;
     const password = document.getElementById('newTenantPassword').value;
-    const credentials = `🏠 HouseSync - New Tenant Account Created
+    const credentials = `HouseSync - New Tenant Account Created
 
-📧 Email: ${email}
-🔑 Password: ${password}
+Email: ${email}
+Password: ${password}
 
 Instructions:
 1. Use these credentials to log in to your tenant dashboard
@@ -633,18 +633,18 @@ function printNewCredentials() {
         </head>
         <body>
             <div class="header">
-                <h1>🏠 HouseSync</h1>
+                <h1>HouseSync</h1>
                 <h2>New Tenant Account Credentials</h2>
                 <p>Generated on ${new Date().toLocaleString()}</p>
             </div>
             
             <div class="credentials">
                 <div class="field">
-                    <div class="label">📧 Email Address:</div>
+                    <div class="label">Email Address:</div>
                     <div class="value">${email}</div>
                 </div>
                 <div class="field">
-                    <div class="label">🔑 Password:</div>
+                    <div class="label">Password:</div>
                     <div class="value">${password}</div>
                 </div>
             </div>
@@ -686,8 +686,8 @@ function emailCredentials() {
 Welcome to HouseSync! Your new tenant account has been created.
 
 Your login credentials:
-📧 Email: ${email}
-🔑 Password: ${password}
+Email: ${email}
+Password: ${password}
 
 Please follow these steps:
 1. Log in to your tenant dashboard at: ${window.location.origin}/login

@@ -482,7 +482,7 @@
                     <div class="credentials-box p-4 mb-4" style="background: #f8f9fa; border: 2px solid #28a745; border-radius: 8px;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold text-primary">📧 Email Address:</label>
+                                <label class="form-label fw-bold text-primary">Email Address:</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="assignedStaffEmail" value="{{ session('credentials')['email'] ?? session('staff_credentials')['email'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem;">
                                     <button class="btn btn-outline-primary" type="button" onclick="copyText('assignedStaffEmail')" title="Copy email">
@@ -491,7 +491,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold text-primary">🔑 Password:</label>
+                                <label class="form-label fw-bold text-primary">Password:</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="assignedStaffPassword" value="{{ session('credentials')['password'] ?? session('staff_credentials')['password'] }}" readonly style="background: white; font-weight: bold; font-size: 1.1rem; color: #dc3545;">
                                     <button class="btn btn-outline-primary" type="button" onclick="copyText('assignedStaffPassword')" title="Copy password">
@@ -690,17 +690,17 @@ function printStaffCredentials() {
         </head>
         <body>
             <div class="header">
-                <h2>🏠 HouseSync - Staff Login Credentials</h2>
+                <h2>HouseSync - Staff Login Credentials</h2>
                 <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
             </div>
             
             <div class="credentials">
                 <div class="credential-item">
-                    <span class="label">📧 Email Address:</span>
+                    <span class="label">Email Address:</span>
                     <span class="value">${email}</span>
                 </div>
                 <div class="credential-item">
-                    <span class="label">🔑 Password:</span>
+                    <span class="label">Password:</span>
                     <span class="value">${password}</span>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuperAdminController;
@@ -130,7 +131,7 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
 
 // Original dashboard route - redirect based on role
 Route::get('/dashboard', function () {
-    $user = auth()->user();
+    $user = Auth::user();
     if (!$user) {
         return redirect()->route('login');
     }
