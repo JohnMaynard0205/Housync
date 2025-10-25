@@ -75,7 +75,6 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
     
     // Bulk Unit Generation Route
-    Route::post('/units/bulk-generate', [LandlordController::class, 'bulkGenerateUnits'])->name('bulk-generate-units');
     
     // Unit Update Route (for AJAX modal)
     Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
