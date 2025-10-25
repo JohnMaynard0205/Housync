@@ -30,6 +30,8 @@ class Apartment extends Model
         'description',
         'landlord_id',
         'total_units',
+        'floors',
+        'bedrooms',
         'amenities',
         'contact_person',
         'contact_phone',

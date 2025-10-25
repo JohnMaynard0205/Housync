@@ -387,6 +387,7 @@
             color: #991b1b;
             border: 1px solid #fecaca;
         }
+
     </style>
 </head>
 <body>
@@ -459,15 +460,37 @@
                 <div class="property-info">
                     <h4>Property Information</h4>
                     <p><strong>Property:</strong> {{ $apartment->name }}</p>
+                    <p><strong>Type:</strong> {{ ucfirst($apartment->property_type) }}</p>
                     <p><strong>Address:</strong> {{ $apartment->address }}</p>
+                    @if($apartment->property_type === 'house')
+                        <p><strong>Bedrooms:</strong> {{ $apartment->bedrooms ?? 'Not specified' }}</p>
+                    @else
+                        <p><strong>Floors:</strong> {{ $apartment->floors ?? 'Not specified' }}</p>
+                    @endif
                 </div>
                 @endif
 
                 <form method="POST" action="{{ isset($apartment) ? route('landlord.store-unit', $apartment->id) : route('landlord.create-unit') }}" enctype="multipart/form-data">
                     @csrf
                     
-                    <!-- Basic Information -->
+                    <!-- Creation Options -->
                     <div class="form-section">
+                        <h3 class="section-title">Creation Options</h3>
+                        
+                        <!-- Simple link to multiple units page -->
+                        <div class="form-group">
+                            <div style="text-align: center; padding: 2rem; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 0.5rem;">
+                                <h4 style="color: #1e293b; margin-bottom: 1rem;">Need to create multiple units?</h4>
+                                <p style="color: #64748b; margin-bottom: 1.5rem;">Use our dedicated bulk creation tool for creating multiple units at once.</p>
+                                <a href="{{ route('landlord.create-multiple-units', $apartment->id) }}" class="btn btn-outline">
+                                    <i class="fas fa-plus"></i> Create Multiple Units
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="form-section" id="single_unit_form">
                         <h3 class="section-title">Basic Information</h3>
                         
                         <div class="form-row">
@@ -495,6 +518,23 @@
                                 @enderror
                                 <small class="form-text text-muted">Number of bedrooms will be set based on your selection</small>
                             </div>
+                            
+                            @if(isset($apartment) && $apartment->property_type !== 'house')
+                            <div class="form-group">
+                                <label for="floor_number" class="form-label">Floor Number *</label>
+                                <select id="floor_number" name="floor_number" class="form-control @error('floor_number') error @enderror" required>
+                                    <option value="">Select Floor</option>
+                                    @for($i = 1; $i <= ($apartment->floors ?? 1); $i++)
+                                        <option value="{{ $i }}" {{ old('floor_number') == $i ? 'selected' : '' }}>
+                                            Floor {{ $i }}
+                                        </option>
+                                    @endfor
+                                </select>
+                                @error('floor_number')
+                                    <div class="error-message">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            @endif
                         </div>
 
                         <div class="form-row">
@@ -657,9 +697,9 @@
                             <i class="fas fa-arrow-left"></i>
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
                             <i class="fas fa-save"></i>
-                            Create Unit
+                            <span id="submitText">Create Unit</span>
                         </button>
                     </div>
                 </form>
@@ -668,11 +708,17 @@
     </div>
 
     <script>
+        console.log('Script starting...');
+        
         // Form validation and enhancement
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            
             const form = document.querySelector('form');
             const rentInput = document.getElementById('rent_amount');
             const unitNumberInput = document.getElementById('unit_number');
+            
+            
 
             // Format rent amount
             rentInput.addEventListener('input', function() {
@@ -687,12 +733,33 @@
             unitNumberInput.addEventListener('blur', function() {
                 if (!this.value.trim()) {
                     const unitType = document.getElementById('unit_type').value;
+                    const floorNumber = document.getElementById('floor_number')?.value;
+                    
                     if (unitType) {
-                        const timestamp = Date.now().toString().slice(-4);
-                        this.value = `${unitType.charAt(0).toUpperCase()}${timestamp}`;
+                        if (floorNumber) {
+                            // For buildings, suggest floor-based numbering
+                            this.value = floorNumber + '01';
+                        } else {
+                            // For houses, use type-based numbering
+                            const timestamp = Date.now().toString().slice(-4);
+                            this.value = `${unitType.charAt(0).toUpperCase()}${timestamp}`;
+                        }
                     }
                 }
             });
+            
+            // Update unit number suggestion when floor changes
+            const floorNumberSelect = document.getElementById('floor_number');
+            if (floorNumberSelect) {
+                floorNumberSelect.addEventListener('change', function() {
+                    if (!unitNumberInput.value.trim()) {
+                        const unitType = document.getElementById('unit_type').value;
+                        if (unitType && this.value) {
+                            unitNumberInput.value = this.value + '01';
+                        }
+                    }
+                });
+            }
 
             // Auto-populate bedrooms based on unit type
             const unitTypeSelect = document.getElementById('unit_type');
@@ -743,8 +810,9 @@
                     e.preventDefault();
                     alert('Please fill in all required fields.');
                 }
-            });
         });
-    </script>
+    });
+    
+</script>
 </body>
 </html> 

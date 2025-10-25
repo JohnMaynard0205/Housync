@@ -293,8 +293,8 @@
         </div>
         <div class="progress-connector"></div>
         <div class="progress-step">
-            <i class="fas fa-door-open"></i>
-            <span>Add Units</span>
+            <i class="fas fa-plus"></i>
+            <span>Add Units Later</span>
         </div>
         <div class="progress-connector"></div>
         <div class="progress-step">
@@ -347,88 +347,37 @@
                         @enderror
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label required">Total Units</label>
-                        <input type="number" name="total_units" id="total_units" class="form-control @error('total_units') error @enderror" 
-                               value="{{ old('total_units') }}" min="1" placeholder="e.g., 24" required>
-                        @error('total_units')
+                    <div class="form-group" id="floors_group">
+                        <label class="form-label required">Number of Floors</label>
+                        <input type="number" name="floors" id="floors" class="form-control @error('floors') error @enderror" 
+                               value="{{ old('floors', 1) }}" min="1" placeholder="e.g., 5" required>
+                        @error('floors')
                             <div class="form-error">{{ $message }}</div>
                         @enderror
-                        <small class="form-text text-muted">Enter the number of units in this property</small>
+                        <small class="form-text text-muted">How many floors does this building have?</small>
                     </div>
 
-                    <div class="form-group full-width">
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input" id="auto_generate_units" name="auto_generate_units" 
-                                   value="1" {{ old('auto_generate_units', '1') ? 'checked' : '' }}>
-                            <label class="custom-control-label" for="auto_generate_units">
-                                <strong>Auto-generate units</strong> (Automatically create unit records based on total units count)
-                            </label>
-                        </div>
-                        <small class="form-text text-muted">
-                            ✨ Recommended for properties with many units! This will create all unit records automatically.
-                        </small>
+                    <div class="form-group" id="bedrooms_group" style="display: none;">
+                        <label class="form-label required">Number of Bedrooms</label>
+                        <input type="number" name="bedrooms" id="bedrooms" class="form-control @error('bedrooms') error @enderror" 
+                               value="{{ old('bedrooms', 1) }}" min="1" placeholder="e.g., 3">
+                        @error('bedrooms')
+                            <div class="form-error">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">How many bedrooms does this house have?</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Auto-Generation Settings (shown when auto-generate is checked) -->
-            <div class="form-section" id="auto_gen_settings" style="display: block;">
+            <!-- Property Structure Information -->
+            <div class="form-section">
                 <h3 class="form-section-title">
-                    <i class="fas fa-magic"></i>
-                    Auto-Generation Settings
+                    <i class="fas fa-building"></i>
+                    Property Structure
                 </h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Default Unit Type</label>
-                        <select name="default_unit_type" class="form-control">
-                            <option value="Studio" {{ old('default_unit_type') == 'Studio' ? 'selected' : '' }}>Studio</option>
-                            <option value="1-Bedroom" {{ old('default_unit_type') == '1-Bedroom' ? 'selected' : '' }}>1-Bedroom</option>
-                            <option value="2-Bedroom" {{ old('default_unit_type', '2-Bedroom') == '2-Bedroom' ? 'selected' : '' }}>2-Bedroom</option>
-                            <option value="3-Bedroom" {{ old('default_unit_type') == '3-Bedroom' ? 'selected' : '' }}>3-Bedroom</option>
-                            <option value="Apartment" {{ old('default_unit_type') == 'Apartment' ? 'selected' : '' }}>Apartment</option>
-                        </select>
-                        <small class="form-text text-muted">Default type for all generated units</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Default Rent Amount (₱)</label>
-                        <input type="number" name="default_rent" class="form-control" 
-                               value="{{ old('default_rent', 15000) }}" min="0" step="100" placeholder="15000">
-                        <small class="form-text text-muted">You can edit individual unit prices later</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Units Per Floor</label>
-                        <input type="number" name="units_per_floor" id="units_per_floor" class="form-control" 
-                               value="{{ old('units_per_floor') }}" min="1" placeholder="Auto-calculated">
-                        <small class="form-text text-muted">Will use number of floors from Property Details below</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Default Bedrooms</label>
-                        <input type="number" name="default_bedrooms" class="form-control" 
-                               value="{{ old('default_bedrooms', 2) }}" min="0" max="10">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Default Bathrooms</label>
-                        <input type="number" name="default_bathrooms" class="form-control" 
-                               value="{{ old('default_bathrooms', 1) }}" min="1" max="10">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Numbering Pattern</label>
-                        <select name="numbering_pattern" class="form-control">
-                            <option value="floor_based" {{ old('numbering_pattern', 'floor_based') == 'floor_based' ? 'selected' : '' }}>Floor-Based (101, 102, 201, 202...)</option>
-                            <option value="sequential" {{ old('numbering_pattern') == 'sequential' ? 'selected' : '' }}>Sequential (Unit 1, Unit 2, Unit 3...)</option>
-                            <option value="letter_number" {{ old('numbering_pattern') == 'letter_number' ? 'selected' : '' }}>Letter-Number (A1, A2, B1, B2...)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="alert alert-info mt-3">
+                <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
-                    <strong>Note:</strong> All generated units will be created with status "Available". You can edit individual units later to customize details.
+                    <strong>Note:</strong> You can add units later from the "My Units" page after creating this property.
                 </div>
             </div>
 
@@ -501,15 +450,6 @@
                     Property Details
                 </h3>
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Number of Floors</label>
-                        <input type="number" name="floors" id="floors" class="form-control @error('floors') error @enderror" 
-                               value="{{ old('floors', 1) }}" min="1" placeholder="e.g., 5" required>
-                        @error('floors')
-                            <div class="form-error">{{ $message }}</div>
-                        @enderror
-                        <small class="form-text text-muted">Required for auto-generation of units</small>
-                    </div>
 
                     <div class="form-group">
                         <label class="form-label">Parking Spaces</label>
@@ -779,44 +719,33 @@
             }
         });
 
-        // Auto-generation toggle
-        const autoGenCheckbox = document.getElementById('auto_generate_units');
-        const autoGenSettings = document.getElementById('auto_gen_settings');
-        const totalUnitsInput = document.getElementById('total_units');
+        // Property type change handler
+        const propertyTypeSelect = document.querySelector('select[name="property_type"]');
+        const floorsGroup = document.getElementById('floors_group');
+        const bedroomsGroup = document.getElementById('bedrooms_group');
         const floorsInput = document.getElementById('floors');
-        const unitsPerFloorInput = document.getElementById('units_per_floor');
+        const bedroomsInput = document.getElementById('bedrooms');
 
-        // Show/hide auto-generation settings
-        if (autoGenCheckbox && autoGenSettings) {
-            function toggleAutoGenSettings() {
-                if (autoGenCheckbox.checked) {
-                    autoGenSettings.style.display = 'block';
-                } else {
-                    autoGenSettings.style.display = 'none';
-                }
-            }
-
-            autoGenCheckbox.addEventListener('change', toggleAutoGenSettings);
-
-            // Initial state - show if checkbox is checked
-            toggleAutoGenSettings();
-        }
-
-        // Auto-calculate units per floor
-        function calculateUnitsPerFloor() {
-            const totalUnits = parseInt(totalUnitsInput.value) || 0;
-            const numFloors = parseInt(floorsInput.value) || 1;
+        function togglePropertyFields() {
+            const propertyType = propertyTypeSelect.value;
             
-            if (totalUnits > 0 && numFloors > 0 && !unitsPerFloorInput.value) {
-                const perFloor = Math.ceil(totalUnits / numFloors);
-                unitsPerFloorInput.placeholder = `Auto: ${perFloor} units/floor`;
+            if (propertyType === 'house') {
+                floorsGroup.style.display = 'none';
+                bedroomsGroup.style.display = 'block';
+                floorsInput.removeAttribute('required');
+                bedroomsInput.setAttribute('required', 'required');
+            } else {
+                floorsGroup.style.display = 'block';
+                bedroomsGroup.style.display = 'none';
+                floorsInput.setAttribute('required', 'required');
+                bedroomsInput.removeAttribute('required');
             }
         }
 
-        if (totalUnitsInput && floorsInput) {
-            totalUnitsInput.addEventListener('input', calculateUnitsPerFloor);
-            floorsInput.addEventListener('input', calculateUnitsPerFloor);
-            calculateUnitsPerFloor();
+        if (propertyTypeSelect) {
+            propertyTypeSelect.addEventListener('change', togglePropertyFields);
+            // Initial state
+            togglePropertyFields();
         }
     });
 </script>

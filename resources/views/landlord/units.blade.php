@@ -4,76 +4,6 @@
 
 @push('styles')
 <style>
-.units-list {
-    background: white;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-}
-
-.units-list .list-header {
-    display: flex;
-    padding: 1rem 1.5rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-.units-list .list-row {
-    display: flex;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    align-items: center;
-    transition: background 0.15s ease;
-}
-
-.units-list .list-row:hover {
-    background: #f8fafc;
-}
-
-.units-list .list-row:last-child {
-    border-bottom: none;
-}
-
-.units-list .list-column {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    font-size: 0.875rem;
-}
-
-.units-list .text-center {
-    justify-content: center;
-}
-
-.units-list .text-right {
-    justify-content: flex-end;
-}
-
-.btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 0.375rem;
-    border: 1px solid #e2e8f0;
-    background: white;
-    color: #64748b;
-    transition: all 0.15s ease;
-    cursor: pointer;
-}
-
-.btn-icon:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-color: #cbd5e1;
-}
 </style>
 @endpush
 
@@ -650,6 +580,143 @@
             padding: 0.5rem;
             color: #94a3b8;
         }
+
+        /* Table Styles */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .table thead th {
+            background: #f8fafc;
+            border: none;
+            padding: 1rem 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table tbody td {
+            padding: 1rem 0.75rem;
+            border: none;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Unit Number Badge */
+        .unit-number-badge {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Property Name */
+        .property-name {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        /* Unit Type */
+        .unit-type {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        /* Bed/Bath Info */
+        .bed-bath-info {
+            font-size: 0.875rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Floor Number */
+        .floor-number {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Rent Amount */
+        .rent-amount {
+            color: #0f172a;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Max Occupants */
+        .max-occupants {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        /* Action Buttons */
+        .btn-group .btn {
+            border-radius: 0.375rem;
+            margin: 0 0.125rem;
+        }
+
+        .btn-group .btn:first-child {
+            margin-left: 0;
+        }
+
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Status Badges */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        /* Responsive Table */
+        @media (max-width: 768px) {
+            .table-responsive {
+                border-radius: 0.5rem;
+            }
+            
+            .table thead th,
+            .table tbody td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            .unit-number-badge {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.75rem;
+                min-width: 50px;
+            }
+            
+            .btn-group .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -759,7 +826,8 @@
                         <div class="sort-dropdown">
                             <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
                             <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
-                                <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Unit Number</option>
+                                <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
+                                <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
                                 <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
                                 <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
                                 <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
@@ -777,69 +845,84 @@
                 </div>
 
                 @if($units->count() > 0)
-                    <div class="units-list">
-                        <div class="list-header">
-                            <div class="list-column" style="flex: 1.5;">Unit Number</div>
-                            <div class="list-column" style="flex: 1.5;">Property</div>
-                            <div class="list-column">Type</div>
-                            <div class="list-column text-center">Beds / Baths</div>
-                            <div class="list-column text-center">Floor</div>
-                            <div class="list-column text-center">Status</div>
-                            <div class="list-column text-right">Rent/Month</div>
-                            <div class="list-column text-center">Actions</div>
-                        </div>
-                        
-                        @foreach($units as $unit)
-                            <div class="list-row">
-                                <div class="list-column" style="flex: 1.5;">
-                                    <div style="font-weight: 600; color: #1e293b;">{{ $unit->unit_number }}</div>
-                                </div>
-                                <div class="list-column" style="flex: 1.5;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <i class="fas fa-building" style="color: #94a3b8; font-size: 0.75rem;"></i>
-                                        <span>{{ $unit->apartment->name ?? 'Unknown' }}</span>
-                                    </div>
-                                </div>
-                                <div class="list-column">
-                                    <span style="color: #64748b;">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: center;">
-                                        <span title="Bedrooms"><i class="fas fa-bed" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bedrooms ?? 0 }}</span>
-                                        <span title="Bathrooms"><i class="fas fa-bath" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bathrooms ?? 1 }}</span>
-                                    </div>
-                                </div>
-                                <div class="list-column text-center">
-                                    <span style="color: #64748b;">{{ $unit->floor_number ?? 'N/A' }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    @php
-                                        $statusColors = [
-                                            'available' => ['bg' => '#dcfce7', 'text' => '#16a34a'],
-                                            'occupied' => ['bg' => '#fee2e2', 'text' => '#dc2626'],
-                                            'maintenance' => ['bg' => '#fef3c7', 'text' => '#d97706'],
-                                        ];
-                                        $color = $statusColors[$unit->status] ?? ['bg' => '#e2e8f0', 'text' => '#64748b'];
-                                    @endphp
-                                    <span style="background: {{ $color['bg'] }}; color: {{ $color['text'] }}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                                        {{ ucfirst($unit->status) }}
-                                    </span>
-                                </div>
-                                <div class="list-column text-right">
-                                    <span style="color: #0f172a; font-weight: 600;">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                        <button onclick="editUnit({{ $unit->id }})" class="btn-icon" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="viewUnitDetails({{ $unit->id }})" class="btn-icon" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 12%;">Unit Number</th>
+                                    <th style="width: 18%;">Property</th>
+                                    <th style="width: 12%;">Type</th>
+                                    <th style="width: 10%;" class="text-center">Beds / Baths</th>
+                                    <th style="width: 8%;" class="text-center">Floor</th>
+                                    <th style="width: 10%;" class="text-center">Status</th>
+                                    <th style="width: 12%;" class="text-end">Rent/Month</th>
+                                    <th style="width: 8%;" class="text-center">Max Occupants</th>
+                                    <th style="width: 10%;" class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($units as $unit)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="unit-number-badge">
+                                                    {{ $unit->unit_number }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-building text-muted me-2"></i>
+                                                <span class="property-name">{{ $unit->apartment->name ?? 'Unknown' }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="unit-type">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center align-items-center gap-3">
+                                                <span class="bed-bath-info" title="Bedrooms">
+                                                    <i class="fas fa-bed text-muted me-1"></i>{{ $unit->bedrooms ?? 0 }}
+                                                </span>
+                                                <span class="bed-bath-info" title="Bathrooms">
+                                                    <i class="fas fa-bath text-muted me-1"></i>{{ $unit->bathrooms ?? 1 }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="floor-number">{{ $unit->floor_number ?? 'N/A' }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            @php
+                                                $statusConfig = [
+                                                    'available' => ['class' => 'badge bg-success', 'text' => 'Available'],
+                                                    'occupied' => ['class' => 'badge bg-danger', 'text' => 'Occupied'],
+                                                    'maintenance' => ['class' => 'badge bg-warning', 'text' => 'Maintenance'],
+                                                ];
+                                                $config = $statusConfig[$unit->status] ?? ['class' => 'badge bg-secondary', 'text' => ucfirst($unit->status)];
+                                            @endphp
+                                            <span class="{{ $config['class'] }}">{{ $config['text'] }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="rent-amount">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="max-occupants">{{ $unit->max_occupants ?? '-' }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <button onclick="editUnit({{ $unit->id }})" class="btn btn-sm btn-outline-primary" title="Edit Unit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="viewUnitDetails({{ $unit->id }})" class="btn btn-sm btn-outline-info" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
 
                     <!-- Pagination -->

@@ -67,7 +67,11 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     // Create Unit routes must come BEFORE parameterized units route to avoid "create" being captured as {apartmentId}
     Route::get('/units/create', [LandlordController::class, 'createUnit'])->name('create-unit');
     Route::get('/apartments/{apartmentId}/units/create', [LandlordController::class, 'createUnit'])->name('create-unit-for-apartment')->whereNumber('apartmentId');
+    Route::get('/apartments/{apartmentId}/units/create-multiple', [LandlordController::class, 'createMultipleUnits'])->name('create-multiple-units')->whereNumber('apartmentId');
     Route::post('/apartments/{apartmentId}/units', [LandlordController::class, 'storeUnit'])->name('store-unit')->whereNumber('apartmentId');
+    Route::post('/apartments/{apartmentId}/units/bulk', [LandlordController::class, 'storeBulkUnits'])->name('store-bulk-units')->whereNumber('apartmentId');
+    Route::get('/apartments/{apartmentId}/units/bulk-edit', [LandlordController::class, 'bulkEditUnits'])->name('bulk-edit-units')->whereNumber('apartmentId');
+    Route::post('/apartments/{apartmentId}/units/finalize-bulk', [LandlordController::class, 'finalizeBulkUnits'])->name('finalize-bulk-units')->whereNumber('apartmentId');
     Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
     
     // Bulk Unit Generation Route
