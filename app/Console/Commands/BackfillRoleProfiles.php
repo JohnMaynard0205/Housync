@@ -45,10 +45,11 @@ class BackfillRoleProfiles extends Command
                                 LandlordProfile::create([
                                     'user_id' => $user->id,
                                     'name' => $user->name ?? 'User',
-                                    'phone' => $user->phone,
-                                    'address' => $user->address,
-                                    'business_info' => $user->business_info,
+                                    'phone' => $user->getAttribute('phone'),
+                                    'address' => $user->getAttribute('address'),
+                                    'business_info' => $user->getAttribute('business_info'),
                                     'company_name' => $defaults['landlord_company'],
+                                    'status' => 'pending',
                                 ]);
                             }
                             $created['landlord']++;
@@ -61,8 +62,9 @@ class BackfillRoleProfiles extends Command
                                 TenantProfile::create([
                                     'user_id' => $user->id,
                                     'name' => $user->name ?? 'User',
-                                    'phone' => $user->phone,
-                                    'address' => $user->address,
+                                    'phone' => $user->getAttribute('phone'),
+                                    'address' => $user->getAttribute('address'),
+                                    'status' => 'active',
                                 ]);
                             }
                             $created['tenant']++;
@@ -75,9 +77,10 @@ class BackfillRoleProfiles extends Command
                                 StaffProfile::create([
                                     'user_id' => $user->id,
                                     'name' => $user->name ?? 'User',
-                                    'phone' => $user->phone,
-                                    'address' => $user->address,
-                                    'staff_type' => $user->staff_type ?? $defaults['staff_type'],
+                                    'phone' => $user->getAttribute('phone'),
+                                    'address' => $user->getAttribute('address'),
+                                    'staff_type' => $user->getAttribute('staff_type') ?? $defaults['staff_type'],
+                                    'status' => 'active',
                                 ]);
                             }
                             $created['staff']++;
@@ -90,9 +93,10 @@ class BackfillRoleProfiles extends Command
                                 SuperAdminProfile::create([
                                     'user_id' => $user->id,
                                     'name' => $user->name ?? 'User',
-                                    'phone' => $user->phone,
-                                    'address' => $user->address,
+                                    'phone' => $user->getAttribute('phone'),
+                                    'address' => $user->getAttribute('address'),
                                     'notes' => $defaults['super_admin_notes'],
+                                    'status' => 'active',
                                 ]);
                             }
                             $created['super_admin']++;

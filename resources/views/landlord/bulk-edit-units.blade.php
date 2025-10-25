@@ -266,7 +266,7 @@
             <a href="{{ route('landlord.units', $apartment->id) }}" class="btn btn-outline">
                 <i class="fas fa-arrow-left"></i> Cancel
             </a>
-            <button type="submit" class="btn btn-primary" onclick="debugFormSubmission()">
+            <button type="button" class="btn btn-primary" onclick="finalizeUnits()">
                 <i class="fas fa-save"></i> Finalize Units
             </button>
         </div>
@@ -276,6 +276,24 @@
 <script>
 let unitsData = {};
 let currentFloor = 1;
+let existingUnits = [];
+
+// Function to find next available unit number for a floor
+function getNextAvailableUnitNumber(floor, existingUnits) {
+    let unitNumber = 1;
+    while (true) {
+        const paddedUnit = String(unitNumber).padStart(2, '0');
+        const fullUnitNumber = floor + paddedUnit;
+        if (!existingUnits.includes(fullUnitNumber)) {
+            return fullUnitNumber;
+        }
+        unitNumber++;
+        // Safety check to prevent infinite loop
+        if (unitNumber > 99) {
+            return floor + '99'; // Fallback
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async function() {
     await initializeBulkEdit();
@@ -294,6 +312,10 @@ async function initializeBulkEdit() {
     const defaultRent = bulkParams.default_rent || 15000;
     const defaultBedrooms = bulkParams.default_bedrooms || 2;
     const defaultBathrooms = bulkParams.default_bathrooms || 1;
+    
+    // Get existing unit numbers from the apartment
+    existingUnits = @json($apartment->units->pluck('unit_number')->toArray() ?? []);
+    console.log('Existing unit numbers:', existingUnits);
     
     console.log('Bulk creation parameters:', bulkParams);
     console.log('Units per floor:', unitsPerFloor);
@@ -342,8 +364,11 @@ async function initializeBulkEdit() {
                 }
                 
                 for (let unit = 1; unit <= unitsPerFloor; unit++) {
-                    const unitNumber = floor + String(unit).padStart(2, '0');
+                    const unitNumber = getNextAvailableUnitNumber(floor, existingUnits);
                     console.log(`Creating unit ${unitNumber} for floor ${floor} (unit ${unit}/${unitsPerFloor})`);
+                    
+                    // Add this unit number to existing units to avoid duplicates in the same batch
+                    existingUnits.push(unitNumber);
                     
                     try {
                         const success = addUnitToFloor(floor, {
@@ -403,8 +428,16 @@ function addUnitToFloor(floor, unitData = null) {
     
     console.log(`Adding unit to floor ${floor}, container:`, floorContainer);
     
+    // Get existing unit numbers from the current form and database
+    const formExistingUnits = Array.from(document.querySelectorAll('input[name*="unit_number"]'))
+        .map(input => input.value)
+        .filter(value => value.trim() !== '');
+    
+    // Combine database units and form units
+    const allExistingUnits = [...existingUnits, ...formExistingUnits];
+    
     const defaultData = unitData || {
-        unit_number: `${floor}01`,
+        unit_number: getNextAvailableUnitNumber(floor, allExistingUnits),
         unit_type: 'two_bedroom',
         rent_amount: 15000,
         bedrooms: 2,
@@ -612,25 +645,104 @@ function duplicateFloor() {
     alert('Duplicate floor functionality will be implemented');
 }
 
-function debugFormSubmission() {
-    // Count all unit rows
-    const allUnitRows = document.querySelectorAll('.unit-row');
-    console.log('Total unit rows found:', allUnitRows.length);
+function finalizeUnits() {
+    console.log('Starting finalizeUnits...');
     
-    // Count units per floor
-    const floors = document.querySelectorAll('.floor-section');
-    floors.forEach((floor, index) => {
-        const floorNumber = floor.dataset.floor;
-        const unitsInFloor = floor.querySelectorAll('.unit-row');
-        console.log(`Floor ${floorNumber}: ${unitsInFloor.length} units`);
+    // Get all existing unit inputs from the form
+    const form = document.getElementById('bulkEditForm');
+    const allUnitInputs = form.querySelectorAll('input[name*="units["], select[name*="units["]');
+    
+    console.log('Found existing unit inputs:', allUnitInputs.length);
+    
+    // Group inputs by unit ID
+    const unitsMap = new Map();
+    
+    allUnitInputs.forEach(input => {
+        const name = input.name;
+        const match = name.match(/units\[([^\]]+)\]\[([^\]]+)\]/);
+        
+        if (match) {
+            const unitId = match[1];
+            const fieldName = match[2];
+            const value = input.type === 'checkbox' ? input.checked : input.value;
+            
+            if (!unitsMap.has(unitId)) {
+                unitsMap.set(unitId, {});
+            }
+            
+            unitsMap.get(unitId)[fieldName] = value;
+        }
     });
     
-    // Count form inputs
-    const unitInputs = document.querySelectorAll('input[name*="[unit_number]"]');
-    console.log('Unit number inputs found:', unitInputs.length);
+    console.log('Units map:', unitsMap);
     
-    // Show alert with counts
-    alert(`Debug Info:\nTotal unit rows: ${allUnitRows.length}\nUnit inputs: ${unitInputs.length}\nCheck console for detailed breakdown.`);
+    // Convert to array and filter out empty units
+    const units = [];
+    let unitIndex = 0;
+    
+    unitsMap.forEach((unitData, unitId) => {
+        // Only include units that have a unit_number
+        if (unitData.unit_number && unitData.unit_number.trim() !== '') {
+            // Add floor_number if not present
+            if (!unitData.floor_number) {
+                // Try to determine floor from unit number
+                const unitNum = unitData.unit_number.toString();
+                if (unitNum.length >= 3) {
+                    unitData.floor_number = parseInt(unitNum.substring(0, unitNum.length - 2));
+                } else {
+                    unitData.floor_number = 1;
+                }
+            }
+            
+            // Convert numeric fields
+            unitData.rent_amount = parseFloat(unitData.rent_amount) || 0;
+            unitData.bedrooms = parseInt(unitData.bedrooms) || 0;
+            unitData.bathrooms = parseInt(unitData.bathrooms) || 1;
+            unitData.max_occupants = parseInt(unitData.max_occupants) || 4;
+            unitData.is_furnished = unitData.is_furnished === 'true' || unitData.is_furnished === true || unitData.is_furnished === '1';
+            
+            units.push(unitData);
+            unitIndex++;
+        }
+    });
+    
+    console.log('Final units array:', units);
+    
+    if (units.length === 0) {
+        alert('No units to create. Please add at least one unit with a unit number.');
+        return;
+    }
+    
+    // Remove all existing unit inputs
+    allUnitInputs.forEach(input => input.remove());
+    
+    // Add new properly formatted inputs
+    units.forEach((unit, index) => {
+        Object.keys(unit).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `units[${index}][${key}]`;
+            input.value = unit[key];
+            form.appendChild(input);
+        });
+    });
+    
+    console.log('Form prepared with', units.length, 'units');
+    console.log('Form data before submit:', new FormData(form));
+    
+    // Show confirmation
+    if (confirm(`Are you sure you want to create ${units.length} units?\n\nUnits: ${units.map(u => u.unit_number).join(', ')}`)) {
+        console.log('Submitting form...');
+        
+        // Debug: Log the form data before submission
+        const formData = new FormData(form);
+        console.log('Form data entries:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        
+        form.submit();
+    }
 }
 </script>
 @endsection

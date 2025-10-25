@@ -159,6 +159,7 @@ class SuperAdminController extends Controller
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'business_info' => $request->business_info,
+                    'status' => 'pending',
                 ]);
                 if ($request->approve_immediately) {
                     $user->approve(Auth::id());
@@ -170,6 +171,7 @@ class SuperAdminController extends Controller
                     'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    'status' => 'active',
                 ]);
                 break;
             case 'staff':
@@ -179,6 +181,7 @@ class SuperAdminController extends Controller
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'staff_type' => $request->staff_type,
+                    'status' => 'active',
                 ]);
                 break;
             case 'super_admin':
@@ -187,6 +190,7 @@ class SuperAdminController extends Controller
                     'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    'status' => 'active',
                 ]);
                 break;
         }

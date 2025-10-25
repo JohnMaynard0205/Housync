@@ -701,9 +701,22 @@ class LandlordController extends Controller
 
     public function finalizeBulkUnits(Request $request, $apartmentId)
     {
+        \Log::info('finalizeBulkUnits method called', [
+            'apartmentId' => $apartmentId,
+            'request_data' => $request->all(),
+            'has_units' => $request->has('units'),
+            'units_count' => $request->has('units') ? count($request->input('units', [])) : 0
+        ]);
+        
         /** @var \App\Models\User $landlord */
         $landlord = Auth::user();
         $apartment = $landlord->apartments()->findOrFail($apartmentId);
+
+        // Check if units data exists
+        if (!$request->has('units') || empty($request->input('units'))) {
+            \Log::error('No units data received in finalizeBulkUnits');
+            return back()->with('error', 'No units data received. Please try again.');
+        }
 
         $request->validate([
             'units' => 'required|array',
@@ -735,6 +748,22 @@ class LandlordController extends Controller
                     'unit_type' => $unitData['unit_type']
                 ]);
                 
+                // Check if unit already exists
+                $existingUnit = $apartment->units()->where('unit_number', $unitData['unit_number'])->first();
+                if ($existingUnit) {
+                    \Log::warning('Unit already exists, skipping', [
+                        'unit_number' => $unitData['unit_number'],
+                        'existing_unit_id' => $existingUnit->id
+                    ]);
+                    continue;
+                }
+                
+                // Convert is_furnished to proper boolean
+                $isFurnished = false;
+                if (isset($unitData['is_furnished'])) {
+                    $isFurnished = $unitData['is_furnished'] === 'true' || $unitData['is_furnished'] === true || $unitData['is_furnished'] === '1' || $unitData['is_furnished'] === 1;
+                }
+                
                 $apartment->units()->create([
                     'unit_number' => $unitData['unit_number'],
                     'unit_type' => $unitData['unit_type'],
@@ -748,7 +777,7 @@ class LandlordController extends Controller
                     'floor_number' => $unitData['floor_number'],
                     'description' => "Customized unit {$unitData['unit_number']}",
                     'amenities' => [],
-                    'is_furnished' => $unitData['is_furnished'] ?? false,
+                    'is_furnished' => $isFurnished,
                 ]);
                 $unitsCreated++;
             }
@@ -921,6 +950,7 @@ class LandlordController extends Controller
             'phone' => $request->phone,
             'address' => $request->address,
             'business_info' => $request->business_info,
+            'status' => 'pending',
         ]);
 
         // Store uploaded documents for review (pending verification)

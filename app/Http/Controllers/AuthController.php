@@ -106,6 +106,8 @@ class AuthController extends Controller
             [
                 'name' => $request->first_name . ' ' . $request->last_name,
                 'status' => 'active',
+                'phone' => null,
+                'address' => null,
             ]
         );
 

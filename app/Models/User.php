@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -12,12 +13,12 @@ use Illuminate\Notifications\Notifiable;
  * @property string $email
  * @property string $password
  * @property string $role
+ * @property string $name
  * @property \Carbon\Carbon|null $email_verified_at
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * 
  * Delegated to Profile:
- * @property string $name (via profile)
  * @property string $status (via profile)
  * @property string|null $phone (via profile)
  * @property string|null $address (via profile)
@@ -146,7 +147,7 @@ class User extends Authenticatable
     /**
      * Get the profile instance based on role
      */
-    public function profile()
+    public function profile(): ?Model
     {
         return match($this->role) {
             'super_admin' => $this->superAdminProfile,
@@ -158,7 +159,7 @@ class User extends Authenticatable
     }
 
     // Accessors - Delegate to Profile
-    public function getNameAttribute($value)
+    public function getNameAttribute($value): string
     {
         // Ensure profile is loaded
         $relationName = $this->getProfileRelation();
@@ -176,23 +177,23 @@ class User extends Authenticatable
         return ($value && $value !== 'New User') ? $value : 'User';
     }
 
-    public function getPhoneAttribute($value)
+    public function getPhoneAttribute($value): ?string
     {
         return $this->profile()?->phone ?? $value;
     }
 
-    public function getAddressAttribute($value)
+    public function getAddressAttribute($value): ?string
     {
         return $this->profile()?->address ?? $value;
     }
 
-    public function getStatusAttribute($value)
+    public function getStatusAttribute($value): string
     {
         return $this->profile()?->status ?? $value ?? 'active';
     }
 
     // Landlord-specific accessors
-    public function getBusinessInfoAttribute($value)
+    public function getBusinessInfoAttribute($value): ?string
     {
         if ($this->isLandlord()) {
             return $this->landlordProfile?->business_info ?? $value;
@@ -200,7 +201,7 @@ class User extends Authenticatable
         return $value;
     }
 
-    public function getApprovedAtAttribute($value)
+    public function getApprovedAtAttribute($value): ?\Carbon\Carbon
     {
         if ($this->isLandlord()) {
             return $this->landlordProfile?->approved_at ?? $value;
@@ -208,7 +209,7 @@ class User extends Authenticatable
         return $value;
     }
 
-    public function getApprovedByAttribute($value)
+    public function getApprovedByAttribute($value): ?int
     {
         if ($this->isLandlord()) {
             return $this->landlordProfile?->approved_by ?? $value;
@@ -216,7 +217,7 @@ class User extends Authenticatable
         return $value;
     }
 
-    public function getRejectionReasonAttribute($value)
+    public function getRejectionReasonAttribute($value): ?string
     {
         if ($this->isLandlord()) {
             return $this->landlordProfile?->rejection_reason ?? $value;
@@ -225,7 +226,7 @@ class User extends Authenticatable
     }
 
     // Staff-specific accessor
-    public function getStaffTypeAttribute($value)
+    public function getStaffTypeAttribute($value): ?string
     {
         if ($this->isStaff()) {
             return $this->staffProfile?->staff_type ?? $value;
@@ -391,11 +392,23 @@ class User extends Authenticatable
         if ($profileClass && !$this->profile()) {
             // Only create profile if we have a proper name
             if ($this->name && $this->name !== 'New User') {
-                $profileClass::create([
+                $profileData = [
                     'user_id' => $this->id,
                     'name' => $this->name,
-                    'status' => $this->role === 'landlord' ? 'pending' : 'active',
-                ]);
+                ];
+                
+                // Add status based on role
+                if ($this->role === 'landlord') {
+                    $profileData['status'] = 'pending';
+                } elseif ($this->role === 'tenant') {
+                    $profileData['status'] = 'active';
+                } elseif ($this->role === 'staff') {
+                    $profileData['status'] = 'active';
+                } elseif ($this->role === 'super_admin') {
+                    $profileData['status'] = 'active';
+                }
+                
+                $profileClass::create($profileData);
             }
         }
     }
