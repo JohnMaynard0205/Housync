@@ -148,10 +148,6 @@ class SuperAdminController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
-            'status' => $request->role === 'landlord' ? 'pending' : 'active',
         ]);
 
         // Create role-specific profile
@@ -159,6 +155,7 @@ class SuperAdminController extends Controller
             case 'landlord':
                 LandlordProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'business_info' => $request->business_info,
@@ -170,6 +167,7 @@ class SuperAdminController extends Controller
             case 'tenant':
                 TenantProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                 ]);
@@ -177,6 +175,7 @@ class SuperAdminController extends Controller
             case 'staff':
                 StaffProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'staff_type' => $request->staff_type,
@@ -185,6 +184,7 @@ class SuperAdminController extends Controller
             case 'super_admin':
                 SuperAdminProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                 ]);

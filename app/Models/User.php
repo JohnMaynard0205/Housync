@@ -29,7 +29,7 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
-     * Note: name, phone, address, etc. are now in profile tables
+     * Note: name is stored in both users table and profile for compatibility
      *
      * @var list<string>
      */
@@ -37,6 +37,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'name',
     ];
 
     /**
@@ -167,12 +168,12 @@ class User extends Authenticatable
         
         // Try to get name from the profile relationship
         $profile = $this->profile();
-        if ($profile && isset($profile->name)) {
+        if ($profile && isset($profile->name) && $profile->name !== 'New User') {
             return $profile->name;
         }
         
-        // Fallback to the value from users table if it exists
-        return $value ?? 'New User';
+        // Fallback to the value from users table if it exists and is not "New User"
+        return ($value && $value !== 'New User') ? $value : 'User';
     }
 
     public function getPhoneAttribute($value)
@@ -375,6 +376,7 @@ class User extends Authenticatable
     
     /**
      * Create profile if it doesn't exist
+     * Note: This should only be called when a name is available
      */
     public function createProfileIfNeeded()
     {
@@ -387,11 +389,14 @@ class User extends Authenticatable
         };
         
         if ($profileClass && !$this->profile()) {
-            $profileClass::create([
-                'user_id' => $this->id,
-                'name' => 'New User', // Default, will be updated
-                'status' => $this->role === 'landlord' ? 'pending' : 'active',
-            ]);
+            // Only create profile if we have a proper name
+            if ($this->name && $this->name !== 'New User') {
+                $profileClass::create([
+                    'user_id' => $this->id,
+                    'name' => $this->name,
+                    'status' => $this->role === 'landlord' ? 'pending' : 'active',
+                ]);
+            }
         }
     }
 }

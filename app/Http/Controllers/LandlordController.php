@@ -912,15 +912,12 @@ class LandlordController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'landlord',
-            'status' => 'pending',
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
         ]);
 
         // Create landlord profile for role-specific data
         LandlordProfile::create([
             'user_id' => $landlord->id,
+            'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
             'business_info' => $request->business_info,

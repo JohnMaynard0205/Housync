@@ -91,8 +91,9 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        // Create user (without name - it's in the profile now)
+        // Create user with name
         $user = User::create([
+            'name' => $request->first_name . ' ' . $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'tenant',

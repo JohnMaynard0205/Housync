@@ -44,6 +44,7 @@ class BackfillRoleProfiles extends Command
                             if (!$dryRun) {
                                 LandlordProfile::create([
                                     'user_id' => $user->id,
+                                    'name' => $user->name ?? 'User',
                                     'phone' => $user->phone,
                                     'address' => $user->address,
                                     'business_info' => $user->business_info,
@@ -59,6 +60,7 @@ class BackfillRoleProfiles extends Command
                             if (!$dryRun) {
                                 TenantProfile::create([
                                     'user_id' => $user->id,
+                                    'name' => $user->name ?? 'User',
                                     'phone' => $user->phone,
                                     'address' => $user->address,
                                 ]);
@@ -72,6 +74,7 @@ class BackfillRoleProfiles extends Command
                             if (!$dryRun) {
                                 StaffProfile::create([
                                     'user_id' => $user->id,
+                                    'name' => $user->name ?? 'User',
                                     'phone' => $user->phone,
                                     'address' => $user->address,
                                     'staff_type' => $user->staff_type ?? $defaults['staff_type'],
@@ -86,6 +89,7 @@ class BackfillRoleProfiles extends Command
                             if (!$dryRun) {
                                 SuperAdminProfile::create([
                                     'user_id' => $user->id,
+                                    'name' => $user->name ?? 'User',
                                     'phone' => $user->phone,
                                     'address' => $user->address,
                                     'notes' => $defaults['super_admin_notes'],
