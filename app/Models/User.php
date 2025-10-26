@@ -45,19 +45,6 @@ class User extends Authenticatable
      * Eager load profile relationship based on role
      */
     protected $with = [];
-    
-    /**
-     * Boot the model and auto-load appropriate profile
-     */
-    protected static function booted()
-    {
-        static::retrieved(function ($user) {
-            $relationName = $user->getProfileRelation();
-            if ($relationName && !$user->relationLoaded($relationName)) {
-                $user->load($relationName);
-            }
-        });
-    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -364,12 +351,21 @@ class User extends Authenticatable
     }
     
     /**
-     * Create or update profile when user is created/updated
+     * Boot the model
      */
     protected static function boot()
     {
         parent::boot();
         
+        // Auto-load appropriate profile when user is retrieved
+        static::retrieved(function ($user) {
+            $relationName = $user->getProfileRelation();
+            if ($relationName && !$user->relationLoaded($relationName)) {
+                $user->load($relationName);
+            }
+        });
+        
+        // Create profile when user is created
         static::created(function ($user) {
             $user->createProfileIfNeeded();
         });
