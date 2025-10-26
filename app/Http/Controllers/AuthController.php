@@ -91,16 +91,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        // Create user with name
+        // Create user without name (name is stored in profile)
         $user = User::create([
-            'name' => $request->first_name . ' ' . $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'tenant',
         ]);
 
-        // Update or create tenant profile with the actual name
-        // (User model's boot() may have already created it with default name)
+        // Create tenant profile with the actual name
         TenantProfile::updateOrCreate(
             ['user_id' => $user->id],
             [

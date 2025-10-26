@@ -30,7 +30,7 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
-     * Note: name is stored in both users table and profile for compatibility
+     * Note: name is stored in profiles only, not in users table
      *
      * @var list<string>
      */
@@ -38,7 +38,6 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'name',
     ];
 
     /**
