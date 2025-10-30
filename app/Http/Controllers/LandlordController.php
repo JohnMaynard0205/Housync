@@ -455,6 +455,14 @@ class LandlordController extends Controller
                 $q->where('landlord_id', $landlord->id);
             });
         }
+
+        // Optional filter by property from dropdown
+        if ($request->filled('apartment')) {
+            $selectedApartmentId = (int) $request->get('apartment');
+            $query->where('apartment_id', $selectedApartmentId);
+            $statsQuery->where('apartment_id', $selectedApartmentId);
+            $apartmentId = $selectedApartmentId; // for view context
+        }
         
         // Calculate stats from the full dataset (not paginated)
         $stats = [
@@ -536,7 +544,7 @@ class LandlordController extends Controller
         $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
+            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'status' => 'required|in:available,maintenance',
@@ -720,7 +728,7 @@ class LandlordController extends Controller
 
         $request->validate([
             'units' => 'required|array',
-            'units.*.unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50',
+            'units.*.unit_number' => 'required|string|max:50',
             'units.*.unit_type' => 'required|string|max:100',
             'units.*.rent_amount' => 'required|numeric|min:0',
             'units.*.bedrooms' => 'required|integer|min:0',
@@ -805,7 +813,7 @@ class LandlordController extends Controller
 
         try {
             $request->validate([
-                'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,' . $unit->id . ',id,apartment_id,' . $unit->apartment_id,
+                'unit_number' => 'required|string|max:50|unique:units,unit_number,' . $unit->id . ',id,apartment_id,' . $unit->apartment_id,
                 'unit_type' => 'required|string|max:100',
                 'rent_amount' => 'required|numeric|min:0',
                 'status' => 'required|in:available,occupied,maintenance',
@@ -1289,7 +1297,7 @@ class LandlordController extends Controller
         $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
+            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'bedrooms' => 'required|integer|min:0',
