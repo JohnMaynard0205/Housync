@@ -99,7 +99,7 @@ class ExploreController extends Controller
             return response()->json([
                 'success' => true,
                 'html' => view('partials.property-cards', compact('properties'))->render(),
-                'pagination' => $properties->links('pagination::bootstrap-5')->render(),
+                'pagination' => $properties->links('pagination::bootstrap-5')->toHtml(),
                 'count' => $properties->total(),
             ]);
         }
