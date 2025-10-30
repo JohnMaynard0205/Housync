@@ -8,953 +8,168 @@
 @endpush
 
 @section('content')
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Units - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Orange Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item.active {
-            background-color: #f97316;
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .badge-count {
-            background-color: #ef4444;
-            color: white;
-            border-radius: 9999px;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.5rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
-        }
-
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .content-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 0.75rem;
-        }
-
-        .user-info h3 {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .user-info p {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid #f97316;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: #64748b;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        /* Page Content */
-        .page-section {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .section-subtitle {
-            color: #64748b;
-            font-size: 1rem;
-            margin-top: 0.25rem;
-        }
-
-        /* Search and Filters */
-        .filters-section {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            align-items: end;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control {
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #f97316;
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-        }
-
-        /* Units Grid */
-        .units-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .unit-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            transition: all 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .unit-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border-color: #f97316;
-        }
-
-        .unit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .unit-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.25rem;
-        }
-
-        .unit-property {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .unit-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-available {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .status-occupied {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .status-maintenance {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .unit-info {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .info-item i {
-            width: 16px;
-            text-align: center;
-            color: #f97316;
-        }
-
-        .unit-details {
-            background: #f8fafc;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .detail-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .detail-label {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .detail-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .rent-amount {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #f97316;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        /* Action Buttons */
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: #f97316;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #ea580c;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.75rem;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Alert Styles */
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            border: 1px solid #a7f3d0;
-            color: #047857;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            color: #94a3b8;
-            margin-bottom: 1rem;
-        }
-
-        .empty-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-text {
-            color: #64748b;
-            margin-bottom: 2rem;
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .pagination nav {
-            display: flex;
-            gap: 0.25rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .pagination a,
-        .pagination span {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.375rem;
-            text-decoration: none;
-            color: #475569;
-            font-size: 0.875rem;
-            background: white;
-            transition: all 0.15s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 36px;
-            height: 36px;
-        }
-
-        .pagination a:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #0f172a;
-        }
-
-        .pagination .active span {
-            background: #f97316;
-            border-color: #f97316;
-            color: white;
-        }
-
-        /* Fix Tailwind SVG arrow sizing */
-        .pagination svg {
-            width: 1rem !important;
-            height: 1rem !important;
-            display: inline-block;
-        }
-
-        /* Disabled pagination elements */
-        .pagination .disabled span,
-        .pagination [aria-disabled="true"] {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f8fafc;
-        }
-
-        /* Pagination ellipsis */
-        .pagination .dots {
-            padding: 0.5rem;
-            color: #94a3b8;
-        }
-
-        /* Table Styles */
-        .table {
-            border-collapse: separate;
-            border-spacing: 0;
-            background: white;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .table thead th {
-            background: #f8fafc;
-            border: none;
-            padding: 1rem 0.75rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .table tbody td {
-            padding: 1rem 0.75rem;
-            border: none;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-
-        .table tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Unit Number Badge */
-        .unit-number-badge {
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-            display: inline-block;
-            min-width: 60px;
-            text-align: center;
-        }
-
-        /* Property Name */
-        .property-name {
-            font-weight: 500;
-            color: #1e293b;
-        }
-
-        /* Unit Type */
-        .unit-type {
-            color: #64748b;
-            font-size: 0.875rem;
-        }
-
-        /* Bed/Bath Info */
-        .bed-bath-info {
-            font-size: 0.875rem;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Floor Number */
-        .floor-number {
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        /* Rent Amount */
-        .rent-amount {
-            color: #0f172a;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        /* Max Occupants */
-        .max-occupants {
-            color: #64748b;
-            font-size: 0.875rem;
-        }
-
-        /* Action Buttons */
-        .btn-group .btn {
-            border-radius: 0.375rem;
-            margin: 0 0.125rem;
-        }
-
-        .btn-group .btn:first-child {
-            margin-left: 0;
-        }
-
-        .btn-group .btn:last-child {
-            margin-right: 0;
-        }
-
-        /* Status Badges */
-        .badge {
-            font-size: 0.75rem;
-            padding: 0.375rem 0.75rem;
-            border-radius: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-
-        /* Responsive Table */
-        @media (max-width: 768px) {
-            .table-responsive {
-                border-radius: 0.5rem;
-            }
-            
-            .table thead th,
-            .table tbody td {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.8rem;
-            }
-            
-            .unit-number-badge {
-                padding: 0.375rem 0.5rem;
-                font-size: 0.75rem;
-                min-width: 50px;
-            }
-            
-            .btn-group .btn {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.75rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item">
-                    <i class="fas fa-building"></i> My Properties
-                    @if(isset($apartments) && $apartments->count() > 0)
-                        <span class="badge-count">{{ $apartments->count() }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item active">
-                    <i class="fas fa-door-open"></i> My Units
-                    @if(isset($units) && $units->count() > 0)
-                        <span class="badge-count">{{ $units->count() }}</span>
-                    @endif
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-users"></i> Tenants
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
-
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="content-header">
-                <div>
-                    <h1>My Units</h1>
-                    <p style="color: #64748b; margin-top: 0.5rem;">Manage all your rental units</p>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>Property Manager</p>
-                    </div>
-                </div>
-            </div>
-
-            @if(session('success'))
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-                </div>
-            @endif
-
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['total_units'] }}</div>
-                    <div class="stat-label">Total Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['available_units'] }}</div>
-                    <div class="stat-label">Available Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['occupied_units'] }}</div>
-                    <div class="stat-label">Occupied Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">₱{{ number_format($stats['monthly_revenue'], 0) }}</div>
-                    <div class="stat-label">Monthly Revenue</div>
-                </div>
-            </div>
-
-            <!-- Units Section -->
-            <div class="page-section">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title">All Units</h2>
-                        <p class="section-subtitle">View and manage your rental units across all properties</p>
-                    </div>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div class="sort-dropdown">
-                            <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
-                            <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
-                                <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
-                                <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
-                                <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
-                                <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
-                                <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
-                                <option value="rent" {{ request('sort') == 'rent' ? 'selected' : '' }}>Rent (Highest First)</option>
-                                <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
-                            </select>
-                        </div>
-                        <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add New Unit
-                        </a>
-                    </div>
-                </div>
-
-                @if($units->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 12%;">Unit Number</th>
-                                    <th style="width: 18%;">Property</th>
-                                    <th style="width: 12%;">Type</th>
-                                    <th style="width: 10%;" class="text-center">Beds / Baths</th>
-                                    <th style="width: 8%;" class="text-center">Floor</th>
-                                    <th style="width: 10%;" class="text-center">Status</th>
-                                    <th style="width: 12%;" class="text-end">Rent/Month</th>
-                                    <th style="width: 8%;" class="text-center">Max Occupants</th>
-                                    <th style="width: 10%;" class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($units as $unit)
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="unit-number-badge">
-                                                    {{ $unit->unit_number }}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-building text-muted me-2"></i>
-                                                <span class="property-name">{{ $unit->apartment->name ?? 'Unknown' }}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="unit-type">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center align-items-center gap-3">
-                                                <span class="bed-bath-info" title="Bedrooms">
-                                                    <i class="fas fa-bed text-muted me-1"></i>{{ $unit->bedrooms ?? 0 }}
-                                                </span>
-                                                <span class="bed-bath-info" title="Bathrooms">
-                                                    <i class="fas fa-bath text-muted me-1"></i>{{ $unit->bathrooms ?? 1 }}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="floor-number">{{ $unit->floor_number ?? 'N/A' }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            @php
-                                                $statusConfig = [
-                                                    'available' => ['class' => 'badge bg-success', 'text' => 'Available'],
-                                                    'occupied' => ['class' => 'badge bg-danger', 'text' => 'Occupied'],
-                                                    'maintenance' => ['class' => 'badge bg-warning', 'text' => 'Maintenance'],
-                                                ];
-                                                $config = $statusConfig[$unit->status] ?? ['class' => 'badge bg-secondary', 'text' => ucfirst($unit->status)];
-                                            @endphp
-                                            <span class="{{ $config['class'] }}">{{ $config['text'] }}</span>
-                                        </td>
-                                        <td class="text-end">
-                                            <span class="rent-amount">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="max-occupants">{{ $unit->max_occupants ?? '-' }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="btn-group" role="group">
-                                                <button onclick="editUnit({{ $unit->id }})" class="btn btn-sm btn-outline-primary" title="Edit Unit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button onclick="viewUnitDetails({{ $unit->id }})" class="btn btn-sm btn-outline-info" title="View Details">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    @if($units->hasPages())
-                        <div class="pagination" style="margin-top: 1.5rem;">
-                            {{ $units->appends(['sort' => request('sort')])->links() }}
-                        </div>
-                    @endif
-                @else
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-door-open"></i>
-                        </div>
-                        <h3 class="empty-title">No Units Found</h3>
-                        <p class="empty-text">
-                            @if(request()->hasAny(['search', 'status', 'apartment']))
-                                No units match your search criteria. Try adjusting your filters.
-                            @else
-                                You haven't added any units yet. Start by adding units to your properties.
-                            @endif
-                        </p>
-                        @if(request()->hasAny(['search', 'status', 'apartment']))
-                            <a href="{{ route('landlord.units') }}" class="btn btn-primary">
-                                <i class="fas fa-refresh"></i> Clear Filters
-                            </a>
-                        @else
-                            <a href="{{ route('landlord.apartments') }}" class="btn btn-primary">
-                                <i class="fas fa-building"></i> Go to Properties
-                            </a>
-                        @endif
-                    </div>
-                @endif
-            </div>
+<div class="content-header mb-4">
+    <div>
+        <h1>My Units</h1>
+        <p style="color: #64748b; margin-top: 0.5rem;">Manage all your rental units</p>
+    </div>
+    <div class="user-profile">
+        <div class="user-avatar">{{ substr(auth()->user()->name, 0, 1) }}</div>
+        <div class="user-info">
+            <h3>{{ auth()->user()->name }}</h3>
+            <p>Property Manager</p>
         </div>
     </div>
+</div>
+@if(session('success'))
+    <div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+@endif
+<!-- Stats Cards -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['total_units'] }}</div>
+        <div class="stat-label">Total Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['available_units'] }}</div>
+        <div class="stat-label">Available Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['occupied_units'] }}</div>
+        <div class="stat-label">Occupied Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">₱{{ number_format($stats['monthly_revenue'], 0) }}</div>
+        <div class="stat-label">Monthly Revenue</div>
+    </div>
+</div>
+<!-- Units Section -->
+<div class="page-section">
+    <div class="section-header">
+        <div>
+            <h2 class="section-title">All Units</h2>
+            <p class="section-subtitle">View and manage your rental units across all properties</p>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="sort-dropdown">
+                <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
+                <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                    <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
+                    <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
+                    <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
+                    <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
+                    <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
+                    <option value="rent" {{ request('sort') == 'rent' ? 'selected' : '' }}>Rent (Highest First)</option>
+                    <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                </select>
+            </div>
+            <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Unit
+            </a>
+        </div>
+    </div>
+    @if($units->count() > 0)
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 12%;">Unit Number</th>
+                        <th style="width: 18%;">Property</th>
+                        <th style="width: 12%;">Type</th>
+                        <th style="width: 10%;" class="text-center">Beds / Baths</th>
+                        <th style="width: 8%;" class="text-center">Floor</th>
+                        <th style="width: 10%;" class="text-center">Status</th>
+                        <th style="width: 12%;" class="text-end">Rent/Month</th>
+                        <th style="width: 8%;" class="text-center">Max Occupants</th>
+                        <th style="width: 10%;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($units as $unit)
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="unit-number-badge">{{ $unit->unit_number }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-building text-muted me-2"></i>
+                                <span class="property-name">{{ $unit->apartment->name ?? 'Unknown' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="unit-type">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-3">
+                                <span class="bed-bath-info" title="Bedrooms">
+                                    <i class="fas fa-bed text-muted me-1"></i>{{ $unit->bedrooms ?? 0 }}
+                                </span>
+                                <span class="bed-bath-info" title="Bathrooms">
+                                    <i class="fas fa-bath text-muted me-1"></i>{{ $unit->bathrooms ?? 1 }}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="text-center"><span class="floor-number">{{ $unit->floor_number ?? 'N/A' }}</span></td>
+                        <td class="text-center">
+                            @php
+                                $statusConfig = [
+                                    'available' => ['class' => 'badge bg-success', 'text' => 'Available'],
+                                    'occupied' => ['class' => 'badge bg-danger', 'text' => 'Occupied'],
+                                    'maintenance' => ['class' => 'badge bg-warning', 'text' => 'Maintenance'],
+                                ];
+                                $config = $statusConfig[$unit->status] ?? ['class' => 'badge bg-secondary', 'text' => ucfirst($unit->status)];
+                            @endphp
+                            <span class="{{ $config['class'] }}">{{ $config['text'] }}</span>
+                        </td>
+                        <td class="text-end"><span class="rent-amount">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span></td>
+                        <td class="text-center"><span class="max-occupants">{{ $unit->max_occupants ?? '-' }}</span></td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button onclick="editUnit({{ $unit->id }})" class="btn btn-sm btn-outline-primary" title="Edit Unit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="viewUnitDetails({{ $unit->id }})" class="btn btn-sm btn-outline-info" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination -->
+        @if($units->hasPages())
+            <div class="pagination mt-4">
+                {{ $units->appends(['sort' => request('sort')])->links() }}
+            </div>
+        @endif
+    @else
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-door-open"></i></div>
+            <h3 class="empty-title">No Units Found</h3>
+            <p class="empty-text">
+                @if(request()->hasAny(['search', 'status', 'apartment']))
+                    No units match your search criteria. Try adjusting your filters.
+                @else
+                    You haven't added any units yet. Start by adding units to your properties.
+                @endif
+            </p>
+            @if(request()->hasAny(['search', 'status', 'apartment']))
+                <a href="{{ route('landlord.units') }}" class="btn btn-primary"><i class="fas fa-refresh"></i> Clear Filters</a>
+            @else
+                <a href="{{ route('landlord.apartments') }}" class="btn btn-primary"><i class="fas fa-building"></i> Go to Properties</a>
+            @endif
+        </div>
+    @endif
+</div>
+<!-- Modals and JS remain below as before -->
+@endsection
 
     <script>
 
