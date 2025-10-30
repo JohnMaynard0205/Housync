@@ -48,15 +48,15 @@
 </div>
 <!-- Units Section -->
 <div class="page-section">
-    <div class="section-header">
+    <div class="section-header d-flex flex-wrap justify-content-between align-items-end mb-3">
         <div>
             <h2 class="section-title">All Units</h2>
             <p class="section-subtitle">View and manage your rental units across all properties</p>
         </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div class="d-flex flex-wrap gap-2 align-items-end ms-auto" style="min-width:270px;">
             <div class="sort-dropdown">
-                <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
-                <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                <label class="me-2" style="font-size: 0.875rem; color: #64748b;">Sort by:</label>
+                <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; min-width:155px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
                     <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
                     <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
                     <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
@@ -66,9 +66,7 @@
                     <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
                 </select>
             </div>
-            <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add New Unit
-            </a>
+            <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary ms-2"><i class="fas fa-plus"></i> Add New Unit</a>
         </div>
     </div>
     @if($units->count() > 0)
