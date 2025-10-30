@@ -181,6 +181,22 @@
             z-index: 999;
         }
 
+        /* Prevent container overlap in collapsed sidebar mode */
+        .dashboard-container.collapsed .main-content > .container,
+        .dashboard-container.collapsed .main-content > .container-fluid {
+            margin-left: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            transition: none;
+        }
+        .main-content > .container,
+        .main-content > .container-fluid {
+            margin-left: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            transition: none;
+        }
+
         /* Responsive Styles */
         @media (max-width: 1024px) {
             .sidebar {
