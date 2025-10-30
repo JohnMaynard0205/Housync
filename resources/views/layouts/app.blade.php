@@ -533,7 +533,7 @@
     @stack('styles')
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container" id="dashboardContainer">
         <!-- Mobile Menu Toggle -->
         <button class="mobile-menu-toggle" id="mobileMenuToggle">
             <i class="fas fa-bars"></i>
@@ -601,7 +601,7 @@
             const mobileMenuToggle = document.getElementById('mobileMenuToggle');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const container = document.querySelector('.dashboard-container');
+            const container = document.getElementById('dashboardContainer') || document.querySelector('.dashboard-container');
             const collapseBtn = document.getElementById('collapseSidebarBtn');
             
             function toggleMobileMenu() {
