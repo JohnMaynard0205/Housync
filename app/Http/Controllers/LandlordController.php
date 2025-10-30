@@ -104,7 +104,7 @@ class LandlordController extends Controller
             'address' => 'required|string|max:500',
             'description' => 'nullable|string|max:1000',
             'contact_person' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:20',
+            'contact_phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
@@ -245,7 +245,7 @@ class LandlordController extends Controller
             'description' => 'nullable|string|max:1000',
             'total_units' => 'required|integer|min:1',
             'contact_person' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:20',
+            'contact_phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
             'status' => 'required|in:active,inactive,maintenance',
@@ -536,7 +536,7 @@ class LandlordController extends Controller
         $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
+            'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'status' => 'required|in:available,maintenance',
@@ -720,7 +720,7 @@ class LandlordController extends Controller
 
         $request->validate([
             'units' => 'required|array',
-            'units.*.unit_number' => 'required|string|max:50',
+            'units.*.unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50',
             'units.*.unit_type' => 'required|string|max:100',
             'units.*.rent_amount' => 'required|numeric|min:0',
             'units.*.bedrooms' => 'required|integer|min:0',
@@ -805,7 +805,7 @@ class LandlordController extends Controller
 
         try {
             $request->validate([
-                'unit_number' => 'required|string|max:50|unique:units,unit_number,' . $unit->id . ',id,apartment_id,' . $unit->apartment_id,
+                'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,' . $unit->id . ',id,apartment_id,' . $unit->apartment_id,
                 'unit_type' => 'required|string|max:100',
                 'rent_amount' => 'required|numeric|min:0',
                 'status' => 'required|in:available,occupied,maintenance',
@@ -914,7 +914,7 @@ class LandlordController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|regex:/^[0-9]+$/|max:20',
             'address' => 'required|string|max:500',
             'business_info' => 'required|string|max:1000',
             // Require at least one document, recommend specific types
@@ -1289,7 +1289,7 @@ class LandlordController extends Controller
         $apartment = $landlord->apartments()->findOrFail($apartmentId);
 
         $request->validate([
-            'unit_number' => 'required|string|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
+            'unit_number' => 'required|string|regex:/^Unit-\d+$/|max:50|unique:units,unit_number,NULL,id,apartment_id,' . $apartmentId,
             'unit_type' => 'required|string|max:100',
             'rent_amount' => 'required|numeric|min:0',
             'bedrooms' => 'required|integer|min:0',

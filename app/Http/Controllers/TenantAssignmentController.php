@@ -41,7 +41,7 @@ class TenantAssignmentController extends Controller
         // Enhanced validation rules
         $request->validate([
             'email' => 'required|email',
-            'phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
+            'phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'address' => 'nullable|string|max:500',
             'lease_start_date' => 'required|date|after_or_equal:today',
             'lease_end_date' => 'required|date|after:lease_start_date|before:2 years',
@@ -49,7 +49,7 @@ class TenantAssignmentController extends Controller
             'security_deposit' => 'nullable|numeric|min:0|max:50000',
             'notes' => 'nullable|string|max:1000',
         ], [
-            'phone.regex' => 'Please enter a valid phone number',
+            'phone.regex' => 'Phone must contain digits only',
             'lease_end_date.before' => 'Lease cannot exceed 2 years',
             'rent_amount.min' => 'Rent must be at least ₱1,000',
             'rent_amount.max' => 'Rent cannot exceed ₱100,000',
@@ -965,7 +965,7 @@ class TenantAssignmentController extends Controller
         // Validate the application data (no documents required in form anymore)
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|regex:/^[0-9]+$/|max:20',
             'address' => 'required|string|max:500',
             'occupation' => 'required|string|max:255',
             'monthly_income' => 'required|numeric|min:0',
