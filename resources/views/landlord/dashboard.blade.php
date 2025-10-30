@@ -7,11 +7,16 @@
 <div class="content-header mb-4">
     <h1 class="fw-bold">Landlord Portal</h1>
     <div class="user-profile d-flex align-items-center bg-white p-2 rounded shadow-sm">
+        @php
+            $llUser = auth()->user();
+            $llDisplayName = optional($llUser->landlordProfile)->name ?? $llUser->name ?? 'Landlord';
+            $llInitial = mb_substr($llDisplayName, 0, 1);
+        @endphp
         <div class="user-avatar d-flex align-items-center justify-content-center me-3" style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #f97316, #ea580c); color:white; font-weight:600;">
-            {{ substr(auth()->user()->name, 0, 1) }}
+            {{ $llInitial }}
         </div>
         <div class="user-info">
-            <h3 class="mb-0" style="font-size: .9rem;">{{ auth()->user()->name }}</h3>
+            <h3 class="mb-0" style="font-size: .9rem;">{{ $llDisplayName }}</h3>
             <p class="mb-0 text-muted" style="font-size:.78rem;">Property Manager</p>
         </div>
     </div>
@@ -26,7 +31,10 @@
 
 <!-- Welcome Section -->
 <div class="welcome-section mb-4">
-    <h2>Welcome back, {{ explode(' ', auth()->user()->name)[0] }}!</h2>
+    @php
+        $firstName = trim(explode(' ', $llDisplayName)[0] ?? $llDisplayName);
+    @endphp
+    <h2>Welcome back, {{ $firstName }}!</h2>
     <p>Here's an overview of your property portfolio</p>
 </div>
 
