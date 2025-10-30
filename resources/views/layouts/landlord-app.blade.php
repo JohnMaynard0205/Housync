@@ -17,10 +17,7 @@
             font-family: 'Inter', sans-serif;
             color: #1e293b;
         }
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
+        .dashboard-container { display: flex; min-height: 100vh; }
         aside.sidebar {
             background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
             color: #fff;
@@ -110,15 +107,98 @@
             padding: 2rem;
             transition: none;
         }
-        @media (max-width: 900px) {
-            aside.sidebar { position: fixed; left: 0; height: 100vh; z-index: 1040; }
-            .main-content { padding: 1.5rem .5rem .5rem 1rem; }
+        /* --- GLOBAL DASHBOARD STYLES --- */
+        .main-content .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
-        @media (max-width: 600px) {
-            .main-content { padding: .7rem .2rem; }
-            aside.sidebar { width: 90px; }
-            .dashboard-container.collapsed aside.sidebar { width: 56px; }
+        .main-content .content-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
         }
+        .main-content .user-profile {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .main-content .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 600; font-size: 125%; margin-right: 0.9rem;
+        }
+        .main-content .user-info h3 {
+            font-size: 0.93rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .main-content .user-info p { font-size: 0.75rem; color: #64748b; }
+        .main-content .welcome-section {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+            border-left: 4px solid #f97316;
+        }
+        .main-content .welcome-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: .6rem;
+        }
+        .main-content .welcome-section p { color: #64748b; font-size: 1rem; }
+        .main-content .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .main-content .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-left: 4px solid #f97316;
+        }
+        .main-content .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: #1e293b; margin-bottom: 0.2rem; }
+        .main-content .stat-card .stat-label { color: #64748b; font-size: 0.92rem; margin-bottom: 0.5rem; }
+        .main-content .stat-card .stat-sublabel { font-size: 0.78rem; color: #94a3b8; }
+        .main-content .stat-card.revenue-card { border-left-color: #10b981; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); }
+        .main-content .revenue-value { color: #059669; }
+        .main-content .property-summary {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        .main-content .occupancy-rate {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem; background: #f5f7fa; border-radius: 0.5rem;
+            border-left: 4px solid #a855f7;
+        }
+        .main-content .occupancy-percentage { font-size: 2rem; font-weight: 700; color: #a855f7; }
+        .main-content .occupancy-label { font-size: 0.875rem; color: #64748b; }
+        .main-content .badge-count { background: #ef4444; color: white; border-radius: 9999px; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600; margin-left: 8px; }
+        .main-content .activity-section, .main-content .quick-actions, .main-content .property-summary { background: white; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 1.5rem; }
+        .main-content .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+        .main-content .section-title { font-size: 1.25rem; font-weight: 600; color: #1e293b; }
+        .main-content .btn-primary { background: #f97316; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.90rem; font-weight: 500; transition: all 0.2s; }
+        .main-content .btn-primary:hover { background: #ea580c; color: #fff; }
+        .main-content .status-badge.status-available { background: #d1fae5; color: #059669; }
+        .main-content .status-badge.status-occupied { background: #dbeafe; color: #2563eb; }
+        .main-content .status-badge.status-maintenance { background: #fef3c7; color: #d97706; }
+        /* Responsive Tweaks */
+        @media (max-width: 1200px) { .main-content .content-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { aside.sidebar { position: fixed; left: 0; height: 100vh; z-index: 1040; } .main-content { padding: 1.5rem .5rem .5rem 1rem; } }
+        @media (max-width: 600px) { .main-content { padding: .6rem .2rem; } .main-content .stats-grid { grid-template-columns: 1fr; } }
     </style>
     @stack('styles')
 </head>
