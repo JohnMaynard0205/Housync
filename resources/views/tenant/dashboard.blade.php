@@ -3,301 +3,277 @@
 @section('title', 'Tenant Dashboard')
 
 @section('content')
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item active">Dashboard</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Welcome, {{ auth()->user()->name }}!</h4>
-            </div>
-        </div>
+<div class="page-title-box">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="fw-bold">Tenant Dashboard</h1>
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
     </div>
+</div>
 
-    <!-- Alert Messages -->
-    <div class="row">
-        <div class="col-12">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
-            @if(session('info'))
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    {{ session('info') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-        </div>
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('info'))
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        {{ session('info') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
-    <!-- Unit Assignment Details -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0">Unit Assignment Details</h5>
-                        <span class="badge bg-primary">{{ $assignments->count() }} {{ $assignments->count() === 1 ? 'Assignment' : 'Assignments' }}</span>
-                    </div>
-
-                    @foreach($assignments as $assignment)
-                    <div class="card mb-3 {{ $assignment->status === 'pending_approval' ? 'border-warning' : ($assignment->status === 'active' ? 'border-success' : 'border-secondary') }}">
-                        <div class="card-header bg-{{ $assignment->status === 'pending_approval' ? 'warning' : ($assignment->status === 'active' ? 'success' : 'secondary') }} bg-opacity-10">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-building me-2"></i>{{ $assignment->unit->apartment->name }} - Unit {{ $assignment->unit->unit_number }}
-                                </h6>
-                                <span class="badge bg-{{ $assignment->status_badge_class }}">
-                                    {{ $assignment->status === 'pending_approval' ? 'Pending Approval' : ucfirst($assignment->status) }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="text-muted mb-3">Unit Information</h6>
-                                    <table class="table table-sm table-borderless">
-                                        <tr>
-                                            <td width="40%"><strong>Unit Number:</strong></td>
-                                            <td>{{ $assignment->unit->unit_number }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Property:</strong></td>
-                                            <td>{{ $assignment->unit->apartment->name }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Unit Type:</strong></td>
-                                            <td>{{ $assignment->unit->unit_type }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Bedrooms:</strong></td>
-                                            <td>{{ $assignment->unit->bedrooms }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Bathrooms:</strong></td>
-                                            <td>{{ $assignment->unit->bathrooms }}</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div class="col-md-6">
-                                    @if($assignment->status === 'pending_approval')
-                                        <h6 class="text-muted mb-3">Application Information</h6>
-                                        <table class="table table-sm table-borderless">
-                                            <tr>
-                                                <td width="40%"><strong>Applied On:</strong></td>
-                                                <td>{{ $assignment->created_at->format('M d, Y') }}</td>
-                                            </tr>
-                                            @if($assignment->occupation)
-                                            <tr>
-                                                <td><strong>Occupation:</strong></td>
-                                                <td>{{ $assignment->occupation }}</td>
-                                            </tr>
-                                            @endif
-                                            @if($assignment->monthly_income)
-                                            <tr>
-                                                <td><strong>Monthly Income:</strong></td>
-                                                <td>₱{{ number_format($assignment->monthly_income, 2) }}</td>
-                                            </tr>
-                                            @endif
-                                            <tr>
-                                                <td><strong>Expected Rent:</strong></td>
-                                                <td>₱{{ number_format($assignment->rent_amount, 2) }}/month</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    <span class="badge bg-warning">
-                                                        <i class="fas fa-clock me-1"></i>Awaiting Landlord Approval
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    @else
-                                        <h6 class="text-muted mb-3">Lease Information</h6>
-                                        <table class="table table-sm table-borderless">
-                                            <tr>
-                                                <td width="40%"><strong>Lease Start:</strong></td>
-                                                <td>{{ $assignment->lease_start_date ? $assignment->lease_start_date->format('M d, Y') : 'N/A' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Lease End:</strong></td>
-                                                <td>{{ $assignment->lease_end_date ? $assignment->lease_end_date->format('M d, Y') : 'N/A' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Monthly Rent:</strong></td>
-                                                <td>₱{{ number_format($assignment->rent_amount, 2) }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Security Deposit:</strong></td>
-                                                <td>₱{{ number_format($assignment->security_deposit, 2) }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    <span class="badge bg-{{ $assignment->status_badge_class }}">
-                                                        {{ ucfirst($assignment->status) }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    @endif
-                                </div>
-                            </div>
-
-                            @if($assignment->notes)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="alert alert-info mb-0">
-                                        <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Additional Notes:</h6>
-                                        <p class="mb-0">{{ $assignment->notes }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-
-                            <!-- Quick Actions for this Assignment -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="border-top pt-3">
-                                        <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            @if($assignment->status === 'pending_approval')
-                                                <button class="btn btn-sm btn-outline-primary" disabled>
-                                                    <i class="fas fa-clock me-1"></i> Awaiting Approval
-                                                </button>
-                                            @else
-                                                <a href="{{ route('tenant.upload-documents') }}" class="btn btn-sm btn-warning">
-                                                    <i class="fas fa-upload me-1"></i> Upload Documents
-                                                </a>
-                                                
-                                                <button class="btn btn-sm btn-outline-secondary" onclick="viewAssignmentDocuments({{ $assignment->id }})">
-                                                    <i class="fas fa-file-alt me-1"></i> View Documents
-                                                </button>
-                                                
-                                                <button class="btn btn-sm btn-outline-info">
-                                                    <i class="fas fa-envelope me-1"></i> Contact Landlord
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Tenant Documents -->
-                            @if(Auth::user()->documents && Auth::user()->documents->count() > 0)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="border-top pt-3">
-                                        <h6 class="mb-3"><i class="fas fa-folder-open me-2"></i>Your Personal Documents ({{ Auth::user()->documents->count() }})</h6>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Document Type</th>
-                                                        <th>File Name</th>
-                                                        <th>Uploaded</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach(Auth::user()->documents as $document)
-                                                    <tr>
-                                                        <td>{{ $document->document_type_label }}</td>
-                                                        <td>{{ $document->file_name }}</td>
-                                                        <td>{{ $document->created_at->format('M d, Y H:i') }}</td>
-                                                        <td>
-                                                            <div class="btn-group btn-group-sm" role="group">
-                                                                @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                                        <i class="fas fa-eye"></i>
-                                                                    </button>
-                                                                @elseif($document->mime_type === 'application/pdf')
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                                        <i class="fas fa-file-pdf"></i>
-                                                                    </button>
-                                                                @else
-                                                                    <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
-                                                                        <i class="fas fa-eye"></i>
-                                                                    </button>
-                                                                @endif
-                                                                
-                                                                <a href="{{ route('tenant.download-document', $document->id) }}" class="btn btn-outline-primary">
-                                                                    <i class="fas fa-download"></i>
-                                                                </a>
-                                                                
-                                                                <button type="button" class="btn btn-outline-danger" onclick="deleteDocument({{ $document->id }}, '{{ $document->file_name }}')">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    @endforeach
+<!-- Unit Assignment Details -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Unit Assignment Details</h5>
+            <span class="badge bg-primary">{{ $assignments->count() }} {{ $assignments->count() === 1 ? 'Assignment' : 'Assignments' }}</span>
+        </div>
+        @foreach($assignments as $assignment)
+        <div class="card mb-3 {{ $assignment->status === 'pending_approval' ? 'border-warning' : ($assignment->status === 'active' ? 'border-success' : 'border-secondary') }}">
+            <div class="card-header bg-{{ $assignment->status === 'pending_approval' ? 'warning' : ($assignment->status === 'active' ? 'success' : 'secondary') }} bg-opacity-10">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-building me-2"></i>{{ $assignment->unit->apartment->name }} - Unit {{ $assignment->unit->unit_number }}</h6>
+                    <span class="badge bg-{{ $assignment->status_badge_class }}">{{ $assignment->status === 'pending_approval' ? 'Pending Approval' : ucfirst($assignment->status) }}</span>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Required Documents Info -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>Required Documents</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Essential Documents:</h6>
-                            <ul>
-                                <li><strong>Government ID:</strong> Passport, Driver's License, or any valid government-issued ID</li>
-                                <li><strong>Proof of Income:</strong> Recent payslips, employment contract, or business registration</li>
-                                <li><strong>Bank Statement:</strong> Last 3 months of bank statements</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Additional Documents:</h6>
-                            <ul>
-                                <li><strong>Character Reference:</strong> Letter from employer, colleague, or community leader</li>
-                                <li><strong>Rental History:</strong> Previous rental agreements or landlord references (if applicable)</li>
-                                <li><strong>Other:</strong> Any additional documents that may be required</li>
-                            </ul>
-                        </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Unit Information</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td width="40%"><strong>Unit Number:</strong></td>
+                                <td>{{ $assignment->unit->unit_number }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Property:</strong></td>
+                                <td>{{ $assignment->unit->apartment->name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Unit Type:</strong></td>
+                                <td>{{ $assignment->unit->unit_type }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bedrooms:</strong></td>
+                                <td>{{ $assignment->unit->bedrooms }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bathrooms:</strong></td>
+                                <td>{{ $assignment->unit->bathrooms }}</td>
+                            </tr>
+                        </table>
                     </div>
-
-                    <div class="alert alert-info mt-3 mb-0">
-                        <h6 class="alert-heading">Document Guidelines:</h6>
-                        <ul class="mb-0">
-                            <li>All documents should be clear and legible</li>
-                            <li>Accepted formats: PDF, JPG, JPEG, PNG</li>
-                            <li>Maximum file size: 5MB per document</li>
-                            <li>Documents will be reviewed within 2-3 business days</li>
-                        </ul>
+                    <div class="col-md-6">
+                        @if($assignment->status === 'pending_approval')
+                            <h6 class="text-muted mb-3">Application Information</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>Applied On:</strong></td>
+                                    <td>{{ $assignment->created_at->format('M d, Y') }}</td>
+                                </tr>
+                                @if($assignment->occupation)
+                                <tr>
+                                    <td><strong>Occupation:</strong></td>
+                                    <td>{{ $assignment->occupation }}</td>
+                                </tr>
+                                @endif
+                                @if($assignment->monthly_income)
+                                <tr>
+                                    <td><strong>Monthly Income:</strong></td>
+                                    <td>₱{{ number_format($assignment->monthly_income, 2) }}</td>
+                                </tr>
+                                @endif
+                                <tr>
+                                    <td><strong>Expected Rent:</strong></td>
+                                    <td>₱{{ number_format($assignment->rent_amount, 2) }}/month</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock me-1"></i>Awaiting Landlord Approval
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        @else
+                            <h6 class="text-muted mb-3">Lease Information</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>Lease Start:</strong></td>
+                                    <td>{{ $assignment->lease_start_date ? $assignment->lease_start_date->format('M d, Y') : 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Lease End:</strong></td>
+                                    <td>{{ $assignment->lease_end_date ? $assignment->lease_end_date->format('M d, Y') : 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Monthly Rent:</strong></td>
+                                    <td>₱{{ number_format($assignment->rent_amount, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Security Deposit:</strong></td>
+                                    <td>₱{{ number_format($assignment->security_deposit, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ $assignment->status_badge_class }}">
+                                            {{ ucfirst($assignment->status) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        @endif
                     </div>
                 </div>
+
+                @if($assignment->notes)
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Additional Notes:</h6>
+                            <p class="mb-0">{{ $assignment->notes }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Quick Actions for this Assignment -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="border-top pt-3">
+                            <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                @if($assignment->status === 'pending_approval')
+                                    <button class="btn btn-sm btn-outline-primary" disabled>
+                                        <i class="fas fa-clock me-1"></i> Awaiting Approval
+                                    </button>
+                                @else
+                                    <a href="{{ route('tenant.upload-documents') }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-upload me-1"></i> Upload Documents
+                                    </a>
+                                    
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewAssignmentDocuments({{ $assignment->id }})">
+                                        <i class="fas fa-file-alt me-1"></i> View Documents
+                                    </button>
+                                    
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-envelope me-1"></i> Contact Landlord
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tenant Documents -->
+                @if(Auth::user()->documents && Auth::user()->documents->count() > 0)
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="border-top pt-3">
+                            <h6 class="mb-3"><i class="fas fa-folder-open me-2"></i>Your Personal Documents ({{ Auth::user()->documents->count() }})</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Document Type</th>
+                                            <th>File Name</th>
+                                            <th>Uploaded</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach(Auth::user()->documents as $document)
+                                        <tr>
+                                            <td>{{ $document->document_type_label }}</td>
+                                            <td>{{ $document->file_name }}</td>
+                                            <td>{{ $document->created_at->format('M d, Y H:i') }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    @if(in_array($document->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
+                                                        <button type="button" class="btn btn-outline-info" onclick="viewImage('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                    @elseif($document->mime_type === 'application/pdf')
+                                                        <button type="button" class="btn btn-outline-info" onclick="viewPDF('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
+                                                            <i class="fas fa-file-pdf"></i>
+                                                        </button>
+                                                    @else
+                                                        <button type="button" class="btn btn-outline-info" onclick="viewFile('{{ document_url($document->file_path) }}', '{{ $document->file_name }}')">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                    @endif
+                                                    
+                                                    <a href="{{ route('tenant.download-document', $document->id) }}" class="btn btn-outline-primary">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    
+                                                    <button type="button" class="btn btn-outline-danger" onclick="deleteDocument({{ $document->id }}, '{{ $document->file_name }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
+        @endforeach
     </div>
+</div>
+
+<!-- Required Documents Info -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>Required Documents</h5>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Essential Documents:</h6>
+                <ul>
+                    <li><strong>Government ID:</strong> Passport, Driver's License, or any valid government-issued ID</li>
+                    <li><strong>Proof of Income:</strong> Recent payslips, employment contract, or business registration</li>
+                    <li><strong>Bank Statement:</strong> Last 3 months of bank statements</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Additional Documents:</h6>
+                <ul>
+                    <li><strong>Character Reference:</strong> Letter from employer, colleague, or community leader</li>
+                    <li><strong>Rental History:</strong> Previous rental agreements or landlord references (if applicable)</li>
+                    <li><strong>Other:</strong> Any additional documents that may be required</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0">
+            <h6 class="alert-heading">Document Guidelines:</h6>
+            <ul class="mb-0">
+                <li>All documents should be clear and legible</li>
+                <li>Accepted formats: PDF, JPG, JPEG, PNG</li>
+                <li>Maximum file size: 5MB per document</li>
+                <li>Documents will be reviewed within 2-3 business days</li>
+            </ul>
+        </div>
+    </div>
+</div>
 </div>
 
 <!-- Delete Document Modal -->
