@@ -30,6 +30,11 @@ class ExploreController extends Controller
 
         $propertyTypes = ['apartment', 'house', 'condo', 'studio'];
         
+        // If the user is an authenticated tenant, render within the tenant layout (with sidebar)
+        if (auth()->check() && auth()->user()->role === 'tenant') {
+            return view('tenant.explore', compact('properties', 'amenities', 'propertyTypes'));
+        }
+
         return view('explore', compact('properties', 'amenities', 'propertyTypes'));
     }
 
