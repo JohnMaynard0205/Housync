@@ -31,28 +31,21 @@
             padding: 0;
         }
 
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
+        .dashboard-container { display: flex; min-height: 100vh; }
+        .dashboard-container.collapsed .sidebar { width: 80px; }
+        .dashboard-container.collapsed .main-content { margin-left: 80px; }
 
         /* Sidebar Styles */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 0;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 1000;
-        }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 1000; }
+        .dashboard-container.collapsed .sidebar-header h2,
+        .dashboard-container.collapsed .sidebar-header p { display: none; }
+        .dashboard-container.collapsed .nav-item { justify-content: center; }
+        .dashboard-container.collapsed .nav-item i { margin-right: 0; }
+        .dashboard-container.collapsed .nav-item .nav-text { display: none; }
 
-        .sidebar-header {
-            padding: 2rem 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
+        .sidebar-header { padding: 2rem 1.5rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); position: relative; }
+        .collapse-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); color: #fff; border: none; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
+        .collapse-btn:hover { background: rgba(255,255,255,0.25); }
 
         .sidebar-header h2 {
             margin: 0;
@@ -423,25 +416,28 @@
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <button class="collapse-btn" id="collapseSidebarBtnStaff" title="Toggle sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h2>Staff Portal</h2>
                 <p>Maintenance & Services</p>
             </div>
             <nav class="sidebar-nav">
                 <a href="{{ route('staff.dashboard') }}" class="nav-item {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-home"></i> Dashboard
+                    <i class="fas fa-home"></i> <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance Requests
+                    <i class="fas fa-tools"></i> <span class="nav-text">Maintenance Requests</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-calendar"></i> Work Schedule
+                    <i class="fas fa-calendar"></i> <span class="nav-text">Work Schedule</span>
                 </a>
 
                 <a href="#" class="nav-item">
-                    <i class="fas fa-message"></i> Messages
+                    <i class="fas fa-message"></i> <span class="nav-text">Messages</span>
                 </a>
                 <a href="{{ route('staff.profile') }}" class="nav-item {{ request()->routeIs('staff.profile') ? 'active' : '' }}">
-                    <i class="fas fa-user"></i> Profile
+                    <i class="fas fa-user"></i> <span class="nav-text">Profile</span>
                 </a>
             </nav>
             <div class="sidebar-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -488,6 +484,8 @@
             const mobileMenuToggle = document.getElementById('mobileMenuToggle');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const container = document.querySelector('.dashboard-container');
+            const collapseBtn = document.getElementById('collapseSidebarBtnStaff');
             
             function toggleMobileMenu() {
                 sidebar.classList.toggle('show');
@@ -504,12 +502,28 @@
                 }
             }
             
+            function setCollapsedState(collapsed) {
+                if (!container) return;
+                if (collapsed) { container.classList.add('collapsed'); }
+                else { container.classList.remove('collapsed'); }
+                try { localStorage.setItem('staffSidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+            }
+            // init from storage
+            try { if (localStorage.getItem('staffSidebarCollapsed') === '1') setCollapsedState(true); } catch (e) {}
+            
             if (mobileMenuToggle) {
                 mobileMenuToggle.addEventListener('click', toggleMobileMenu);
             }
             
             if (sidebarOverlay) {
                 sidebarOverlay.addEventListener('click', toggleMobileMenu);
+            }
+            
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', function() {
+                    const isCollapsed = container.classList.contains('collapsed');
+                    setCollapsedState(!isCollapsed);
+                });
             }
             
             // Close mobile menu when clicking on a nav item
