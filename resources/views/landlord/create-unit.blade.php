@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Unit - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+@extends('layouts.landlord-app')
+
+@section('title', 'Add New Unit')
+
+@push('styles')
     <style>
         * {
             margin: 0;
@@ -17,110 +14,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Orange Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            text-decoration: none;
-        }
-
-        .nav-item.active {
-            background-color: #f97316;
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background-color: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background-color: rgba(255,255,255,0.2);
-            text-decoration: none;
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.75rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
         }
 
         .page-header {
@@ -389,55 +282,9 @@
         }
 
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item">
-                    <i class="fas fa-building"></i> My Properties
-                    @if(isset($stats['total_apartments']))
-                        <span class="badge-count">{{ $stats['total_apartments'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item active">
-                    <i class="fas fa-door-open"></i> My Units
-                    @if(isset($stats['total_units']))
-                        <span class="badge-count">{{ $stats['total_units'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item">
-                    <i class="fas fa-users"></i> Tenant Assignments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
+@endpush
 
-            </nav>
-            <div class="sidebar-footer">
-                <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
-                    @csrf
-                    <button type="submit" class="logout-btn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
+@section('content')
             <!-- Breadcrumb -->
             <div class="breadcrumb">
                 <a href="{{ route('landlord.dashboard') }}">Dashboard</a>
@@ -813,6 +660,5 @@
         });
     });
     
-</script>
-</body>
-</html> 
+    </script>
+@endsection
