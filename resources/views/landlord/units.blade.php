@@ -54,9 +54,20 @@
             <p class="section-subtitle">View and manage your rental units across all properties</p>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-end ms-auto" style="min-width:270px;">
+            <div class="me-2">
+                <label class="me-2" style="font-size: 0.875rem; color: #64748b;">Property:</label>
+                <select id="apartmentFilter" style="padding: 0.5rem; min-width:200px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                    <option value="">All Properties</option>
+                    @foreach($apartments as $apt)
+                        <option value="{{ $apt->id }}" {{ (request('apartment') == $apt->id || ($apartmentId ?? null) == $apt->id) ? 'selected' : '' }}>
+                            {{ $apt->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <div class="sort-dropdown">
                 <label class="me-2" style="font-size: 0.875rem; color: #64748b;">Sort by:</label>
-                <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; min-width:155px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                <select id="unitSort" style="padding: 0.5rem; min-width:155px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
                     <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
                     <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
                     <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
@@ -144,7 +155,7 @@
         <!-- Pagination -->
         @if($units->hasPages())
             <div class="pagination mt-4">
-                {{ $units->appends(['sort' => request('sort')])->links() }}
+                {{ $units->appends(['sort' => request('sort'), 'apartment' => request('apartment')])->links() }}
             </div>
         @endif
     @else
