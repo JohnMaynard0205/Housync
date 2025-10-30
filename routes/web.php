@@ -161,6 +161,8 @@ Route::get('/dashboard', function () {
 
 // Tenant Routes
 Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(function () {
+    // Tenant Dashboard
+    Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
     Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
     Route::get('/upload-documents', [TenantAssignmentController::class, 'uploadDocuments'])->name('upload-documents');
     Route::post('/upload-documents', [TenantAssignmentController::class, 'storeDocuments'])->name('store-documents');

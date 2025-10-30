@@ -291,8 +291,8 @@ class TenantAssignmentController extends Controller
             ->get();
 
         if ($assignments->isEmpty()) {
-            // Redirect prospects (tenants without assignments) to property listings
-            return redirect()->route('explore')->with('info', 'Browse available properties and contact landlords to get assigned to a unit.');
+            // Show a lightweight tenant dashboard explaining next steps instead of redirecting
+            return view('tenant.no-assignment');
         }
 
         return view('tenant.dashboard', compact('assignments'));
