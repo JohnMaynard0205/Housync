@@ -36,7 +36,7 @@
         .dashboard-container.collapsed .main-content { margin-left: 80px; }
 
         /* Sidebar Styles */
-        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 1000; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 1000; transition: width 0.2s cubic-bezier(.4,0,.2,1); }
         .dashboard-container.collapsed .sidebar-header h2,
         .dashboard-container.collapsed .sidebar-header p { display: none; }
         .dashboard-container.collapsed .nav-item { justify-content: center; }
@@ -97,6 +97,10 @@
             margin-left: 280px;
             padding: 2rem;
             background-color: #f8f9fa;
+            transition: margin-left 0.2s cubic-bezier(.4,0,.2,1);
+        }
+        .dashboard-container.collapsed .main-content {
+            margin-left: 80px;
         }
 
         /* Header */

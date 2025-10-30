@@ -46,6 +46,7 @@
             left: 0;
             top: 0;
             z-index: 1000;
+            transition: width 0.2s cubic-bezier(.4,0,.2,1);
         }
 
         /* Collapsed sidebar styling */
@@ -170,6 +171,10 @@
             flex: 1;
             margin-left: 280px;
             padding: 2rem;
+            transition: margin-left 0.2s cubic-bezier(.4,0,.2,1);
+        }
+        .dashboard-container.collapsed .main-content {
+            margin-left: 80px;
         }
 
         .content-header {
