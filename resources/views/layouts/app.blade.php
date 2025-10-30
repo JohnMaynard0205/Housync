@@ -25,6 +25,15 @@
             min-height: 100vh;
         }
 
+        /* Collapsed state container modifier */
+        .dashboard-container.collapsed .sidebar {
+            width: 80px;
+        }
+
+        .dashboard-container.collapsed .main-content {
+            margin-left: 80px;
+        }
+
         /* Sidebar Styles - Purple Theme for Tenants */
         .sidebar {
             width: 280px;
@@ -39,10 +48,48 @@
             z-index: 1000;
         }
 
+        /* Collapsed sidebar styling */
+        .dashboard-container.collapsed .sidebar-header h2,
+        .dashboard-container.collapsed .sidebar-header p {
+            display: none;
+        }
+
+        .dashboard-container.collapsed .nav-item {
+            justify-content: center;
+        }
+
+        .dashboard-container.collapsed .nav-item i {
+            margin-right: 0;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-container.collapsed .nav-item .nav-text {
+            display: none;
+        }
+
         .sidebar-header {
             padding: 2rem 1.5rem 1.5rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
+
+        .collapse-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .collapse-btn:hover { background: rgba(255,255,255,0.25); }
 
         .sidebar-header h2 {
             font-size: 1.25rem;
@@ -498,33 +545,36 @@
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <button class="collapse-btn" id="collapseSidebarBtn" title="Toggle sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h2>Tenant Portal</h2>
                 <p>Welcome, {{ auth()->user()->name }}</p>
             </div>
             <nav class="sidebar-nav">
                 <a href="{{ route('tenant.dashboard') }}" class="nav-item {{ request()->routeIs('tenant.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-home"></i> Dashboard
+                    <i class="fas fa-home"></i> <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="{{ route('tenant.upload-documents') }}" class="nav-item {{ request()->routeIs('tenant.upload-documents') ? 'active' : '' }}">
-                    <i class="fas fa-upload"></i> Upload Documents
+                    <i class="fas fa-upload"></i> <span class="nav-text">Upload Documents</span>
                 </a>
                 <a href="{{ route('explore') }}" class="nav-item {{ request()->routeIs('explore') ? 'active' : '' }}">
-                    <i class="fas fa-search"></i> Browse Properties
+                    <i class="fas fa-search"></i> <span class="nav-text">Browse Properties</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
+                    <i class="fas fa-credit-card"></i> <span class="nav-text">Payments</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
+                    <i class="fas fa-tools"></i> <span class="nav-text">Maintenance</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fas fa-message"></i> Messages
+                    <i class="fas fa-message"></i> <span class="nav-text">Messages</span>
                 </a>
                 <a href="{{ route('tenant.lease') }}" class="nav-item">
-                    <i class="fas fa-file-contract"></i> Lease
+                    <i class="fas fa-file-contract"></i> <span class="nav-text">Lease</span>
                 </a>
                 <a href="{{ route('tenant.profile') }}" class="nav-item">
-                    <i class="fas fa-user"></i> Profile
+                    <i class="fas fa-user"></i> <span class="nav-text">Profile</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
@@ -551,6 +601,8 @@
             const mobileMenuToggle = document.getElementById('mobileMenuToggle');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const container = document.querySelector('.dashboard-container');
+            const collapseBtn = document.getElementById('collapseSidebarBtn');
             
             function toggleMobileMenu() {
                 sidebar.classList.toggle('show');
@@ -567,12 +619,35 @@
                 }
             }
             
+            function setCollapsedState(collapsed) {
+                if (!container) return;
+                if (collapsed) {
+                    container.classList.add('collapsed');
+                } else {
+                    container.classList.remove('collapsed');
+                }
+                try { localStorage.setItem('tenantSidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+            }
+            
+            // Initialize from localStorage (desktop collapse state)
+            try {
+                const saved = localStorage.getItem('tenantSidebarCollapsed');
+                if (saved === '1') { setCollapsedState(true); }
+            } catch (e) {}
+            
             if (mobileMenuToggle) {
                 mobileMenuToggle.addEventListener('click', toggleMobileMenu);
             }
             
             if (sidebarOverlay) {
                 sidebarOverlay.addEventListener('click', toggleMobileMenu);
+            }
+            
+            if (collapseBtn) {
+                collapseBtn.addEventListener('click', function() {
+                    const isCollapsed = container.classList.contains('collapsed');
+                    setCollapsedState(!isCollapsed);
+                });
             }
             
             // Close mobile menu when clicking on a nav item
