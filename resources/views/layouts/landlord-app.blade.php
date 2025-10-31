@@ -248,11 +248,12 @@
                 <div class="profile-btn" id="llProfileBtn">
                     @php 
                         $user = auth()->user();
-                        if (!$user->relationLoaded('landlordProfile')) {
-                            $user->load('landlordProfile');
-                        }
-                        $landlordProfile = $user->landlordProfile;
-                        $landlordName = (!empty($landlordProfile?->name)) ? $landlordProfile->name : ($user->email ?? 'Landlord');
+                        // Query profile directly from database to ensure fresh data
+                        $landlordProfile = \App\Models\LandlordProfile::where('user_id', $user->id)->first();
+                        // Get name directly from profile, checking if it exists and is not empty
+                        $landlordName = ($landlordProfile && !empty(trim($landlordProfile->name ?? ''))) 
+                            ? trim($landlordProfile->name) 
+                            : ($user->email ?? 'Landlord');
                     @endphp
                     <div class="profile-avatar">{{ mb_substr($landlordName, 0, 1) }}</div>
                     <span class="d-none d-sm-inline">{{ $landlordName }}</span>
