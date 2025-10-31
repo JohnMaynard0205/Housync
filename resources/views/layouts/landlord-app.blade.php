@@ -246,7 +246,14 @@
         <div class="topbar">
             <div class="dropdown" id="llProfileDropdown">
                 <div class="profile-btn" id="llProfileBtn">
-                    @php $landlordName = auth()->user()->landlordProfile?->name ?? auth()->user()->name; @endphp
+                    @php 
+                        $user = auth()->user();
+                        if (!$user->relationLoaded('landlordProfile')) {
+                            $user->load('landlordProfile');
+                        }
+                        $landlordProfile = $user->landlordProfile;
+                        $landlordName = (!empty($landlordProfile?->name)) ? $landlordProfile->name : ($user->email ?? 'Landlord');
+                    @endphp
                     <div class="profile-avatar">{{ mb_substr($landlordName, 0, 1) }}</div>
                     <span class="d-none d-sm-inline">{{ $landlordName }}</span>
                     <i class="fas fa-chevron-down" style="font-size:.85rem;color:#64748b"></i>
