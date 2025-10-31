@@ -18,7 +18,7 @@ class LandlordController extends Controller
     public function dashboard()
     {
         /** @var \App\Models\User $landlord */
-        $landlord = Auth::user();
+        $landlord = Auth::user()->load('landlordProfile');
         
         $stats = [
             'total_apartments' => $landlord->apartments()->count(),

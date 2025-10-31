@@ -246,8 +246,9 @@
         <div class="topbar">
             <div class="dropdown" id="llProfileDropdown">
                 <div class="profile-btn" id="llProfileBtn">
-                    <div class="profile-avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>
-                    <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
+                    @php $landlordName = auth()->user()->landlordProfile?->name ?? auth()->user()->name; @endphp
+                    <div class="profile-avatar">{{ mb_substr($landlordName, 0, 1) }}</div>
+                    <span class="d-none d-sm-inline">{{ $landlordName }}</span>
                     <i class="fas fa-chevron-down" style="font-size:.85rem;color:#64748b"></i>
                 </div>
                 <div class="dropdown-menu" id="llDropdownMenu">
