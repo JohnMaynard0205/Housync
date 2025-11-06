@@ -449,15 +449,19 @@
                                                 <button class="btn btn-primary btn-sm" onclick="showDocumentsModal({{ $landlord->id }}, '{{ $landlord->name }}')">
                                                     <i class="fas fa-file-alt"></i> View Docs
                                                 </button>
-                                                <form method="POST" action="{{ route('super-admin.approve-landlord', $landlord->id) }}" style="display: inline;">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this landlord?')">
-                                                        <i class="fas fa-check"></i> Approve
+                                                @if($landlord->landlordProfile && $landlord->landlordProfile->status === 'pending')
+                                                    <form method="POST" action="{{ route('super-admin.approve-landlord', $landlord->id) }}" style="display: inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this landlord?')">
+                                                            <i class="fas fa-check"></i> Approve
+                                                        </button>
+                                                    </form>
+                                                    <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ $landlord->id }}, '{{ $landlord->name }}')">
+                                                        <i class="fas fa-times"></i> Reject
                                                     </button>
-                                                </form>
-                                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ $landlord->id }}, '{{ $landlord->name }}')">
-                                                    <i class="fas fa-times"></i> Reject
-                                                </button>
+                                                @else
+                                                    <span class="text-muted" style="font-size: 0.75rem; color: #64748b;">Already processed</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

@@ -61,13 +61,15 @@ class SuperAdminController extends Controller
     public function pendingLandlords()
     {
         // Get only landlords with 'pending' status in their profile
+        // Use join for better performance and to ensure we only get pending landlords
         $pendingLandlords = User::where('role', 'landlord')
-            ->whereHas('landlordProfile', function($q) {
-                $q->where('status', 'pending');
-            })
+            ->join('landlord_profiles', 'users.id', '=', 'landlord_profiles.user_id')
+            ->where('landlord_profiles.status', 'pending')
+            ->select('users.*')
             ->with(['approvedBy', 'landlordDocuments', 'landlordProfile'])
-            ->latest()
+            ->latest('users.created_at')
             ->paginate(15);
+        
         return view('super-admin.pending-landlords', compact('pendingLandlords'));
     }
 
@@ -79,7 +81,15 @@ class SuperAdminController extends Controller
             return back()->with('error', 'User is not a landlord.');
         }
 
+        // Check if already approved
+        if ($landlord->landlordProfile && $landlord->landlordProfile->status === 'approved') {
+            return back()->with('error', 'This landlord is already approved.');
+        }
+
         $landlord->approve(Auth::id());
+        
+        // Refresh the relationship to ensure status is updated
+        $landlord->load('landlordProfile');
 
         return back()->with('success', 'Landlord approved successfully.');
     }
