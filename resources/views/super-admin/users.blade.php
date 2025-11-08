@@ -29,38 +29,6 @@
             color: #1e293b;
         }
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #1e40af);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 0.75rem;
-        }
-
-        .user-info h3 {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .user-info p {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
 
         .page-section {
             background: white;
@@ -345,15 +313,6 @@
                 <div>
                     <h1>User Management</h1>
                     <p style="color: #64748b; margin-top: 0.5rem;">Manage all users in the system</p>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>System Administrator</p>
-                    </div>
                 </div>
             </div>
 

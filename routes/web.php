@@ -52,6 +52,10 @@ Route::middleware(['role:super_admin'])->prefix('super-admin')->name('super-admi
     Route::put('/users/{id}', [SuperAdminController::class, 'updateUser'])->name('update-user');
     Route::delete('/users/{id}', [SuperAdminController::class, 'deleteUser'])->name('delete-user');
     Route::get('/apartments', [SuperAdminController::class, 'apartments'])->name('apartments');
+    Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
+    Route::post('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/{group}', [SuperAdminController::class, 'updateSettingsGroup'])->name('settings.group.update');
+    Route::get('/check-dark-mode', [SuperAdminController::class, 'checkDarkMode'])->name('check-dark-mode');
 });
 
 // Landlord Routes

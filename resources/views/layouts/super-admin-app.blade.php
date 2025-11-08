@@ -49,6 +49,176 @@
         .main-content .stat-card .stat-label{color:#64748b;font-size:.92rem}
         @media(max-width:900px){aside.sidebar{position:fixed;left:0;height:100vh;z-index:1040}.main-content{padding:1.5rem .5rem .5rem 1rem}}
         @media(max-width:600px){.main-content{padding:.7rem .2rem}aside.sidebar{width:90px}.dashboard-container.collapsed aside.sidebar{width:56px}}
+        
+        /* Dark Mode Styles - Global */
+        body.dark-mode, body.dark-mode html {
+            background-color: #0f172a !important;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .main-content {
+            background: #0f172a !important;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .profile-btn {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .dropdown-menu {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-mode .dropdown-item {
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode .dropdown-item:hover {
+            background: #334155 !important;
+        }
+        
+        body.dark-mode .stat-card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-mode .stat-card .stat-value {
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .stat-card .stat-label {
+            color: #94a3b8 !important;
+        }
+        
+        body.dark-mode .page-section {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .content-card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .data-table {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .data-table th {
+            background: #0f172a !important;
+            color: #94a3b8;
+            border-bottom-color: #334155;
+        }
+        
+        body.dark-mode .data-table td {
+            border-bottom-color: #334155;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .data-table tbody tr:hover {
+            background: #0f172a !important;
+        }
+        
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode p {
+            color: #cbd5e1;
+        }
+        
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .content-header p {
+            color: #94a3b8 !important;
+        }
+        
+        body.dark-mode .section-title {
+            color: #f1f5f9 !important;
+        }
+        
+        body.dark-mode .section-subtitle {
+            color: #94a3b8 !important;
+        }
+        
+        body.dark-mode .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        body.dark-mode .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        body.dark-mode .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        body.dark-mode .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        body.dark-mode .status-badge {
+            color: white;
+        }
+        
+        body.dark-mode .status-pending {
+            background: #78350f;
+            color: #fbbf24;
+        }
+        
+        body.dark-mode .status-approved {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+        
+        body.dark-mode .status-rejected {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+        
+        body.dark-mode .alert {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .alert-success {
+            background: #064e3b !important;
+            border-color: #047857 !important;
+            color: #6ee7b7 !important;
+        }
+        
+        body.dark-mode .alert-error {
+            background: #7f1d1d !important;
+            border-color: #991b1b !important;
+            color: #fca5a5 !important;
+        }
+        
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="email"],
+        body.dark-mode input[type="number"],
+        body.dark-mode input[type="password"],
+        body.dark-mode textarea,
+        body.dark-mode select {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode input:focus,
+        body.dark-mode textarea:focus,
+        body.dark-mode select:focus {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+        }
     </style>
     @stack('styles')
 </head>
@@ -64,7 +234,7 @@
             <a class="nav-link{{ request()->routeIs('super-admin.pending-landlords') ? ' active' : '' }}" href="{{ route('super-admin.pending-landlords') }}"><span class="nav-icon"><i class="fas fa-user-clock"></i></span> <span class="nav-label">Pending Approvals</span></a>
             <a class="nav-link{{ request()->routeIs('super-admin.users') ? ' active' : '' }}" href="{{ route('super-admin.users') }}"><span class="nav-icon"><i class="fas fa-users"></i></span> <span class="nav-label">User Management</span></a>
             <a class="nav-link{{ request()->routeIs('super-admin.apartments') ? ' active' : '' }}" href="{{ route('super-admin.apartments') }}"><span class="nav-icon"><i class="fas fa-building"></i></span> <span class="nav-label">Properties</span></a>
-            <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-cog"></i></span> <span class="nav-label">System Settings</span></a>
+            <a class="nav-link{{ request()->routeIs('super-admin.settings') ? ' active' : '' }}" href="{{ route('super-admin.settings') }}"><span class="nav-icon"><i class="fas fa-cog"></i></span> <span class="nav-label">System Settings</span></a>
         </nav>
         <div class="sidebar-footer mt-auto"></div>
     </aside>
@@ -90,6 +260,62 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Dark Mode Global Application
+    (function() {
+        function applyDarkMode(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        }
+        
+        // Check localStorage first for immediate effect
+        const savedDarkMode = localStorage.getItem('darkMode');
+        if (savedDarkMode === 'true') {
+            applyDarkMode(true);
+        } else {
+            // Check database setting via AJAX if not in localStorage
+            fetch('/super-admin/check-dark-mode')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.darkMode) {
+                        applyDarkMode(true);
+                        localStorage.setItem('darkMode', 'true');
+                    }
+                })
+                .catch(() => {
+                    // Fallback: check if setting exists in page
+                    const darkModeSetting = document.getElementById('setting_dark_mode');
+                    if (darkModeSetting && darkModeSetting.checked) {
+                        applyDarkMode(true);
+                    }
+                });
+        }
+        
+        // Listen for dark mode changes from settings page
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'darkMode') {
+                applyDarkMode(e.newValue === 'true');
+            }
+        });
+        
+        // Also check periodically for changes (when settings are saved)
+        setInterval(function() {
+            const darkModeSetting = document.getElementById('setting_dark_mode');
+            if (darkModeSetting) {
+                const isDark = darkModeSetting.checked;
+                const currentDark = document.body.classList.contains('dark-mode');
+                if (isDark !== currentDark) {
+                    applyDarkMode(isDark);
+                    localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+                }
+            }
+        }, 1000);
+    })();
+    
     document.getElementById('sidebarCollapseBtn').onclick = function() {
         var cont = document.getElementById('dashboardContainer');
         if (cont) { cont.classList.toggle('collapsed'); try { localStorage.setItem('superAdminSidebarCollapsed', cont.classList.contains('collapsed') ? '1' : '0'); } catch(e) {} }
