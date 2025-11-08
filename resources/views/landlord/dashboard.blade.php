@@ -6,24 +6,6 @@
 <!-- Header -->
 <div class="content-header mb-4">
     <h1 class="fw-bold">Landlord Portal</h1>
-    <div class="user-profile d-flex align-items-center bg-white p-2 rounded shadow-sm">
-        @php
-            $user = auth()->user();
-            // Query profile directly from database to ensure fresh data
-            $landlordProfile = \App\Models\LandlordProfile::where('user_id', $user->id)->first();
-            // Get name directly from profile, checking if it exists and is not empty
-            $displayName = ($landlordProfile && !empty(trim($landlordProfile->name ?? ''))) 
-                ? trim($landlordProfile->name) 
-                : ($user->email ?? 'Landlord');
-        @endphp
-        <div class="user-avatar d-flex align-items-center justify-content-center me-3" style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #f97316, #ea580c); color:white; font-weight:600;">
-            {{ mb_substr($displayName, 0, 1) }}
-        </div>
-        <div class="user-info">
-            <h3 class="mb-0" style="font-size: .9rem;">{{ $displayName }}</h3>
-            <p class="mb-0 text-muted" style="font-size:.78rem;">Property Manager</p>
-        </div>
-    </div>
 </div>
 
 @if(session('success'))
@@ -39,9 +21,10 @@
         $user = auth()->user();
         // Query profile directly from database to ensure fresh data
         $landlordProfile = \App\Models\LandlordProfile::where('user_id', $user->id)->first();
-        // Get name directly from profile, checking if it exists and is not empty
-        $landlordName = ($landlordProfile && !empty(trim($landlordProfile->name ?? ''))) 
-            ? trim($landlordProfile->name) 
+        // Get name directly from profile, checking if it exists and is not empty or "User" or "New User"
+        $profileName = $landlordProfile ? trim($landlordProfile->name ?? '') : '';
+        $landlordName = (!empty($profileName) && $profileName !== 'User' && $profileName !== 'New User') 
+            ? $profileName 
             : ($user->email ?? 'Landlord');
         $firstName = trim(explode(' ', $landlordName)[0] ?? $landlordName);
     @endphp

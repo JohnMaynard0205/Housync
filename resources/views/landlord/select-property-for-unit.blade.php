@@ -273,15 +273,6 @@
             <!-- Header -->
             <div class="content-header">
                 <h1>Add New Unit</h1>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>Property Manager</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Page Section -->

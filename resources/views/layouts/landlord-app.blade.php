@@ -250,9 +250,10 @@
                         $user = auth()->user();
                         // Query profile directly from database to ensure fresh data
                         $landlordProfile = \App\Models\LandlordProfile::where('user_id', $user->id)->first();
-                        // Get name directly from profile, checking if it exists and is not empty
-                        $landlordName = ($landlordProfile && !empty(trim($landlordProfile->name ?? ''))) 
-                            ? trim($landlordProfile->name) 
+                        // Get name directly from profile, checking if it exists and is not empty or "User" or "New User"
+                        $profileName = $landlordProfile ? trim($landlordProfile->name ?? '') : '';
+                        $landlordName = (!empty($profileName) && $profileName !== 'User' && $profileName !== 'New User') 
+                            ? $profileName 
                             : ($user->email ?? 'Landlord');
                     @endphp
                     <div class="profile-avatar">{{ mb_substr($landlordName, 0, 1) }}</div>

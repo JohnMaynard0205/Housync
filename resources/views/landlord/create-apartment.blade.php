@@ -257,15 +257,6 @@
             <h1>Add New Property</h1>
             <p style="color: #64748b; margin-top: 0.5rem;">Create a new property in your portfolio</p>
         </div>
-        <div class="user-profile">
-            <div class="user-avatar">
-                {{ substr(auth()->user()->name, 0, 1) }}
-            </div>
-            <div class="user-info">
-                <h3>{{ auth()->user()->name }}</h3>
-                <p>Property Manager</p>
-            </div>
-        </div>
     </div>
 
     @if(session('success'))

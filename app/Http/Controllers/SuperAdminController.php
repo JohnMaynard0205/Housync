@@ -26,11 +26,11 @@ class SuperAdminController extends Controller
             'total_apartments' => Apartment::count(),
         ];
 
-        // Use JOIN to ensure only truly pending landlords are shown
+        // Use whereHas to avoid duplicates from JOIN
         $pendingLandlords = User::where('role', 'landlord')
-            ->join('landlord_profiles', 'users.id', '=', 'landlord_profiles.user_id')
-            ->where('landlord_profiles.status', 'pending')
-            ->select('users.*')
+            ->whereHas('landlordProfile', function($query) {
+                $query->where('status', 'pending');
+            })
             ->with('landlordProfile')
             ->latest('users.created_at')
             ->take(5)
@@ -39,6 +39,7 @@ class SuperAdminController extends Controller
                 // Double-check that status is actually pending
                 return $landlord->landlordProfile && $landlord->landlordProfile->status === 'pending';
             })
+            ->unique('id')
             ->values();
         $recentUsers = User::with('landlordProfile')
             ->latest()
@@ -78,19 +79,19 @@ class SuperAdminController extends Controller
     public function pendingLandlords()
     {
         // Get only landlords with 'pending' status in their profile
-        // Use join for better performance and to ensure we only get pending landlords
+        // Use whereHas to avoid duplicates from JOIN
         $pendingLandlords = User::where('role', 'landlord')
-            ->join('landlord_profiles', 'users.id', '=', 'landlord_profiles.user_id')
-            ->where('landlord_profiles.status', 'pending')
-            ->select('users.*')
-            ->with(['approvedBy', 'landlordDocuments'])
+            ->whereHas('landlordProfile', function($query) {
+                $query->where('status', 'pending');
+            })
+            ->with(['landlordProfile', 'approvedBy', 'landlordDocuments'])
             ->latest('users.created_at')
             ->get()
             ->filter(function($landlord) {
-                // Double-check by reloading the relationship to ensure status is actually pending
-                $landlord->load('landlordProfile');
+                // Double-check that status is actually pending
                 return $landlord->landlordProfile && $landlord->landlordProfile->status === 'pending';
             })
+            ->unique('id')
             ->values();
         
         // Manually paginate the filtered collection

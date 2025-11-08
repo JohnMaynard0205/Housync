@@ -20,22 +20,24 @@
         font-size: 1.1rem;
     }
 
+    .main-content .stats-grid,
     .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
+        display: grid !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        gap: 1rem !important;
         margin-bottom: 2rem;
     }
 
     .stat-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 1rem;
-        padding: 1.75rem;
+        padding: 1.25rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border-left: 4px solid;
         transition: transform 0.2s, box-shadow 0.2s;
         position: relative;
         overflow: hidden;
+        min-width: 0;
     }
 
     .stat-card::before {
@@ -66,18 +68,25 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
+        gap: 0.5rem;
+    }
+    
+    .stat-card-header > div:first-child {
+        min-width: 0;
+        flex: 1;
     }
 
     .stat-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: white;
+        flex-shrink: 0;
     }
 
     .stat-card.primary .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
@@ -88,7 +97,7 @@
     .stat-card.teal .stat-icon { background: linear-gradient(135deg, #14b8a6, #0d9488); }
 
     .stat-value {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
         color: #1e293b;
         margin-bottom: 0.25rem;
@@ -97,7 +106,7 @@
 
     .stat-label {
         color: #64748b;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         font-weight: 500;
     }
 
@@ -232,40 +241,6 @@
         color: #059669;
     }
 
-    .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-
-    .quick-action-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem 1.5rem;
-        background: white;
-        border: 2px solid #e2e8f0;
-        border-radius: 0.75rem;
-        text-decoration: none;
-        color: #1e293b;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .quick-action-btn:hover {
-        border-color: #3b82f6;
-        background: #f8fafc;
-        color: #3b82f6;
-        text-decoration: none;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .quick-action-btn i {
-        font-size: 1.25rem;
-    }
-
     .empty-state {
         text-align: center;
         padding: 2rem;
@@ -278,13 +253,21 @@
         opacity: 0.5;
     }
 
+    @media (max-width: 1400px) {
+        .main-content .stats-grid,
+        .stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+    }
+    
     @media (max-width: 768px) {
         .content-grid {
             grid-template-columns: 1fr;
         }
         
+        .main-content .stats-grid,
         .stats-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
         }
     }
 </style>
@@ -458,25 +441,5 @@
             </div>
         @endif
     </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="quick-actions">
-    <a href="{{ route('super-admin.pending-landlords') }}" class="quick-action-btn">
-        <i class="fas fa-user-check"></i>
-        <span>Review Pending</span>
-    </a>
-    <a href="{{ route('super-admin.users') }}" class="quick-action-btn">
-        <i class="fas fa-users-cog"></i>
-        <span>Manage Users</span>
-    </a>
-    <a href="{{ route('super-admin.apartments') }}" class="quick-action-btn">
-        <i class="fas fa-building"></i>
-        <span>View Properties</span>
-    </a>
-    <a href="{{ route('super-admin.create-user') }}" class="quick-action-btn">
-        <i class="fas fa-user-plus"></i>
-        <span>Create User</span>
-    </a>
 </div>
 @endsection

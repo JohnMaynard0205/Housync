@@ -402,15 +402,6 @@
                     <h1>Edit Property</h1>
                     <p style="color: #64748b; margin-top: 0.5rem;">Update property information</p>
                 </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>Property Manager</p>
-                    </div>
-                </div>
             </div>
 
             @if(session('success'))
