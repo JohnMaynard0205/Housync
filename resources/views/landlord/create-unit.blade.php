@@ -505,12 +505,27 @@
                         <h3 class="section-title">Photos</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Cover Image</label>
-                                <input type="file" name="cover_image" accept="image/*" class="form-control">
+                                <label class="form-label">Cover Image <span class="text-danger">*</span></label>
+                                <input type="file" name="cover_image" id="cover_image" accept="image/*" class="form-control" onchange="previewCoverImage(this)">
+                                <div id="cover_image_preview" class="mt-2" style="display: none;">
+                                    <img id="cover_preview_img" src="" alt="Cover Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                                <p class="form-help text-muted mt-1">Main image displayed for this unit (JPEG/PNG, max 5MB)</p>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Gallery (up to 12)</label>
-                                <input type="file" name="gallery[]" accept="image/*" multiple class="form-control">
+                        </div>
+                        
+                        <div class="form-group mt-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            <div class="gallery-upload-container">
+                                <input type="file" name="gallery[]" id="gallery_input" accept="image/*" multiple class="form-control" onchange="handleGalleryUpload(this)" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('gallery_input').click()">
+                                    <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                                </button>
+                                <p class="form-help text-muted mt-2">Add multiple images to showcase the unit (JPEG/PNG, max 5MB each)</p>
+                            </div>
+                            
+                            <div id="gallery_preview" class="gallery-preview mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                                <!-- Gallery previews will be added here -->
                             </div>
                         </div>
                     </div>
@@ -556,6 +571,105 @@
 
     <script>
         console.log('Script starting...');
+        
+        // Cover image preview
+        function previewCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('cover_preview_img').src = e.target.result;
+                    document.getElementById('cover_image_preview').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Gallery images handling
+        let galleryFiles = [];
+        const maxGalleryImages = 12;
+        
+        function handleGalleryUpload(input) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxGalleryImages - galleryFiles.length;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (galleryFiles.length < maxGalleryImages) {
+                        galleryFiles.push(file);
+                        addGalleryPreview(file, galleryFiles.length - 1);
+                    }
+                });
+                
+                // Update the file input
+                updateGalleryInput();
+            }
+        }
+        
+        function addGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('gallery_preview');
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 150px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeGalleryImage(${index})"
+                            style="position: absolute; top: 5px; right: 5px; padding: 0.25rem 0.5rem; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeGalleryImage(index) {
+            galleryFiles.splice(index, 1);
+            updateGalleryPreview();
+            updateGalleryInput();
+        }
+        
+        function updateGalleryPreview() {
+            const previewContainer = document.getElementById('gallery_preview');
+            previewContainer.innerHTML = '';
+            
+            if (galleryFiles.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            galleryFiles.forEach((file, index) => {
+                addGalleryPreview(file, index);
+            });
+        }
+        
+        function updateGalleryInput() {
+            const input = document.getElementById('gallery_input');
+            const dataTransfer = new DataTransfer();
+            
+            galleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            
+            input.files = dataTransfer.files;
+        }
         
         // Form validation and enhancement
         document.addEventListener('DOMContentLoaded', function() {

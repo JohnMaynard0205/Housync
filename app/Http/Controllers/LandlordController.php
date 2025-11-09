@@ -241,9 +241,17 @@ class LandlordController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'property_type' => 'required|string|in:apartment,condominium,townhouse,house,duplex,others',
             'address' => 'required|string|max:500',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
             'description' => 'nullable|string|max:1000',
             'total_units' => 'required|integer|min:1',
+            'floors' => 'nullable|integer|min:1',
+            'bedrooms' => 'nullable|integer|min:1',
+            'year_built' => 'nullable|integer|min:1900|max:' . date('Y'),
+            'parking_spaces' => 'nullable|integer|min:0',
             'contact_person' => 'nullable|string|max:255',
             'contact_phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'contact_email' => 'nullable|email|max:255',
@@ -251,23 +259,73 @@ class LandlordController extends Controller
             'status' => 'required|in:active,inactive,maintenance',
             'auto_generate_additional' => 'nullable|boolean',
             'auto_create_missing' => 'nullable|boolean',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
 
         try {
             $currentUnitCount = $apartment->units()->count();
             $newTotalUnits = $request->total_units;
 
-            $apartment->update([
+            // Determine floors or bedrooms based on property type
+            $floors = $request->property_type === 'house' ? null : $request->floors;
+            $bedrooms = $request->property_type === 'house' ? $request->bedrooms : null;
+
+            $updateData = [
                 'name' => $request->name,
+                'property_type' => $request->property_type,
                 'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'postal_code' => $request->postal_code,
                 'description' => $request->description,
                 'total_units' => $request->total_units,
+                'floors' => $floors,
+                'bedrooms' => $bedrooms,
+                'year_built' => $request->year_built,
+                'parking_spaces' => $request->parking_spaces,
                 'contact_person' => $request->contact_person,
                 'contact_phone' => $request->contact_phone,
                 'contact_email' => $request->contact_email,
                 'amenities' => $request->amenities ?? [],
                 'status' => $request->status,
-            ]);
+            ];
+
+            // Handle cover image upload
+            if ($request->hasFile('cover_image')) {
+                $supabase = new SupabaseService();
+                $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                $path = 'apartments/' . $filename;
+                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                
+                if ($uploadResult['success']) {
+                    $updateData['cover_image'] = $uploadResult['url'];
+                } else {
+                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                }
+            }
+
+            // Handle gallery images upload
+            if ($request->hasFile('gallery')) {
+                $supabase = new SupabaseService();
+                $galleryPaths = $apartment->gallery ?? [];
+                
+                foreach ($request->file('gallery') as $index => $file) {
+                    $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = 'apartments/gallery/' . $filename;
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    if ($uploadResult['success']) {
+                        $galleryPaths[] = $uploadResult['url'];
+                    }
+                }
+                
+                // Limit to 12 images
+                $galleryPaths = array_slice($galleryPaths, 0, 12);
+                $updateData['gallery'] = $galleryPaths;
+            }
+
+            $apartment->update($updateData);
 
             $unitsCreated = 0;
 
@@ -425,13 +483,37 @@ class LandlordController extends Controller
                 return back()->with('error', "Cannot delete property with existing units. Found {$unitCount} unit(s). Please delete all units first from the Units page, or use Force Delete.");
             }
             
+            // No units - safe to delete
+            // Delete any related RFID cards and access logs first (they have cascade/set null, but let's be explicit)
+            $apartment->rfidCards()->delete();
+            // Access logs can remain (they have set null on apartment_id)
+            
             $apartmentName = $apartment->name;
             $apartment->delete();
             
+            Log::info("Apartment deleted successfully", [
+                'apartment_id' => $id,
+                'apartment_name' => $apartmentName,
+                'landlord_id' => $landlord->id
+            ]);
+            
             return redirect()->route('landlord.apartments')->with('success', "Property '{$apartmentName}' deleted successfully.");
         } catch (\Exception $e) {
-            Log::error('Error deleting apartment: ' . $e->getMessage());
-            return back()->with('error', 'Failed to delete property. Please try again.');
+            Log::error('Error deleting apartment', [
+                'apartment_id' => $id,
+                'landlord_id' => $landlord->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $errorMessage = 'Failed to delete property. ';
+            if (config('app.debug')) {
+                $errorMessage .= 'Error: ' . $e->getMessage();
+            } else {
+                $errorMessage .= 'Please try again.';
+            }
+            
+            return back()->with('error', $errorMessage);
         }
     }
 
@@ -826,6 +908,8 @@ class LandlordController extends Controller
                 'amenities' => 'nullable|array',
                 'amenities.*' => 'string',
                 'notes' => 'nullable|string|max:1000',
+                'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+                'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax() || $request->wantsJson()) {
@@ -839,7 +923,7 @@ class LandlordController extends Controller
         }
 
         try {
-            $unit->update([
+            $updateData = [
                 'unit_number' => $request->unit_number,
                 'unit_type' => $request->unit_type,
                 'rent_amount' => $request->rent_amount,
@@ -852,7 +936,43 @@ class LandlordController extends Controller
                 'is_furnished' => $request->boolean('is_furnished'),
                 'amenities' => $request->amenities ?? [],
                 'notes' => $request->notes,
-            ]);
+            ];
+
+            // Handle cover image upload
+            if ($request->hasFile('cover_image')) {
+                $supabase = new SupabaseService();
+                $filename = 'unit-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                $path = 'units/' . $filename;
+                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                
+                if ($uploadResult['success']) {
+                    $updateData['cover_image'] = $uploadResult['url'];
+                } else {
+                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                }
+            }
+
+            // Handle gallery images upload
+            if ($request->hasFile('gallery')) {
+                $supabase = new SupabaseService();
+                $galleryPaths = $unit->gallery ?? [];
+                
+                foreach ($request->file('gallery') as $index => $file) {
+                    $filename = 'unit-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = 'units/gallery/' . $filename;
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    if ($uploadResult['success']) {
+                        $galleryPaths[] = $uploadResult['url'];
+                    }
+                }
+                
+                // Limit to 12 images
+                $galleryPaths = array_slice($galleryPaths, 0, 12);
+                $updateData['gallery'] = $galleryPaths;
+            }
+
+            $unit->update($updateData);
 
             // Return JSON response for AJAX requests
             if ($request->ajax() || $request->wantsJson()) {
@@ -1274,6 +1394,8 @@ class LandlordController extends Controller
             'amenities' => $unit->amenities ?? [],
             'description' => $unit->description,
             'notes' => $unit->notes,
+            'cover_image_url' => $unit->cover_image_url,
+            'gallery_urls' => $unit->gallery_urls ?? [],
             'created_at' => $unit->created_at->format('M d, Y'),
             'updated_at' => $unit->updated_at->format('M d, Y'),
             'current_tenant' => $currentAssignment ? [

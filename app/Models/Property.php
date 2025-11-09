@@ -44,7 +44,7 @@ class Property extends Model
         'is_active' => 'boolean',
     ];
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'gallery_images'];
 
     /**
      * Relationships
@@ -57,6 +57,21 @@ class Property extends Model
     public function landlord()
     {
         return $this->belongsTo(User::class, 'landlord_id');
+    }
+
+    /**
+     * Get the unit associated with this property
+     * Properties are created from units, so we match by extracting unit ID from slug
+     */
+    public function getUnit()
+    {
+        // Extract unit ID from slug (format: "apartment-name-unit-number-{unit_id}")
+        if (preg_match('/-(\d+)$/', $this->slug, $matches)) {
+            $unitId = (int) $matches[1];
+            return Unit::find($unitId);
+        }
+        
+        return null;
     }
 
     /**
@@ -86,6 +101,33 @@ class Property extends Model
 
         // For Railway deployment, use API route since storage link doesn't work
         return url('api/storage/' . $diskRelative);
+    }
+
+    /**
+     * Get all gallery images (cover image + unit gallery images)
+     */
+    public function getGalleryImagesAttribute()
+    {
+        $images = [];
+        
+        // Add cover image first if it exists
+        if ($this->image_url) {
+            $images[] = $this->image_url;
+        }
+        
+        // Try to get unit and its gallery images
+        $unit = $this->getUnit();
+        
+        if ($unit && $unit->gallery_urls) {
+            // Add gallery images, but skip if cover image is already in gallery
+            foreach ($unit->gallery_urls as $galleryUrl) {
+                if (!in_array($galleryUrl, $images)) {
+                    $images[] = $galleryUrl;
+                }
+            }
+        }
+        
+        return $images;
     }
 
     /**

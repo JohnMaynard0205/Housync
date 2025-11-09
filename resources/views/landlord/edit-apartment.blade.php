@@ -279,6 +279,17 @@
             background: #dc2626;
         }
 
+        .btn-outline-primary {
+            background: transparent;
+            border: 2px solid #f97316;
+            color: #f97316;
+        }
+
+        .btn-outline-primary:hover {
+            background: #f97316;
+            color: white;
+        }
+
         .btn-lg {
             padding: 1rem 2rem;
             font-size: 1rem;
@@ -338,6 +349,7 @@
         .preview-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
@@ -426,6 +438,19 @@
                 <div class="preview-header">
                     <i class="fas fa-eye preview-icon"></i>
                     <h3 class="preview-title">Editing: {{ $apartment->name }}</h3>
+                    <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+                        <a href="{{ route('landlord.units', $apartment->id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-door-open"></i> View Units
+                        </a>
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                            <i class="fas fa-trash"></i> Delete Property
+                        </button>
+                        @if($apartment->units()->count() > 0)
+                        <button type="button" class="btn btn-danger" onclick="showForceDeleteModal()" style="background-color: #dc3545; border-color: #dc3545;">
+                            <i class="fas fa-exclamation-triangle"></i> Force Delete
+                        </button>
+                        @endif
+                    </div>
                 </div>
                 <div class="preview-info">
                     <div class="preview-item">
@@ -456,7 +481,7 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('landlord.update-apartment', $apartment->id) }}" class="form-container">
+                <form method="POST" action="{{ route('landlord.update-apartment', $apartment->id) }}" class="form-container" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     
@@ -738,20 +763,67 @@
                         </div>
                     </div>
 
+                    <!-- Property Photos -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-image"></i>
+                            Property Photos
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label class="form-label">Cover Image</label>
+                                @if($apartment->cover_image_url)
+                                    <div class="mb-2">
+                                        <p class="text-muted small mb-2">Current cover image:</p>
+                                        <img src="{{ $apartment->cover_image_url }}" alt="Current Cover" style="max-width: 300px; max-height: 300px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                    </div>
+                                @else
+                                    <p class="text-muted small mb-2">No cover image yet. Upload one below.</p>
+                                @endif
+                                <input type="file" name="cover_image" id="cover_image" accept="image/*" class="form-control" onchange="previewCoverImage(this)">
+                                <div id="cover_image_preview" class="mt-2" style="display: none;">
+                                    <img id="cover_preview_img" src="" alt="Cover Preview" style="max-width: 300px; max-height: 300px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                                <p class="form-help text-muted mt-1">Main image displayed for this property (JPEG/PNG, max 5MB)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group full-width mt-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            @if($apartment->gallery_urls && count($apartment->gallery_urls) > 0)
+                                <div class="mb-2">
+                                    <p class="text-muted small">Current gallery images ({{ count($apartment->gallery_urls) }}):</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        @foreach($apartment->gallery_urls as $url)
+                                            <div style="position: relative;">
+                                                <img src="{{ $url }}" alt="Gallery Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 2px solid #e2e8f0;">
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-muted small mb-2">No gallery images yet. Add images below.</p>
+                            @endif
+                            <div class="gallery-upload-container">
+                                <input type="file" name="gallery[]" id="gallery_input" accept="image/*" multiple class="form-control" onchange="handleGalleryUpload(this)" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('gallery_input').click()">
+                                    <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                                </button>
+                                <p class="form-help text-muted mt-2">Add multiple images to showcase the property (JPEG/PNG, max 5MB each)</p>
+                            </div>
+                            
+                            <div id="gallery_preview" class="gallery-preview mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                                <!-- Gallery previews will be added here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Form Actions -->
                     <div class="form-actions">
                         <div class="form-actions-left">
                             <a href="{{ route('landlord.apartments') }}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
-                            <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                                <i class="fas fa-trash"></i> Delete Property
-                            </button>
-                            @if($apartment->units()->count() > 0)
-                            <button type="button" class="btn btn-danger" onclick="showForceDeleteModal()" style="background-color: #dc3545; border-color: #dc3545;">
-                                <i class="fas fa-exclamation-triangle"></i> Force Delete ({{ $apartment->units()->count() }} units)
-                            </button>
-                            @endif
                         </div>
                         <div class="form-actions-right">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -959,9 +1031,123 @@
         });
 
         function confirmDelete() {
-            if (confirm('Are you sure you want to delete this property?\n\nThis action cannot be undone.\n\nNote: You must first delete all units in this property before you can delete the property itself.')) {
+            const unitCount = {{ $apartment->units()->count() }};
+            let message = 'Are you sure you want to delete this property?\n\nThis action cannot be undone.';
+            
+            if (unitCount > 0) {
+                message += '\n\nNote: You must first delete all units in this property before you can delete the property itself.';
+            }
+            
+            if (confirm(message)) {
                 document.getElementById('delete-form').submit();
             }
+        }
+
+        // Cover image preview
+        function previewCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('cover_image_preview');
+                    const previewImg = document.getElementById('cover_preview_img');
+                    if (preview && previewImg) {
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Gallery images handling
+        let galleryFiles = [];
+        const maxGalleryImages = 12;
+        const existingGalleryCount = {{ $apartment->gallery_urls ? count($apartment->gallery_urls) : 0 }};
+        
+        function handleGalleryUpload(input) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxGalleryImages - existingGalleryCount;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (galleryFiles.length < remainingSlots) {
+                        galleryFiles.push(file);
+                        addGalleryPreview(file, galleryFiles.length - 1);
+                    }
+                });
+                
+                updateGalleryInput();
+            }
+        }
+        
+        function addGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('gallery_preview');
+                if (!previewContainer) return;
+                
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 150px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeGalleryImage(${index})"
+                            style="position: absolute; top: 5px; right: 5px; padding: 0.25rem 0.5rem; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeGalleryImage(index) {
+            galleryFiles.splice(index, 1);
+            updateGalleryPreview();
+            updateGalleryInput();
+        }
+        
+        function updateGalleryPreview() {
+            const previewContainer = document.getElementById('gallery_preview');
+            if (!previewContainer) return;
+            
+            previewContainer.innerHTML = '';
+            
+            if (galleryFiles.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            galleryFiles.forEach((file, index) => {
+                addGalleryPreview(file, index);
+            });
+        }
+        
+        function updateGalleryInput() {
+            const input = document.getElementById('gallery_input');
+            if (!input) return;
+            
+            const dataTransfer = new DataTransfer();
+            galleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            input.files = dataTransfer.files;
         }
     </script>
 @endsection

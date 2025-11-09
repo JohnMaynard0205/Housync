@@ -3,9 +3,32 @@
         @foreach($properties as $property)
             <div class="property-card">
                 <a href="{{ route('property.show', $property->slug) }}" class="property-image-link">
-                    @php($img = $property->image_url)
-                    @if($img)
-                        <img src="{{ $img }}" alt="{{ $property->title }}" class="property-image">
+                    @php($galleryImages = $property->gallery_images ?? [])
+                    @if(count($galleryImages) > 0)
+                        <div class="property-image-carousel" data-carousel-id="carousel-{{ $property->id }}">
+                            <div class="carousel-container">
+                                @foreach($galleryImages as $index => $img)
+                                    <div class="carousel-slide {{ $index === 0 ? 'active' : '' }}">
+                                        <img src="{{ $img }}" alt="{{ $property->title }} - Image {{ $index + 1 }}" class="property-image" loading="lazy">
+                                    </div>
+                                @endforeach
+                            </div>
+                            @if(count($galleryImages) > 1)
+                                <div class="carousel-controls">
+                                    <button class="carousel-btn carousel-prev" onclick="event.preventDefault(); slideCarousel('carousel-{{ $property->id }}', -1)">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="carousel-btn carousel-next" onclick="event.preventDefault(); slideCarousel('carousel-{{ $property->id }}', 1)">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <div class="carousel-indicators">
+                                    @foreach($galleryImages as $index => $img)
+                                        <span class="carousel-dot {{ $index === 0 ? 'active' : '' }}" onclick="event.preventDefault(); goToSlide('carousel-{{ $property->id }}', {{ $index }})"></span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                     @else
                         <div class="property-image-placeholder">
                             <div>

@@ -197,12 +197,22 @@
             // Show modal
             modal.show();
             
+            // Reset gallery files array
+            editGalleryFiles = [];
+            
             // Fetch unit data
             fetch(`/landlord/units/${unitId}/details`)
                 .then(response => response.json())
                 .then(data => {
                     modalTitle.textContent = `Edit Unit ${data.unit_number}`;
                     form.action = `/landlord/units/${unitId}`;
+                    
+                    // Clear any previous previews
+                    const editGalleryPreview = document.getElementById('edit_gallery_preview');
+                    if (editGalleryPreview) {
+                        editGalleryPreview.innerHTML = '';
+                        editGalleryPreview.style.display = 'none';
+                    }
                     
                     // Generate form content
                     modalContent.innerHTML = `
@@ -300,6 +310,46 @@
                             <label for="edit_notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="edit_notes" name="notes" rows="2">${data.notes || ''}</textarea>
                         </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="mb-3">
+                            <label for="edit_cover_image" class="form-label">Cover Image</label>
+                            ${data.cover_image_url ? `
+                                <div class="mb-2">
+                                    <img src="${data.cover_image_url}" alt="Current Cover" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                            ` : ''}
+                            <input type="file" class="form-control" id="edit_cover_image" name="cover_image" accept="image/*" onchange="previewEditCoverImage(this)">
+                            <div id="edit_cover_preview" class="mt-2" style="display: none;">
+                                <img id="edit_cover_preview_img" src="" alt="Cover Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                            </div>
+                            <small class="form-text text-muted">Upload a new cover image (JPEG/PNG, max 5MB)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            ${data.gallery_urls && data.gallery_urls.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-muted small">Current gallery images (${data.gallery_urls.length}):</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-2" id="existing_gallery_images">
+                                        ${data.gallery_urls.map((url, idx) => `
+                                            <div style="position: relative;">
+                                                <img src="${url}" alt="Existing Gallery ${idx + 1}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 2px solid #e2e8f0;">
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted small mb-2">No gallery images yet. Add images below.</p>'}
+                            <input type="file" class="form-control" id="edit_gallery_input" name="gallery[]" accept="image/*" multiple style="display: none;" onchange="handleEditGalleryUpload(this, ${data.gallery_urls ? data.gallery_urls.length : 0})">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('edit_gallery_input').click()">
+                                <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                            </button>
+                            <small class="form-text text-muted d-block mt-1">Add more images to showcase the unit (JPEG/PNG, max 5MB each)</small>
+                            <div id="edit_gallery_preview" class="mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem;">
+                                <!-- New gallery previews will be added here -->
+                            </div>
+                        </div>
                     `;
                     
                     // Show save button
@@ -376,6 +426,113 @@
             }).join('');
         }
         
+        // Image preview functions for edit form
+        function previewEditCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('edit_cover_preview');
+                    const previewImg = document.getElementById('edit_cover_preview_img');
+                    if (preview && previewImg) {
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        let editGalleryFiles = [];
+        const maxEditGalleryImages = 12;
+        
+        function handleEditGalleryUpload(input, existingCount = 0) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxEditGalleryImages - existingCount;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxEditGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (editGalleryFiles.length < remainingSlots) {
+                        editGalleryFiles.push(file);
+                        addEditGalleryPreview(file, editGalleryFiles.length - 1);
+                    }
+                });
+                
+                updateEditGalleryInput();
+            }
+        }
+        
+        function addEditGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('edit_gallery_preview');
+                if (!previewContainer) return;
+                
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 100px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeEditGalleryImage(${index})"
+                            style="position: absolute; top: 2px; right: 2px; padding: 0.2rem 0.4rem; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeEditGalleryImage(index) {
+            editGalleryFiles.splice(index, 1);
+            updateEditGalleryPreview();
+            updateEditGalleryInput();
+        }
+        
+        function updateEditGalleryPreview() {
+            const previewContainer = document.getElementById('edit_gallery_preview');
+            if (!previewContainer) return;
+            
+            // Remove only new previews (not existing ones)
+            const newPreviews = previewContainer.querySelectorAll('.gallery-item[data-index]');
+            newPreviews.forEach(preview => preview.remove());
+            
+            if (editGalleryFiles.length === 0 && previewContainer.children.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            editGalleryFiles.forEach((file, index) => {
+                addEditGalleryPreview(file, index);
+            });
+        }
+        
+        function updateEditGalleryInput() {
+            const input = document.getElementById('edit_gallery_input');
+            if (!input) return;
+            
+            const dataTransfer = new DataTransfer();
+            editGalleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            input.files = dataTransfer.files;
+        }
+        
         // Handle form submission
         document.addEventListener('DOMContentLoaded', function() {
             const editForm = document.getElementById('editUnitForm');
@@ -395,7 +552,8 @@
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                         }
                     })
                     .then(response => response.json())
@@ -671,7 +829,7 @@
                     <h5 class="modal-title" id="editUnitModalLabel">Edit Unit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editUnitForm" method="POST">
+                <form id="editUnitForm" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="modal-body" id="editUnitContent">

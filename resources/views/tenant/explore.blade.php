@@ -34,6 +34,20 @@
     .property-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
     .property-image { width: 100%; height: 220px; object-fit: cover; background: #e2e8f0; }
     .property-image-placeholder { width: 100%; height: 220px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; font-weight: 600; }
+    
+    /* Image Carousel Styles */
+    .property-image-carousel { position: relative; width: 100%; height: 220px; overflow: hidden; background: #e2e8f0; }
+    .carousel-container { position: relative; width: 100%; height: 100%; display: flex; }
+    .carousel-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease-in-out; }
+    .carousel-slide.active { opacity: 1; position: relative; }
+    .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
+    .carousel-controls { position: absolute; top: 50%; transform: translateY(-50%); width: 100%; display: flex; justify-content: space-between; padding: 0 0.5rem; pointer-events: none; }
+    .carousel-btn { background: rgba(255, 255, 255, 0.9); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: all; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+    .carousel-btn:hover { background: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); transform: scale(1.1); }
+    .carousel-btn i { color: #667eea; font-size: 0.875rem; }
+    .carousel-indicators { position: absolute; bottom: 0.75rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; pointer-events: none; }
+    .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); cursor: pointer; pointer-events: all; transition: all 0.2s; }
+    .carousel-dot.active { background: white; width: 24px; border-radius: 4px; }
     .property-content { padding: 1.25rem; }
     .property-type { display: inline-block; padding: 0.25rem 0.75rem; background: #f1f5ff; color: #667eea; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.75rem; }
     .property-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
@@ -359,5 +373,50 @@
         updateActiveFiltersCount();
         $('#type, #availability, #sort_by').on('change', function() { applyFilters(); });
     });
+    
+    // Carousel functions
+    function slideCarousel(carouselId, direction) {
+        const carousel = document.querySelector(`[data-carousel-id="${carouselId}"]`);
+        if (!carousel) return;
+
+        const slides = carousel.querySelectorAll('.carousel-slide');
+        const dots = carousel.querySelectorAll('.carousel-dot');
+        const totalSlides = slides.length;
+
+        if (totalSlides <= 1) return;
+
+        let currentIndex = 0;
+        slides.forEach((slide, index) => {
+            if (slide.classList.contains('active')) {
+                currentIndex = index;
+            }
+        });
+
+        let newIndex = currentIndex + direction;
+        if (newIndex < 0) {
+            newIndex = totalSlides - 1;
+        } else if (newIndex >= totalSlides) {
+            newIndex = 0;
+        }
+
+        slides[currentIndex].classList.remove('active');
+        slides[newIndex].classList.add('active');
+        dots[currentIndex].classList.remove('active');
+        dots[newIndex].classList.add('active');
+    }
+
+    function goToSlide(carouselId, index) {
+        const carousel = document.querySelector(`[data-carousel-id="${carouselId}"]`);
+        if (!carousel) return;
+
+        const slides = carousel.querySelectorAll('.carousel-slide');
+        const dots = carousel.querySelectorAll('.carousel-dot');
+
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+
+        if (slides[index]) slides[index].classList.add('active');
+        if (dots[index]) dots[index].classList.add('active');
+    }
 </script>
 @endpush

@@ -222,6 +222,106 @@
             font-weight: 600;
         }
 
+        /* Image Carousel Styles */
+        .property-image-carousel {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            background: #e2e8f0;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .carousel-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .carousel-slide.active {
+            opacity: 1;
+            position: relative;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-controls {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 0.5rem;
+            pointer-events: none;
+        }
+
+        .carousel-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .carousel-btn:hover {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: scale(1.1);
+        }
+
+        .carousel-btn i {
+            color: #667eea;
+            font-size: 0.875rem;
+        }
+
+        .carousel-indicators {
+            position: absolute;
+            bottom: 0.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.2s;
+        }
+
+        .carousel-dot.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+        }
+
         .property-content {
             padding: 1.25rem;
         }
@@ -863,6 +963,57 @@
                 applyFilters();
             });
         });
+
+        // Carousel functions
+        function slideCarousel(carouselId, direction) {
+            const carousel = document.querySelector(`[data-carousel-id="${carouselId}"]`);
+            if (!carousel) return;
+
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const dots = carousel.querySelectorAll('.carousel-dot');
+            const totalSlides = slides.length;
+
+            if (totalSlides <= 1) return;
+
+            let currentIndex = 0;
+            slides.forEach((slide, index) => {
+                if (slide.classList.contains('active')) {
+                    currentIndex = index;
+                }
+            });
+
+            // Calculate new index
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) {
+                newIndex = totalSlides - 1;
+            } else if (newIndex >= totalSlides) {
+                newIndex = 0;
+            }
+
+            // Update slides
+            slides[currentIndex].classList.remove('active');
+            slides[newIndex].classList.add('active');
+
+            // Update dots
+            dots[currentIndex].classList.remove('active');
+            dots[newIndex].classList.add('active');
+        }
+
+        function goToSlide(carouselId, index) {
+            const carousel = document.querySelector(`[data-carousel-id="${carouselId}"]`);
+            if (!carousel) return;
+
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const dots = carousel.querySelectorAll('.carousel-dot');
+
+            // Remove active from all
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+
+            // Add active to selected
+            if (slides[index]) slides[index].classList.add('active');
+            if (dots[index]) dots[index].classList.add('active');
+        }
     </script>
 </body>
 </html>

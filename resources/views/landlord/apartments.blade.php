@@ -274,6 +274,10 @@
                                 <button onclick="showForceDeleteModal({{ $apartment->id }}, '{{ addslashes($apartment->name) }}', {{ $totalUnits }})" class="btn-icon" title="Force Delete" style="color: #dc3545; border-color: #dc3545;">
                                     <i class="fas fa-exclamation-triangle"></i>
                                 </button>
+                                @else
+                                <button onclick="deleteApartment({{ $apartment->id }}, '{{ addslashes($apartment->name) }}')" class="btn-icon" title="Delete Property" style="color: #dc3545; border-color: #dc3545;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                                 @endif
                             </div>
                         </div>
@@ -501,6 +505,35 @@ function viewApartmentDetails(apartmentId) {
                 </div>
             `;
         });
+}
+
+// Delete Apartment Function (for properties with no units)
+function deleteApartment(apartmentId, propertyName) {
+    if (confirm(`Are you sure you want to delete the property "${propertyName}"?\n\nThis action cannot be undone.`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/landlord/apartments/${apartmentId}`;
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add method spoofing for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        // Append to body and submit
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 
 // Force Delete Modal Functions

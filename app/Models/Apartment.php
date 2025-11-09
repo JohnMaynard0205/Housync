@@ -26,12 +26,18 @@ class Apartment extends Model
 
     protected $fillable = [
         'name',
+        'property_type',
         'address',
+        'city',
+        'state',
+        'postal_code',
         'description',
         'landlord_id',
         'total_units',
         'floors',
         'bedrooms',
+        'year_built',
+        'parking_spaces',
         'amenities',
         'contact_person',
         'contact_phone',
