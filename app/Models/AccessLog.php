@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -79,21 +80,21 @@ class AccessLog extends Model
 
     public function scopeToday($query)
     {
-        return $query->whereDate('access_time', today());
+        return $query->whereDate('access_time', Carbon::today());
     }
 
     public function scopeThisWeek($query)
     {
         return $query->whereBetween('access_time', [
-            now()->startOfWeek(),
-            now()->endOfWeek()
+            Carbon::now()->startOfWeek(),
+            Carbon::now()->endOfWeek()
         ]);
     }
 
     public function scopeThisMonth($query)
     {
-        return $query->whereMonth('access_time', now()->month)
-                    ->whereYear('access_time', now()->year);
+        return $query->whereMonth('access_time', Carbon::now()->month)
+                    ->whereYear('access_time', Carbon::now()->year);
     }
 
     public function scopeBetweenDates($query, $startDate, $endDate)
@@ -103,7 +104,7 @@ class AccessLog extends Model
 
     public function scopeRecentActivity($query, $hours = 24)
     {
-        return $query->where('access_time', '>=', now()->subHours($hours));
+        return $query->where('access_time', '>=', Carbon::now()->subHours($hours));
     }
 
     // Helper methods
@@ -194,7 +195,7 @@ class AccessLog extends Model
             $baseQuery->where('apartment_id', $apartmentId);
         }
         
-        $baseQuery->where('access_time', '>=', now()->subDays($days));
+        $baseQuery->where('access_time', '>=', Carbon::now()->subDays($days));
         
         return [
             'total_attempts' => (clone $baseQuery)->count(),
@@ -219,7 +220,7 @@ class AccessLog extends Model
     public static function getDeniedAccessReasons($apartmentId = null, $days = 30)
     {
         $query = static::where('access_result', 'denied')
-                      ->where('access_time', '>=', now()->subDays($days));
+                      ->where('access_time', '>=', Carbon::now()->subDays($days));
         
         if ($apartmentId) {
             $query->where('apartment_id', $apartmentId);
