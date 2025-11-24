@@ -280,17 +280,32 @@ let existingUnits = [];
 
 // Function to find next available unit number for a floor
 function getNextAvailableUnitNumber(floor, existingUnits) {
+    // Convert all existing units to strings for comparison
+    const existingUnitsStr = existingUnits.map(u => String(u));
+    const floorPrefix = String(floor);
+    const expectedLength = floorPrefix.length + 2; // Floor number + 2-digit unit number
+    
     let unitNumber = 1;
     while (true) {
         const paddedUnit = String(unitNumber).padStart(2, '0');
-        const fullUnitNumber = floor + paddedUnit;
-        if (!existingUnits.includes(fullUnitNumber)) {
+        const fullUnitNumber = floorPrefix + paddedUnit;
+        
+        // Check if this unit number is already taken
+        if (!existingUnitsStr.includes(fullUnitNumber)) {
             return fullUnitNumber;
         }
+        
         unitNumber++;
-        // Safety check to prevent infinite loop
-        if (unitNumber > 99) {
-            return floor + '99'; // Fallback
+        // Safety check to prevent infinite loop - increased limit to 999 units per floor
+        if (unitNumber > 999) {
+            console.error(`Warning: Reached maximum unit number (999) for floor ${floor}`);
+            // Try with 3-digit padding as fallback
+            const fallbackNumber = floorPrefix + String(unitNumber).padStart(3, '0');
+            if (!existingUnitsStr.includes(fallbackNumber)) {
+                return fallbackNumber;
+            }
+            // Last resort: add random suffix
+            return floorPrefix + String(unitNumber).padStart(3, '0') + Math.floor(Math.random() * 10);
         }
     }
 }
@@ -408,8 +423,18 @@ async function initializeBulkEdit() {
         console.log(`Total units created in JavaScript: ${totalUnitsCreated}`);
         console.log(`Expected units: ${unitsPerFloor * totalFloors}`);
         
+        // Verify all units were created by checking DOM
+        const actualUnitsInDOM = document.querySelectorAll('.unit-row').length;
+        console.log(`Actual units in DOM: ${actualUnitsInDOM}`);
+        
         if (totalUnitsCreated !== (unitsPerFloor * totalFloors)) {
             console.error(`MISMATCH: Expected ${unitsPerFloor * totalFloors} units, but created ${totalUnitsCreated}`);
+            alert(`Warning: Expected ${unitsPerFloor * totalFloors} units, but only ${totalUnitsCreated} were created. Please check the console for details.`);
+        }
+        
+        if (actualUnitsInDOM !== (unitsPerFloor * totalFloors)) {
+            console.error(`DOM MISMATCH: Expected ${unitsPerFloor * totalFloors} units in DOM, but found ${actualUnitsInDOM}`);
+            alert(`Warning: Expected ${unitsPerFloor * totalFloors} units in the form, but found ${actualUnitsInDOM}. Some units may not have been added properly.`);
         }
     }
     
@@ -424,7 +449,8 @@ function addUnitToFloor(floor, unitData = null) {
         return false;
     }
     
-    const unitId = `unit-${floor}-${Date.now()}`;
+    // Use a more unique ID with timestamp and random number to avoid conflicts
+    const unitId = `unit-${floor}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     console.log(`Adding unit to floor ${floor}, container:`, floorContainer);
     
@@ -433,8 +459,8 @@ function addUnitToFloor(floor, unitData = null) {
         .map(input => input.value)
         .filter(value => value.trim() !== '');
     
-    // Combine database units and form units
-    const allExistingUnits = [...existingUnits, ...formExistingUnits];
+    // Combine database units and form units, removing duplicates
+    const allExistingUnits = [...new Set([...existingUnits, ...formExistingUnits])];
     
     const defaultData = unitData || {
         unit_number: getNextAvailableUnitNumber(floor, allExistingUnits),
@@ -730,15 +756,42 @@ function finalizeUnits() {
     console.log('Form prepared with', units.length, 'units');
     console.log('Form data before submit:', new FormData(form));
     
-    // Show confirmation
-    if (confirm(`Are you sure you want to create ${units.length} units?\n\nUnits: ${units.map(u => u.unit_number).join(', ')}`)) {
+    // Show confirmation with unit count breakdown
+    const unitsByFloor = {};
+    units.forEach(unit => {
+        const floor = unit.floor_number || 1;
+        if (!unitsByFloor[floor]) {
+            unitsByFloor[floor] = [];
+        }
+        unitsByFloor[floor].push(unit.unit_number);
+    });
+    
+    let confirmationMessage = `Are you sure you want to create ${units.length} units?\n\n`;
+    Object.keys(unitsByFloor).sort((a, b) => parseInt(a) - parseInt(b)).forEach(floor => {
+        confirmationMessage += `Floor ${floor}: ${unitsByFloor[floor].length} units\n`;
+    });
+    
+    if (confirm(confirmationMessage)) {
         console.log('Submitting form...');
+        console.log(`Submitting ${units.length} units across ${Object.keys(unitsByFloor).length} floors`);
         
-        // Debug: Log the form data before submission
+        // Debug: Log the form data before submission (limited to first 10 entries to avoid console spam)
         const formData = new FormData(form);
-        console.log('Form data entries:');
+        console.log('Form data sample (first 10 entries):');
+        let entryCount = 0;
         for (let [key, value] of formData.entries()) {
-            console.log(`${key}: ${value}`);
+            if (entryCount < 10) {
+                console.log(`${key}: ${value}`);
+                entryCount++;
+            }
+        }
+        console.log(`... (total form entries: ${Array.from(formData.entries()).length})`);
+        
+        // Check if we're hitting any limits
+        const totalFormFields = form.querySelectorAll('input, select, textarea').length;
+        console.log(`Total form fields: ${totalFormFields}`);
+        if (totalFormFields > 1000) {
+            console.warn(`Warning: Form has ${totalFormFields} fields, which may exceed PHP's max_input_vars limit (default: 1000)`);
         }
         
         form.submit();
@@ -746,4 +799,3 @@ function finalizeUnits() {
 }
 </script>
 @endsection
-
