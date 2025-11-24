@@ -40,6 +40,19 @@
         align-items: center;
     }
 
+    .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 
     .bulk-actions {
         background: white;
@@ -168,6 +181,15 @@
 @endpush
 
 @section('content')
+<!-- Loading Modal -->
+<div id="loadingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; min-width: 300px;">
+        <div class="spinner" style="margin: 0 auto 1rem;"></div>
+        <h3 id="loadingMessage" style="margin: 0; color: #1e293b;">Loading...</h3>
+        <p id="loadingProgress" style="margin: 0.5rem 0 0; color: #64748b;"></p>
+    </div>
+</div>
+
 <div class="bulk-edit-container">
     <!-- Header -->
     <div class="content-header">
@@ -273,10 +295,54 @@
     </form>
 </div>
 
+<style>
+.spinner {
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
 <script>
 let unitsData = {};
 let currentFloor = 1;
 let existingUnits = [];
+
+// Loading modal functions
+function showLoadingMessage(message, progress = '') {
+    const modal = document.getElementById('loadingModal');
+    const messageEl = document.getElementById('loadingMessage');
+    const progressEl = document.getElementById('loadingProgress');
+    
+    if (modal && messageEl) {
+        messageEl.textContent = message;
+        progressEl.textContent = progress;
+        modal.style.display = 'flex';
+    }
+}
+
+function hideLoadingMessage() {
+    const modal = document.getElementById('loadingModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function updateLoadingProgress(current, total) {
+    const progressEl = document.getElementById('loadingProgress');
+    if (progressEl) {
+        const percentage = Math.round((current / total) * 100);
+        progressEl.textContent = `${current} / ${total} units created (${percentage}%)`;
+    }
+}
 
 // Function to find next available unit number for a floor
 function getNextAvailableUnitNumber(floor, existingUnits) {
@@ -312,6 +378,14 @@ async function initializeBulkEdit() {
     const defaultRent = bulkParams.default_rent || 15000;
     const defaultBedrooms = bulkParams.default_bedrooms || 2;
     const defaultBathrooms = bulkParams.default_bathrooms || 1;
+    
+    // Show loading message for large unit counts
+    const totalUnitsToCreate = propertyType === 'house' && createAllBedrooms ? 
+        ({{ $apartment->bedrooms ?? 1 }}) : (unitsPerFloor * totalFloors);
+    
+    if (totalUnitsToCreate > 50) {
+        showLoadingMessage(`Creating ${totalUnitsToCreate} units, please wait...`);
+    }
     
     // Get existing unit numbers from the apartment
     existingUnits = @json($apartment->units->pluck('unit_number')->toArray() ?? []);
@@ -353,6 +427,7 @@ async function initializeBulkEdit() {
         }
         
         // Create all units with a delay to prevent DOM conflicts
+        const totalExpectedUnits = unitsPerFloor * totalFloors;
         const createUnitsWithDelay = async () => {
             for (let floor = 1; floor <= totalFloors; floor++) {
                 console.log(`Creating units for floor ${floor}...`);
@@ -386,20 +461,28 @@ async function initializeBulkEdit() {
                         if (success) {
                             totalUnitsCreated++;
                             console.log(`✓ Unit ${unitNumber} created successfully`);
+                            
+                            // Update progress for large unit counts
+                            if (totalExpectedUnits > 50 && totalUnitsCreated % 10 === 0) {
+                                updateLoadingProgress(totalUnitsCreated, totalExpectedUnits);
+                            }
                         } else {
                             console.error(`✗ Failed to create unit ${unitNumber} for floor ${floor}`);
                         }
                         
-                        // Small delay to prevent DOM conflicts
-                        await new Promise(resolve => setTimeout(resolve, 10));
+                        // Small delay to prevent DOM conflicts (reduced for better performance with 100+ units)
+                        if (totalUnitsCreated % 10 === 0) {
+                            // Only delay every 10 units for better performance
+                            await new Promise(resolve => setTimeout(resolve, 5));
+                        }
                         
                     } catch (error) {
                         console.error(`Error creating unit ${unitNumber} for floor ${floor}:`, error);
                     }
                 }
                 
-                // Delay between floors to ensure DOM is ready
-                await new Promise(resolve => setTimeout(resolve, 50));
+                // Delay between floors to ensure DOM is ready (optimized for large unit counts)
+                await new Promise(resolve => setTimeout(resolve, 20));
             }
         };
         
@@ -411,6 +494,9 @@ async function initializeBulkEdit() {
         if (totalUnitsCreated !== (unitsPerFloor * totalFloors)) {
             console.error(`MISMATCH: Expected ${unitsPerFloor * totalFloors} units, but created ${totalUnitsCreated}`);
         }
+        
+        // Hide loading message
+        hideLoadingMessage();
     }
     
     updateStats();

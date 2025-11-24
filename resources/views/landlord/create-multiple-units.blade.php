@@ -233,7 +233,7 @@
                 <div class="form-group">
                     <label for="units_per_floor" class="form-label">Units Per Floor *</label>
                     <input type="number" id="units_per_floor" name="units_per_floor" class="form-control @error('units_per_floor') error @enderror" 
-                           value="{{ old('units_per_floor', 4) }}" min="1" max="20" required>
+                           value="{{ old('units_per_floor', 4) }}" min="1" max="500" required>
                     @error('units_per_floor')
                         <div class="error-message">{{ $message }}</div>
                     @enderror

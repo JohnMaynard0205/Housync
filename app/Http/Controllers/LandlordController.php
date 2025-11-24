@@ -735,7 +735,7 @@ class LandlordController extends Controller
 
         try {
             $request->validate([
-                'units_per_floor' => 'nullable|integer|min:1',
+                'units_per_floor' => 'nullable|integer|min:1|max:500',
                 'create_all_bedrooms' => 'nullable|boolean',
                 'default_unit_type' => 'required|string|max:100',
                 'default_rent' => 'required|numeric|min:0',
@@ -828,22 +828,20 @@ class LandlordController extends Controller
             \Log::info('finalizeBulkUnits called', [
                 'apartmentId' => $apartmentId,
                 'totalUnitsReceived' => $totalUnitsReceived,
-                'unitsData' => $request->units
             ]);
             
+            // Get existing unit numbers to avoid duplicates
+            $existingUnitNumbers = $apartment->units()->pluck('unit_number')->toArray();
+            
+            // Prepare bulk insert data
+            $unitsToInsert = [];
+            $now = now();
+            
             foreach ($request->units as $unitData) {
-                \Log::info('Creating unit', [
-                    'unit_number' => $unitData['unit_number'],
-                    'floor_number' => $unitData['floor_number'],
-                    'unit_type' => $unitData['unit_type']
-                ]);
-                
-                // Check if unit already exists
-                $existingUnit = $apartment->units()->where('unit_number', $unitData['unit_number'])->first();
-                if ($existingUnit) {
+                // Skip if unit already exists
+                if (in_array($unitData['unit_number'], $existingUnitNumbers)) {
                     \Log::warning('Unit already exists, skipping', [
-                        'unit_number' => $unitData['unit_number'],
-                        'existing_unit_id' => $existingUnit->id
+                        'unit_number' => $unitData['unit_number']
                     ]);
                     continue;
                 }
@@ -854,7 +852,8 @@ class LandlordController extends Controller
                     $isFurnished = $unitData['is_furnished'] === 'true' || $unitData['is_furnished'] === true || $unitData['is_furnished'] === '1' || $unitData['is_furnished'] === 1;
                 }
                 
-                $apartment->units()->create([
+                $unitsToInsert[] = [
+                    'apartment_id' => $apartmentId,
                     'unit_number' => $unitData['unit_number'],
                     'unit_type' => $unitData['unit_type'],
                     'rent_amount' => $unitData['rent_amount'],
@@ -866,10 +865,22 @@ class LandlordController extends Controller
                     'max_occupants' => $unitData['max_occupants'],
                     'floor_number' => $unitData['floor_number'],
                     'description' => "Customized unit {$unitData['unit_number']}",
-                    'amenities' => [],
+                    'amenities' => json_encode([]),
                     'is_furnished' => $isFurnished,
-                ]);
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                
                 $unitsCreated++;
+            }
+            
+            // Bulk insert for better performance with 100+ units
+            if (!empty($unitsToInsert)) {
+                // Insert in chunks of 100 to avoid exceeding database limits
+                $chunks = array_chunk($unitsToInsert, 100);
+                foreach ($chunks as $chunk) {
+                    \DB::table('units')->insert($chunk);
+                }
             }
             
             // Update apartment total_units count
