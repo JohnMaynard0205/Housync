@@ -4,6 +4,112 @@
 
 @push('styles')
 <style>
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+    }
+    
+    .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+    
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fef2f2;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        color: #dc2626;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: #64748b;
+        line-height: 1;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-close:hover {
+        color: #dc2626;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+    
+    .error-item {
+        background: #fef2f2;
+        border-left: 4px solid #dc2626;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 4px;
+    }
+    
+    .error-item strong {
+        color: #dc2626;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .error-item p {
+        margin: 0;
+        color: #64748b;
+    }
+
     /* Progress Indicator */
     .progress-indicator {
         display: flex;
@@ -710,8 +816,10 @@
 
             if (!isValid) {
                 e.preventDefault();
-                alert('Please fix the errors before submitting.');
                 console.log('Form submission prevented due to validation errors');
+                
+                // Show detailed error modal
+                showValidationErrorModal(requiredFields, inputs);
                 return false;
             } else {
                 console.log('Form validation passed, submitting...');
@@ -725,6 +833,52 @@
                 return true;
             }
         });
+        
+        // Function to show validation error modal
+        function showValidationErrorModal(requiredFields, allInputs) {
+            let errorHtml = '<div class="error-summary"><h4>Missing Required Fields:</h4>';
+            let errorCount = 0;
+            
+            requiredFields.forEach(field => {
+                if (field.type === 'file') return;
+                
+                const value = field.value.trim();
+                if (!value && field.hasAttribute('required')) {
+                    errorCount++;
+                    const label = field.closest('.form-group')?.querySelector('label')?.textContent || field.name;
+                    errorHtml += `<div class="error-item">
+                        <strong>${errorCount}. ${label}</strong>
+                        <p>This field is required but is currently empty.</p>
+                    </div>`;
+                }
+            });
+            
+            // Check for other validation errors
+            allInputs.forEach(input => {
+                if (input.type === 'file') return;
+                
+                if (input.classList.contains('error') && input.value.trim()) {
+                    errorCount++;
+                    const label = input.closest('.form-group')?.querySelector('label')?.textContent || input.name;
+                    const errorDiv = input.parentNode.querySelector('.form-error');
+                    const errorMsg = errorDiv ? errorDiv.textContent : 'Invalid value';
+                    errorHtml += `<div class="error-item">
+                        <strong>${errorCount}. ${label}</strong>
+                        <p>${errorMsg}</p>
+                    </div>`;
+                }
+            });
+            
+            if (errorCount === 0) {
+                errorHtml += '<p>Please check all fields and try again.</p>';
+            }
+            
+            errorHtml += '</div>';
+            
+            document.getElementById('errorModalBody').innerHTML = errorHtml;
+            document.getElementById('errorModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
 
         // Property type change handler
         const propertyTypeSelect = document.querySelector('select[name="property_type"]');
@@ -755,5 +909,44 @@
             togglePropertyFields();
         }
     });
+    
+    // Modal functions
+    function showErrorModal() {
+        const errorBanner = document.getElementById('validation-errors-banner');
+        const errorList = errorBanner.querySelector('ul').innerHTML;
+        
+        let errorHtml = '<div class="error-summary"><h4>Validation Errors:</h4>';
+        errorHtml += '<ul style="margin-left: 1rem; line-height: 1.8;">' + errorList + '</ul>';
+        errorHtml += '<p style="margin-top: 1rem; color: #64748b;">Please correct these errors and try submitting again.</p>';
+        errorHtml += '</div>';
+        
+        document.getElementById('errorModalBody').innerHTML = errorHtml;
+        document.getElementById('errorModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeErrorModal() {
+        document.getElementById('errorModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeErrorModal();
+        }
+    });
+    
+    // Show modal automatically if there are server-side errors
+    @if($errors->any())
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Server validation errors detected:', @json($errors->all()));
+            // Scroll to error banner
+            const errorBanner = document.getElementById('validation-errors-banner');
+            if (errorBanner) {
+                errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    @endif
 </script>
 @endpush
