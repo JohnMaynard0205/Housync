@@ -117,74 +117,133 @@ class LandlordController extends Controller
         try {
             $coverPath = null;
             if ($request->hasFile('cover_image')) {
-                $supabase = new SupabaseService();
-                
-                // Generate unique filename
-                $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
-                $path = 'apartments/' . $filename;
-                
-                // Log file info
-                Log::info('Uploading file to Supabase', [
-                    'bucket' => 'house-sync',
-                    'path' => $path,
-                    'filename' => $filename,
+                Log::info('Cover image upload started', [
+                    'has_file' => true,
+                    'file_valid' => $request->file('cover_image')->isValid(),
                     'size' => $request->file('cover_image')->getSize(),
                     'mime' => $request->file('cover_image')->getMimeType()
                 ]);
                 
-                // Upload file
-                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                // Check if file is valid
+                if (!$request->file('cover_image')->isValid()) {
+                    $error = 'Uploaded cover image file is invalid';
+                    Log::error($error, ['file' => $request->file('cover_image')]);
+                    return back()->withInput()->with('error', $error . '. Please try again with a different image.');
+                }
                 
-                // Log upload result
-                Log::info('Supabase upload result', ['result' => $uploadResult]);
+                // Check file size (3MB = 3072KB)
+                $maxSize = 3072 * 1024; // 3MB in bytes
+                if ($request->file('cover_image')->getSize() > $maxSize) {
+                    $error = 'Cover image is too large. Maximum size is 3MB.';
+                    Log::error($error, ['size' => $request->file('cover_image')->getSize()]);
+                    return back()->withInput()->with('error', $error);
+                }
                 
-                // Output to browser console for debugging
-                echo "<script>
-                    console.group('Supabase Cover Image Upload');
-                    console.log('Upload Path:', " . json_encode($path) . ");
-                    console.log('File Info:', {
-                        filename: " . json_encode($filename) . ",
-                        size: " . json_encode($request->file('cover_image')->getSize()) . ",
-                        mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
-                    });
-                    console.log('Upload Result:', " . json_encode($uploadResult) . ");
-                    console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
-                    console.groupEnd();
-                </script>";
-                
-                // Check if upload was successful
-                if ($uploadResult['success']) {
-                    $coverPath = $uploadResult['url'];
-                } else {
-                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
-                    throw new \Exception('Failed to upload cover image: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                try {
+                    $supabase = new SupabaseService();
+                    
+                    // Generate unique filename
+                    $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                    $path = 'apartments/' . $filename;
+                    
+                    // Log file info
+                    Log::info('Uploading cover image to Supabase', [
+                        'bucket' => 'house-sync',
+                        'path' => $path,
+                        'filename' => $filename,
+                        'size' => $request->file('cover_image')->getSize(),
+                        'mime' => $request->file('cover_image')->getMimeType(),
+                        'real_path' => $request->file('cover_image')->getRealPath()
+                    ]);
+                    
+                    // Upload file
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                    
+                    // Log upload result
+                    Log::info('Supabase cover image upload result', ['result' => $uploadResult]);
+                    
+                    // Check if upload was successful
+                    if ($uploadResult['success']) {
+                        $coverPath = $uploadResult['url'];
+                        Log::info('Cover image uploaded successfully', ['url' => $coverPath]);
+                    } else {
+                        $errorMsg = $uploadResult['message'] ?? $uploadResult['error'] ?? 'Unknown error';
+                        Log::error('Failed to upload cover image to Supabase', [
+                            'result' => $uploadResult,
+                            'error' => $errorMsg
+                        ]);
+                        return back()->withInput()->with('error', 'Failed to upload cover image: ' . $errorMsg . '. Please check your Supabase configuration.');
+                    }
+                } catch (\Exception $uploadException) {
+                    Log::error('Exception during cover image upload', [
+                        'error' => $uploadException->getMessage(),
+                        'trace' => $uploadException->getTraceAsString()
+                    ]);
+                    return back()->withInput()->with('error', 'Image upload failed: ' . $uploadException->getMessage());
                 }
             }
 
             $galleryPaths = [];
             if ($request->hasFile('gallery')) {
+                Log::info('Gallery images upload started', [
+                    'count' => count($request->file('gallery'))
+                ]);
+                
                 foreach ($request->file('gallery') as $index => $file) {
-                    $supabase = new SupabaseService();
+                    // Check if file is valid
+                    if (!$file->isValid()) {
+                        Log::warning('Gallery image invalid', ['index' => $index]);
+                        continue; // Skip invalid files
+                    }
                     
-                    // Generate unique filename for gallery
-                    $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $path = 'apartments/gallery/' . $filename;
+                    // Check file size
+                    $maxSize = 3072 * 1024; // 3MB in bytes
+                    if ($file->getSize() > $maxSize) {
+                        Log::warning('Gallery image too large', [
+                            'index' => $index,
+                            'size' => $file->getSize()
+                        ]);
+                        continue; // Skip oversized files
+                    }
                     
-                    // Upload to Supabase
-                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
-                    
-                    Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
-                    
-                    // Output to browser console
-                    echo "<script>
-                        console.log('Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
-                    </script>";
-                    
-                    // Only add if successful
-                    if ($uploadResult['success']) {
-                        $galleryPaths[] = $uploadResult['url'];
+                    try {
+                        $supabase = new SupabaseService();
+                        
+                        // Generate unique filename for gallery
+                        $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                        $path = 'apartments/gallery/' . $filename;
+                        
+                        // Upload to Supabase
+                        $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                        
+                        Log::info('Gallery image upload result', [
+                            'index' => $index,
+                            'success' => $uploadResult['success'],
+                            'url' => $uploadResult['url'] ?? null
+                        ]);
+                        
+                        // Only add if successful
+                        if ($uploadResult['success']) {
+                            $galleryPaths[] = $uploadResult['url'];
+                        } else {
+                            Log::warning('Gallery image upload failed', [
+                                'index' => $index,
+                                'error' => $uploadResult['message'] ?? $uploadResult['error'] ?? 'Unknown'
+                            ]);
+                        }
+                    } catch (\Exception $galleryException) {
+                        Log::error('Exception during gallery image upload', [
+                            'index' => $index,
+                            'error' => $galleryException->getMessage()
+                        ]);
+                        // Continue with other images
                     }
                 }
+                
+                Log::info('Gallery upload completed', [
+                    'successful_uploads' => count($galleryPaths),
+                    'total_files' => count($request->file('gallery'))
+                ]);
             }
 
             /** @var \App\Models\User $landlord */
@@ -215,10 +274,22 @@ class LandlordController extends Controller
                 ? "House created successfully! You can now add bedrooms as units from the 'My Units' page."
                 : "Property created successfully! You can now add units from the 'My Units' page.";
 
+            Log::info('Apartment created successfully', [
+                'apartment_id' => $apartment->id,
+                'name' => $apartment->name,
+                'has_cover_image' => !empty($coverPath),
+                'gallery_count' => count($galleryPaths)
+            ]);
+            
             return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
-            Log::error('Error creating apartment: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Failed to create apartment. Please try again.');
+            Log::error('Error creating apartment', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withInput()->with('error', 'Failed to create apartment: ' . $e->getMessage() . ' (Check logs for details)');
         }
     }
 
