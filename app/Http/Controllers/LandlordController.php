@@ -791,11 +791,16 @@ class LandlordController extends Controller
 
     public function finalizeBulkUnits(Request $request, $apartmentId)
     {
+        // Note: max_input_vars is set to 5000 in php.ini to handle large forms
+        // Default is 1000, which limits forms to ~100 units (1000 fields ÷ 10 fields per unit)
+        
         \Log::info('finalizeBulkUnits method called', [
             'apartmentId' => $apartmentId,
             'request_data' => $request->all(),
             'has_units' => $request->has('units'),
-            'units_count' => $request->has('units') ? count($request->input('units', [])) : 0
+            'units_count' => $request->has('units') ? count($request->input('units', [])) : 0,
+            'max_input_vars' => ini_get('max_input_vars'),
+            'post_max_size' => ini_get('post_max_size')
         ]);
         
         /** @var \App\Models\User $landlord */
@@ -804,8 +809,11 @@ class LandlordController extends Controller
 
         // Check if units data exists
         if (!$request->has('units') || empty($request->input('units'))) {
-            \Log::error('No units data received in finalizeBulkUnits');
-            return back()->with('error', 'No units data received. Please try again.');
+            \Log::error('No units data received in finalizeBulkUnits', [
+                'request_keys' => array_keys($request->all()),
+                'post_data_size' => strlen(serialize($_POST ?? []))
+            ]);
+            return back()->with('error', 'No units data received. This might be due to PHP form limits. Please try creating units in smaller batches or contact support.');
         }
 
         $request->validate([
@@ -824,11 +832,14 @@ class LandlordController extends Controller
         try {
             $unitsCreated = 0;
             $totalUnitsReceived = count($request->units);
+            $skippedUnits = 0;
             
-            \Log::info('finalizeBulkUnits called', [
+            \Log::info('finalizeBulkUnits processing', [
                 'apartmentId' => $apartmentId,
                 'totalUnitsReceived' => $totalUnitsReceived,
-                'unitsData' => $request->units
+                'apartment_floors' => $apartment->floors,
+                'expected_units' => $request->input('expected_units', 'unknown'),
+                'sample_units' => array_slice($request->units, 0, 3) // Log first 3 units as sample
             ]);
             
             foreach ($request->units as $unitData) {
@@ -841,6 +852,7 @@ class LandlordController extends Controller
                 // Check if unit already exists
                 $existingUnit = $apartment->units()->where('unit_number', $unitData['unit_number'])->first();
                 if ($existingUnit) {
+                    $skippedUnits++;
                     \Log::warning('Unit already exists, skipping', [
                         'unit_number' => $unitData['unit_number'],
                         'existing_unit_id' => $existingUnit->id
@@ -879,6 +891,20 @@ class LandlordController extends Controller
             session()->forget('bulk_creation_params');
             
             $message = "Successfully created {$unitsCreated} units!";
+            if ($skippedUnits > 0) {
+                $message .= " ({$skippedUnits} units were skipped because they already exist)";
+            }
+            if ($totalUnitsReceived > $unitsCreated + $skippedUnits) {
+                $missing = $totalUnitsReceived - $unitsCreated - $skippedUnits;
+                \Log::warning('Some units were not processed', [
+                    'total_received' => $totalUnitsReceived,
+                    'created' => $unitsCreated,
+                    'skipped' => $skippedUnits,
+                    'missing' => $missing
+                ]);
+                $message .= " Warning: {$missing} units were not processed. This might be due to form submission limits.";
+            }
+            
             return redirect()->route('landlord.units', $apartmentId)->with('success', $message);
             
         } catch (\Exception $e) {
