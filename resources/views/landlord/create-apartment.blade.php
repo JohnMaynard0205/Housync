@@ -618,6 +618,12 @@
         });
 
         function validateField(field) {
+            // Skip file inputs - they're handled separately and don't have .value.trim()
+            if (field.type === 'file') {
+                console.log('Skipping file input validation for:', field.name);
+                return;
+            }
+            
             const value = field.value.trim();
             const isRequired = field.hasAttribute('required');
             
@@ -676,6 +682,11 @@
             // Validate all required fields
             const requiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
             requiredFields.forEach(field => {
+                // Skip file inputs - they're validated server-side
+                if (field.type === 'file') {
+                    return;
+                }
+                
                 validateField(field);
                 if (field.classList.contains('error') || !field.value.trim()) {
                     isValid = false;
@@ -684,6 +695,11 @@
 
             // Validate other inputs
             inputs.forEach(input => {
+                // Skip file inputs
+                if (input.type === 'file') {
+                    return;
+                }
+                
                 if (!input.hasAttribute('required')) {
                     validateField(input);
                 }
