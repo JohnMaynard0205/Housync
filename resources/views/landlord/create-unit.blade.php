@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Unit - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+@extends('layouts.landlord-app')
+
+@section('title', 'Add New Unit')
+
+@push('styles')
     <style>
         * {
             margin: 0;
@@ -17,110 +14,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Orange Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            text-decoration: none;
-        }
-
-        .nav-item.active {
-            background-color: #f97316;
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background-color: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background-color: rgba(255,255,255,0.2);
-            text-decoration: none;
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.75rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
         }
 
         .page-header {
@@ -387,56 +280,11 @@
             color: #991b1b;
             border: 1px solid #fecaca;
         }
+
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item">
-                    <i class="fas fa-building"></i> My Properties
-                    @if(isset($stats['total_apartments']))
-                        <span class="badge-count">{{ $stats['total_apartments'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item active">
-                    <i class="fas fa-door-open"></i> My Units
-                    @if(isset($stats['total_units']))
-                        <span class="badge-count">{{ $stats['total_units'] }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.tenant-assignments') }}" class="nav-item">
-                    <i class="fas fa-users"></i> Tenant Assignments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
+@endpush
 
-            </nav>
-            <div class="sidebar-footer">
-                <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
-                    @csrf
-                    <button type="submit" class="logout-btn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
+@section('content')
             <!-- Breadcrumb -->
             <div class="breadcrumb">
                 <a href="{{ route('landlord.dashboard') }}">Dashboard</a>
@@ -459,15 +307,37 @@
                 <div class="property-info">
                     <h4>Property Information</h4>
                     <p><strong>Property:</strong> {{ $apartment->name }}</p>
+                    <p><strong>Type:</strong> {{ ucfirst($apartment->property_type) }}</p>
                     <p><strong>Address:</strong> {{ $apartment->address }}</p>
+                    @if($apartment->property_type === 'house')
+                        <p><strong>Bedrooms:</strong> {{ $apartment->bedrooms ?? 'Not specified' }}</p>
+                    @else
+                        <p><strong>Floors:</strong> {{ $apartment->floors ?? 'Not specified' }}</p>
+                    @endif
                 </div>
                 @endif
 
                 <form method="POST" action="{{ isset($apartment) ? route('landlord.store-unit', $apartment->id) : route('landlord.create-unit') }}" enctype="multipart/form-data">
                     @csrf
                     
-                    <!-- Basic Information -->
+                    <!-- Creation Options -->
                     <div class="form-section">
+                        <h3 class="section-title">Creation Options</h3>
+                        
+                        <!-- Simple link to multiple units page -->
+                        <div class="form-group">
+                            <div style="text-align: center; padding: 2rem; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 0.5rem;">
+                                <h4 style="color: #1e293b; margin-bottom: 1rem;">Need to create multiple units?</h4>
+                                <p style="color: #64748b; margin-bottom: 1.5rem;">Use our dedicated bulk creation tool for creating multiple units at once.</p>
+                                <a href="{{ route('landlord.create-multiple-units', $apartment->id) }}" class="btn btn-outline">
+                                    <i class="fas fa-plus"></i> Create Multiple Units
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="form-section" id="single_unit_form">
                         <h3 class="section-title">Basic Information</h3>
                         
                         <div class="form-row">
@@ -495,6 +365,23 @@
                                 @enderror
                                 <small class="form-text text-muted">Number of bedrooms will be set based on your selection</small>
                             </div>
+                            
+                            @if(isset($apartment) && $apartment->property_type !== 'house')
+                            <div class="form-group">
+                                <label for="floor_number" class="form-label">Floor Number *</label>
+                                <select id="floor_number" name="floor_number" class="form-control @error('floor_number') error @enderror" required>
+                                    <option value="">Select Floor</option>
+                                    @for($i = 1; $i <= ($apartment->floors ?? 1); $i++)
+                                        <option value="{{ $i }}" {{ old('floor_number') == $i ? 'selected' : '' }}>
+                                            Floor {{ $i }}
+                                        </option>
+                                    @endfor
+                                </select>
+                                @error('floor_number')
+                                    <div class="error-message">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            @endif
                         </div>
 
                         <div class="form-row">
@@ -618,12 +505,27 @@
                         <h3 class="section-title">Photos</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Cover Image</label>
-                                <input type="file" name="cover_image" accept="image/*" class="form-control">
+                                <label class="form-label">Cover Image <span class="text-danger">*</span></label>
+                                <input type="file" name="cover_image" id="cover_image" accept="image/*" class="form-control" onchange="previewCoverImage(this)">
+                                <div id="cover_image_preview" class="mt-2" style="display: none;">
+                                    <img id="cover_preview_img" src="" alt="Cover Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                                <p class="form-help text-muted mt-1">Main image displayed for this unit (JPEG/PNG, max 5MB)</p>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Gallery (up to 12)</label>
-                                <input type="file" name="gallery[]" accept="image/*" multiple class="form-control">
+                        </div>
+                        
+                        <div class="form-group mt-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            <div class="gallery-upload-container">
+                                <input type="file" name="gallery[]" id="gallery_input" accept="image/*" multiple class="form-control" onchange="handleGalleryUpload(this)" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('gallery_input').click()">
+                                    <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                                </button>
+                                <p class="form-help text-muted mt-2">Add multiple images to showcase the unit (JPEG/PNG, max 5MB each)</p>
+                            </div>
+                            
+                            <div id="gallery_preview" class="gallery-preview mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                                <!-- Gallery previews will be added here -->
                             </div>
                         </div>
                     </div>
@@ -657,9 +559,9 @@
                             <i class="fas fa-arrow-left"></i>
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
                             <i class="fas fa-save"></i>
-                            Create Unit
+                            <span id="submitText">Create Unit</span>
                         </button>
                     </div>
                 </form>
@@ -668,11 +570,116 @@
     </div>
 
     <script>
+        console.log('Script starting...');
+        
+        // Cover image preview
+        function previewCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('cover_preview_img').src = e.target.result;
+                    document.getElementById('cover_image_preview').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Gallery images handling
+        let galleryFiles = [];
+        const maxGalleryImages = 12;
+        
+        function handleGalleryUpload(input) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxGalleryImages - galleryFiles.length;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (galleryFiles.length < maxGalleryImages) {
+                        galleryFiles.push(file);
+                        addGalleryPreview(file, galleryFiles.length - 1);
+                    }
+                });
+                
+                // Update the file input
+                updateGalleryInput();
+            }
+        }
+        
+        function addGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('gallery_preview');
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 150px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeGalleryImage(${index})"
+                            style="position: absolute; top: 5px; right: 5px; padding: 0.25rem 0.5rem; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeGalleryImage(index) {
+            galleryFiles.splice(index, 1);
+            updateGalleryPreview();
+            updateGalleryInput();
+        }
+        
+        function updateGalleryPreview() {
+            const previewContainer = document.getElementById('gallery_preview');
+            previewContainer.innerHTML = '';
+            
+            if (galleryFiles.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            galleryFiles.forEach((file, index) => {
+                addGalleryPreview(file, index);
+            });
+        }
+        
+        function updateGalleryInput() {
+            const input = document.getElementById('gallery_input');
+            const dataTransfer = new DataTransfer();
+            
+            galleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            
+            input.files = dataTransfer.files;
+        }
+        
         // Form validation and enhancement
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            
             const form = document.querySelector('form');
             const rentInput = document.getElementById('rent_amount');
             const unitNumberInput = document.getElementById('unit_number');
+            
+            
 
             // Format rent amount
             rentInput.addEventListener('input', function() {
@@ -687,12 +694,33 @@
             unitNumberInput.addEventListener('blur', function() {
                 if (!this.value.trim()) {
                     const unitType = document.getElementById('unit_type').value;
+                    const floorNumber = document.getElementById('floor_number')?.value;
+                    
                     if (unitType) {
-                        const timestamp = Date.now().toString().slice(-4);
-                        this.value = `${unitType.charAt(0).toUpperCase()}${timestamp}`;
+                        if (floorNumber) {
+                            // For buildings, suggest floor-based numbering
+                            this.value = floorNumber + '01';
+                        } else {
+                            // For houses, use type-based numbering
+                            const timestamp = Date.now().toString().slice(-4);
+                            this.value = `${unitType.charAt(0).toUpperCase()}${timestamp}`;
+                        }
                     }
                 }
             });
+            
+            // Update unit number suggestion when floor changes
+            const floorNumberSelect = document.getElementById('floor_number');
+            if (floorNumberSelect) {
+                floorNumberSelect.addEventListener('change', function() {
+                    if (!unitNumberInput.value.trim()) {
+                        const unitType = document.getElementById('unit_type').value;
+                        if (unitType && this.value) {
+                            unitNumberInput.value = this.value + '01';
+                        }
+                    }
+                });
+            }
 
             // Auto-populate bedrooms based on unit type
             const unitTypeSelect = document.getElementById('unit_type');
@@ -743,8 +771,8 @@
                     e.preventDefault();
                     alert('Please fill in all required fields.');
                 }
-            });
         });
+    });
+    
     </script>
-</body>
-</html> 
+@endsection

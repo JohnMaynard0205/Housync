@@ -18,7 +18,7 @@ class LandlordController extends Controller
     public function dashboard()
     {
         /** @var \App\Models\User $landlord */
-        $landlord = Auth::user();
+        $landlord = Auth::user()->load('landlordProfile');
         
         $stats = [
             'total_apartments' => $landlord->apartments()->count(),
@@ -103,22 +103,15 @@ class LandlordController extends Controller
             'property_type' => 'required|string|in:apartment,condominium,townhouse,house,duplex,others',
             'address' => 'required|string|max:500',
             'description' => 'nullable|string|max:1000',
-            'total_units' => 'required|integer|min:1',
             'contact_person' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:20',
+            'contact_phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
             'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
-            // Auto-generation fields
-            'auto_generate_units' => 'nullable|boolean',
-            'floors' => 'required|integer|min:1',
-            'default_unit_type' => 'nullable|string|max:100',
-            'default_rent' => 'nullable|numeric|min:0',
-            'units_per_floor' => 'nullable|integer|min:1',
-            'default_bedrooms' => 'nullable|integer|min:0',
-            'default_bathrooms' => 'nullable|integer|min:1',
-            'numbering_pattern' => 'nullable|string|in:floor_based,sequential,letter_number',
+            // Property structure fields
+            'floors' => 'nullable|integer|min:1',
+            'bedrooms' => 'nullable|integer|min:1',
         ]);
 
         try {
@@ -145,6 +138,23 @@ class LandlordController extends Controller
                 // Log upload result
                 Log::info('Supabase upload result', ['result' => $uploadResult]);
                 
+<<<<<<< HEAD
+=======
+                // Output to browser console for debugging
+                echo "<script>
+                    console.group('Supabase Cover Image Upload');
+                    console.log('Upload Path:', " . json_encode($path) . ");
+                    console.log('File Info:', {
+                        filename: " . json_encode($filename) . ",
+                        size: " . json_encode($request->file('cover_image')->getSize()) . ",
+                        mime: " . json_encode($request->file('cover_image')->getMimeType()) . "
+                    });
+                    console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                    console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                    console.groupEnd();
+                </script>";
+                
+>>>>>>> 8e2de466b86bd2d3e02257faadd6e47d6f39ae1b
                 // Check if upload was successful
                 if ($uploadResult['success']) {
                     $coverPath = $uploadResult['url'];
@@ -168,6 +178,14 @@ class LandlordController extends Controller
                     
                     Log::info('Gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
                     
+<<<<<<< HEAD
+=======
+                    // Output to browser console
+                    echo "<script>
+                        console.log('Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                    </script>";
+                    
+>>>>>>> 8e2de466b86bd2d3e02257faadd6e47d6f39ae1b
                     // Only add if successful
                     if ($uploadResult['success']) {
                         $galleryPaths[] = $uploadResult['url'];
@@ -177,12 +195,19 @@ class LandlordController extends Controller
 
             /** @var \App\Models\User $landlord */
             $landlord = Auth::user();
+            
+            // Determine floors or bedrooms based on property type
+            $floors = $request->property_type === 'house' ? null : $request->floors;
+            $bedrooms = $request->property_type === 'house' ? $request->bedrooms : null;
+            
             $apartment = $landlord->apartments()->create([
                 'name' => $request->name,
                 'property_type' => $request->property_type,
                 'address' => $request->address,
                 'description' => $request->description,
-                'total_units' => $request->total_units,
+                'total_units' => 0, // Start with 0 units, will be added later
+                'floors' => $floors,
+                'bedrooms' => $bedrooms,
                 'contact_person' => $request->contact_person,
                 'contact_phone' => $request->contact_phone,
                 'contact_email' => $request->contact_email,
@@ -192,32 +217,9 @@ class LandlordController extends Controller
                 'gallery' => $galleryPaths ?: null,
             ]);
 
-            // Auto-generate units if requested
-            $autoGenerate = $request->has('auto_generate_units') && $request->auto_generate_units == '1';
-            Log::info('Auto-generation check', [
-                'has_auto_generate' => $request->has('auto_generate_units'),
-                'auto_generate_value' => $request->auto_generate_units,
-                'auto_generate_boolean' => $autoGenerate,
-                'all_request_data' => $request->all()
-            ]);
-            
-            if ($autoGenerate) {
-                Log::info('Auto-generating units for apartment', [
-                    'apartment_id' => $apartment->id,
-                    'total_units' => $request->total_units,
-                    'floors' => $request->floors
-                ]);
-                $this->autoGenerateUnits($apartment, $request);
-            } else {
-                Log::info('Auto-generation disabled for apartment', [
-                    'apartment_id' => $apartment->id,
-                    'reason' => 'Checkbox not checked or value not 1'
-                ]);
-            }
-
-            $successMessage = $autoGenerate
-                ? "Apartment created successfully with {$request->total_units} units!" 
-                : 'Apartment created successfully.';
+            $successMessage = $request->property_type === 'house' 
+                ? "House created successfully! You can now add bedrooms as units from the 'My Units' page."
+                : "Property created successfully! You can now add units from the 'My Units' page.";
 
             return redirect()->route('landlord.apartments')->with('success', $successMessage);
         } catch (\Exception $e) {
@@ -226,112 +228,7 @@ class LandlordController extends Controller
         }
     }
 
-    /**
-     * Auto-generate units for an apartment
-     */
-    private function autoGenerateUnits($apartment, $request)
-    {
-        $totalUnits = $request->total_units;
-        $numFloors = $request->floors ?? 1; // Use floors from Property Details
-        $unitsPerFloor = $request->units_per_floor ?? ceil($totalUnits / $numFloors);
-        $numberingPattern = $request->numbering_pattern ?? 'floor_based';
-        
-        Log::info('Auto-generating units with parameters', [
-            'apartment_id' => $apartment->id,
-            'total_units' => $totalUnits,
-            'numFloors' => $numFloors,
-            'unitsPerFloor' => $unitsPerFloor,
-            'numberingPattern' => $numberingPattern
-        ]);
-        
-        $defaultData = [
-            'unit_type' => $request->default_unit_type ?? '2-Bedroom',
-            'rent_amount' => $request->default_rent ?? 15000,
-            'bedrooms' => $request->default_bedrooms ?? 2,
-            'bathrooms' => $request->default_bathrooms ?? 1,
-            'status' => 'available',
-            'leasing_type' => 'separate',
-            'tenant_count' => 0,
-            'max_occupants' => ($request->default_bedrooms ?? 2) * 2,
-        ];
 
-        $unitsCreated = 0;
-        $currentFloor = 1;
-        $unitOnFloor = 1;
-
-        for ($i = 1; $i <= $totalUnits; $i++) {
-            try {
-                // Generate unit number based on pattern
-                $unitNumber = $this->generateUnitNumber($i, $currentFloor, $unitOnFloor, $numberingPattern);
-
-                // Create the unit
-                $unit = $apartment->units()->create([
-                    'unit_number' => $unitNumber,
-                    'unit_type' => $defaultData['unit_type'],
-                    'rent_amount' => $defaultData['rent_amount'],
-                    'status' => $defaultData['status'],
-                    'leasing_type' => $defaultData['leasing_type'],
-                    'bedrooms' => $defaultData['bedrooms'],
-                    'bathrooms' => $defaultData['bathrooms'],
-                    'tenant_count' => $defaultData['tenant_count'],
-                    'max_occupants' => $defaultData['max_occupants'],
-                    'floor_number' => $currentFloor,
-                    'description' => "Auto-generated unit",
-                    'amenities' => $request->amenities ?? [],
-                    'is_furnished' => false,
-                ]);
-
-                $unitsCreated++;
-                Log::info("Created unit {$i}/{$totalUnits}", [
-                    'unit_id' => $unit->id,
-                    'unit_number' => $unitNumber,
-                    'floor' => $currentFloor,
-                    'unit_on_floor' => $unitOnFloor
-                ]);
-
-                // Move to next floor if needed
-                if ($unitOnFloor >= $unitsPerFloor && $currentFloor < $numFloors) {
-                    $currentFloor++;
-                    $unitOnFloor = 1;
-                } else {
-                    $unitOnFloor++;
-                }
-            } catch (\Exception $e) {
-                Log::error("Failed to create unit {$i}", [
-                    'error' => $e->getMessage(),
-                    'apartment_id' => $apartment->id,
-                    'unit_number' => $unitNumber ?? 'unknown'
-                ]);
-                // Continue with next unit
-            }
-        }
-
-        Log::info("Auto-generated {$unitsCreated} units for apartment: {$apartment->name}");
-    }
-
-    /**
-     * Generate unit number based on pattern
-     */
-    private function generateUnitNumber($index, $floor, $unitOnFloor, $pattern)
-    {
-        switch ($pattern) {
-            case 'floor_based':
-                // Format: 101, 102, 201, 202, etc.
-                return ($floor * 100) + $unitOnFloor;
-                
-            case 'sequential':
-                // Format: Unit 1, Unit 2, Unit 3, etc.
-                return "Unit {$index}";
-                
-            case 'letter_number':
-                // Format: A1, A2, B1, B2, etc.
-                $letter = chr(64 + $floor); // A, B, C, etc.
-                return "{$letter}{$unitOnFloor}";
-                
-            default:
-                return ($floor * 100) + $unitOnFloor;
-        }
-    }
 
 
     public function editApartment($id)
@@ -350,33 +247,91 @@ class LandlordController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'property_type' => 'required|string|in:apartment,condominium,townhouse,house,duplex,others',
             'address' => 'required|string|max:500',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
             'description' => 'nullable|string|max:1000',
             'total_units' => 'required|integer|min:1',
+            'floors' => 'nullable|integer|min:1',
+            'bedrooms' => 'nullable|integer|min:1',
+            'year_built' => 'nullable|integer|min:1900|max:' . date('Y'),
+            'parking_spaces' => 'nullable|integer|min:0',
             'contact_person' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:20',
+            'contact_phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'contact_email' => 'nullable|email|max:255',
             'amenities' => 'nullable|array',
             'status' => 'required|in:active,inactive,maintenance',
             'auto_generate_additional' => 'nullable|boolean',
             'auto_create_missing' => 'nullable|boolean',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
         ]);
 
         try {
             $currentUnitCount = $apartment->units()->count();
             $newTotalUnits = $request->total_units;
 
-            $apartment->update([
+            // Determine floors or bedrooms based on property type
+            $floors = $request->property_type === 'house' ? null : $request->floors;
+            $bedrooms = $request->property_type === 'house' ? $request->bedrooms : null;
+
+            $updateData = [
                 'name' => $request->name,
+                'property_type' => $request->property_type,
                 'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'postal_code' => $request->postal_code,
                 'description' => $request->description,
                 'total_units' => $request->total_units,
+                'floors' => $floors,
+                'bedrooms' => $bedrooms,
+                'year_built' => $request->year_built,
+                'parking_spaces' => $request->parking_spaces,
                 'contact_person' => $request->contact_person,
                 'contact_phone' => $request->contact_phone,
                 'contact_email' => $request->contact_email,
                 'amenities' => $request->amenities ?? [],
                 'status' => $request->status,
-            ]);
+            ];
+
+            // Handle cover image upload
+            if ($request->hasFile('cover_image')) {
+                $supabase = new SupabaseService();
+                $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                $path = 'apartments/' . $filename;
+                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                
+                if ($uploadResult['success']) {
+                    $updateData['cover_image'] = $uploadResult['url'];
+                } else {
+                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                }
+            }
+
+            // Handle gallery images upload
+            if ($request->hasFile('gallery')) {
+                $supabase = new SupabaseService();
+                $galleryPaths = $apartment->gallery ?? [];
+                
+                foreach ($request->file('gallery') as $index => $file) {
+                    $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = 'apartments/gallery/' . $filename;
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    if ($uploadResult['success']) {
+                        $galleryPaths[] = $uploadResult['url'];
+                    }
+                }
+                
+                // Limit to 12 images
+                $galleryPaths = array_slice($galleryPaths, 0, 12);
+                $updateData['gallery'] = $galleryPaths;
+            }
+
+            $apartment->update($updateData);
 
             $unitsCreated = 0;
 
@@ -409,8 +364,10 @@ class LandlordController extends Controller
      */
     private function autoGenerateAdditionalUnits($apartment, $numUnitsToCreate, $startingIndex = 0)
     {
-        $currentMaxFloor = $apartment->units()->max('floor_number') ?? 0;
         $existingUnits = $apartment->units()->count();
+        
+        // Get the highest unit number from existing units to continue numbering
+        $highestUnitNumber = $apartment->units()->max('unit_number') ?? 0;
         
         // Use sensible defaults
         $defaultData = [
@@ -425,14 +382,17 @@ class LandlordController extends Controller
         ];
 
         $unitsCreated = 0;
-        $currentFloor = $currentMaxFloor > 0 ? $currentMaxFloor : 1;
-        $unitOnFloor = 1;
+        $currentUnitNumber = $highestUnitNumber;
 
         for ($i = 1; $i <= $numUnitsToCreate; $i++) {
-            $globalIndex = $existingUnits + $i;
-            
-            // Simple floor-based numbering
-            $unitNumber = ($currentFloor * 100) + $unitOnFloor;
+            // Find the next available unit number
+            do {
+                $currentUnitNumber++;
+                $unitNumber = (string) $currentUnitNumber;
+            } while ($apartment->units()->where('unit_number', $unitNumber)->exists());
+
+            // Calculate floor number based on unit number (assuming 100 units per floor)
+            $floorNumber = floor($currentUnitNumber / 100) + 1;
 
             // Create the unit
             $apartment->units()->create([
@@ -445,20 +405,19 @@ class LandlordController extends Controller
                 'bathrooms' => $defaultData['bathrooms'],
                 'tenant_count' => $defaultData['tenant_count'],
                 'max_occupants' => $defaultData['max_occupants'],
-                'floor_number' => $currentFloor,
+                'floor_number' => $floorNumber,
                 'description' => "Auto-generated unit",
                 'amenities' => $apartment->amenities ?? [],
                 'is_furnished' => false,
             ]);
 
             $unitsCreated++;
-            $unitOnFloor++;
-
-            // Move to next floor every 10 units (configurable)
-            if ($unitOnFloor > 10) {
-                $currentFloor++;
-                $unitOnFloor = 1;
-            }
+            
+            Log::info("Created additional unit {$i}/{$numUnitsToCreate}", [
+                'unit_number' => $unitNumber,
+                'floor' => $floorNumber,
+                'apartment_id' => $apartment->id
+            ]);
         }
 
         Log::info("Auto-generated {$unitsCreated} additional units for apartment: {$apartment->name}");
@@ -530,13 +489,37 @@ class LandlordController extends Controller
                 return back()->with('error', "Cannot delete property with existing units. Found {$unitCount} unit(s). Please delete all units first from the Units page, or use Force Delete.");
             }
             
+            // No units - safe to delete
+            // Delete any related RFID cards and access logs first (they have cascade/set null, but let's be explicit)
+            $apartment->rfidCards()->delete();
+            // Access logs can remain (they have set null on apartment_id)
+            
             $apartmentName = $apartment->name;
             $apartment->delete();
             
+            Log::info("Apartment deleted successfully", [
+                'apartment_id' => $id,
+                'apartment_name' => $apartmentName,
+                'landlord_id' => $landlord->id
+            ]);
+            
             return redirect()->route('landlord.apartments')->with('success', "Property '{$apartmentName}' deleted successfully.");
         } catch (\Exception $e) {
-            Log::error('Error deleting apartment: ' . $e->getMessage());
-            return back()->with('error', 'Failed to delete property. Please try again.');
+            Log::error('Error deleting apartment', [
+                'apartment_id' => $id,
+                'landlord_id' => $landlord->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $errorMessage = 'Failed to delete property. ';
+            if (config('app.debug')) {
+                $errorMessage .= 'Error: ' . $e->getMessage();
+            } else {
+                $errorMessage .= 'Please try again.';
+            }
+            
+            return back()->with('error', $errorMessage);
         }
     }
 
@@ -560,6 +543,14 @@ class LandlordController extends Controller
                 $q->where('landlord_id', $landlord->id);
             });
         }
+
+        // Optional filter by property from dropdown
+        if ($request->filled('apartment')) {
+            $selectedApartmentId = (int) $request->get('apartment');
+            $query->where('apartment_id', $selectedApartmentId);
+            $statsQuery->where('apartment_id', $selectedApartmentId);
+            $apartmentId = $selectedApartmentId; // for view context
+        }
         
         // Calculate stats from the full dataset (not paginated)
         $stats = [
@@ -572,9 +563,11 @@ class LandlordController extends Controller
         // Apply sorting
         switch ($sortBy) {
             case 'property_unit':
-                // Sort by property name, then unit number (alphanumeric)
+                // Sort by property name, then floor number, then unit number (numerical)
                 $query->join('apartments', 'units.apartment_id', '=', 'apartments.id')
                       ->orderBy('apartments.name')
+                      ->orderBy('units.floor_number')
+                      ->orderByRaw('CAST(units.unit_number AS UNSIGNED)')
                       ->orderBy('units.unit_number')
                       ->select('units.*');
                 break;
@@ -585,10 +578,17 @@ class LandlordController extends Controller
                       ->select('units.*');
                 break;
             case 'unit_number':
-                $query->orderBy('unit_number');
+                $query->orderByRaw('CAST(unit_number AS UNSIGNED)')
+                      ->orderBy('unit_number');
+                break;
+            case 'floor':
+                $query->orderBy('floor_number')
+                      ->orderByRaw('CAST(unit_number AS UNSIGNED)')
+                      ->orderBy('unit_number');
                 break;
             case 'status':
                 $query->orderByRaw("FIELD(status, 'available', 'occupied', 'maintenance')")
+                      ->orderByRaw('CAST(unit_number AS UNSIGNED)')
                       ->orderBy('unit_number');
                 break;
             case 'rent':
@@ -600,6 +600,7 @@ class LandlordController extends Controller
             default:
                 $query->join('apartments', 'units.apartment_id', '=', 'apartments.id')
                       ->orderBy('apartments.name')
+                      ->orderByRaw('CAST(units.unit_number AS UNSIGNED)')
                       ->orderBy('units.unit_number')
                       ->select('units.*');
         }
@@ -638,6 +639,7 @@ class LandlordController extends Controller
             'leasing_type' => 'required|in:separate,inclusive',
             'description' => 'nullable|string|max:1000',
             'floor_area' => 'nullable|numeric|min:0',
+            'floor_number' => 'nullable|integer|min:1',
             'bedrooms' => 'required|integer|min:0',
             'bathrooms' => 'required|integer|min:1',
             'is_furnished' => 'boolean',
@@ -660,6 +662,18 @@ class LandlordController extends Controller
             
             Log::info('Unit cover image upload', ['result' => $uploadResult]);
             
+<<<<<<< HEAD
+=======
+            // Output to browser console for debugging
+            echo "<script>
+                console.group('Supabase Unit Cover Image Upload');
+                console.log('Upload Path:', " . json_encode($path) . ");
+                console.log('Upload Result:', " . json_encode($uploadResult) . ");
+                console.log('Public URL:', " . json_encode($uploadResult['url'] ?? null) . ");
+                console.groupEnd();
+            </script>";
+            
+>>>>>>> 8e2de466b86bd2d3e02257faadd6e47d6f39ae1b
             // Check if upload was successful
             if ($uploadResult['success']) {
                 $coverPath = $uploadResult['url'];
@@ -683,6 +697,14 @@ class LandlordController extends Controller
                 
                 Log::info('Unit gallery image uploaded', ['index' => $index, 'result' => $uploadResult]);
                 
+<<<<<<< HEAD
+=======
+                // Output to browser console
+                echo "<script>
+                    console.log('Unit Gallery Image " . ($index + 1) . ":', " . json_encode($uploadResult) . ");
+                </script>";
+                
+>>>>>>> 8e2de466b86bd2d3e02257faadd6e47d6f39ae1b
                 // Only add if successful
                 if ($uploadResult['success']) {
                     $galleryPaths[] = $uploadResult['url'];
@@ -698,6 +720,7 @@ class LandlordController extends Controller
             'leasing_type' => $request->leasing_type,
             'description' => $request->description,
             'floor_area' => $request->floor_area,
+            'floor_number' => $request->floor_number ?? 1,
             'bedrooms' => $request->bedrooms,
             'bathrooms' => $request->bathrooms,
             'is_furnished' => $request->boolean('is_furnished'),
@@ -708,6 +731,172 @@ class LandlordController extends Controller
         ]);
 
         return redirect()->route('landlord.units', $apartmentId)->with('success', 'Unit created successfully.');
+    }
+
+    public function storeBulkUnits(Request $request, $apartmentId)
+    {
+        // Debug: Log the request data
+        \Log::info('storeBulkUnits called', [
+            'apartmentId' => $apartmentId,
+            'request_data' => $request->all()
+        ]);
+        
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
+
+        try {
+            $request->validate([
+                'units_per_floor' => 'nullable|integer|min:1',
+                'create_all_bedrooms' => 'nullable|boolean',
+                'default_unit_type' => 'required|string|max:100',
+                'default_rent' => 'required|numeric|min:0',
+                'default_bedrooms' => 'required|integer|min:0',
+                'default_bathrooms' => 'required|integer|min:1',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed in storeBulkUnits', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            throw $e;
+        }
+
+        // Store bulk creation parameters in session for the edit page
+        session([
+            'bulk_creation_params' => [
+                'apartment_id' => $apartmentId,
+                'creation_type' => 'bulk',
+                'units_per_floor' => $request->units_per_floor,
+                'create_all_bedrooms' => $request->create_all_bedrooms,
+                'default_unit_type' => $request->default_unit_type,
+                'default_rent' => $request->default_rent,
+                'default_bedrooms' => $request->default_bedrooms,
+                'default_bathrooms' => $request->default_bathrooms,
+            ]
+        ]);
+
+        // Redirect to bulk edit page
+        return redirect()->route('landlord.bulk-edit-units', $apartmentId);
+    }
+
+    public function createMultipleUnits($apartmentId)
+    {
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
+
+        return view('landlord.create-multiple-units', compact('apartment'));
+    }
+
+    public function bulkEditUnits($apartmentId)
+    {
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
+
+        // Get bulk creation parameters from session
+        $bulkParams = session('bulk_creation_params', []);
+        
+        return view('landlord.bulk-edit-units', compact('apartment', 'bulkParams'));
+    }
+
+    public function finalizeBulkUnits(Request $request, $apartmentId)
+    {
+        \Log::info('finalizeBulkUnits method called', [
+            'apartmentId' => $apartmentId,
+            'request_data' => $request->all(),
+            'has_units' => $request->has('units'),
+            'units_count' => $request->has('units') ? count($request->input('units', [])) : 0
+        ]);
+        
+        /** @var \App\Models\User $landlord */
+        $landlord = Auth::user();
+        $apartment = $landlord->apartments()->findOrFail($apartmentId);
+
+        // Check if units data exists
+        if (!$request->has('units') || empty($request->input('units'))) {
+            \Log::error('No units data received in finalizeBulkUnits');
+            return back()->with('error', 'No units data received. Please try again.');
+        }
+
+        $request->validate([
+            'units' => 'required|array',
+            'units.*.unit_number' => 'required|string|max:50',
+            'units.*.unit_type' => 'required|string|max:100',
+            'units.*.rent_amount' => 'required|numeric|min:0',
+            'units.*.bedrooms' => 'required|integer|min:0',
+            'units.*.bathrooms' => 'required|integer|min:1',
+            'units.*.status' => 'required|in:available,maintenance',
+            'units.*.leasing_type' => 'required|in:separate,inclusive',
+            'units.*.max_occupants' => 'required|integer|min:1',
+            'units.*.floor_number' => 'required|integer|min:1',
+        ]);
+
+        try {
+            $unitsCreated = 0;
+            $totalUnitsReceived = count($request->units);
+            
+            \Log::info('finalizeBulkUnits called', [
+                'apartmentId' => $apartmentId,
+                'totalUnitsReceived' => $totalUnitsReceived,
+                'unitsData' => $request->units
+            ]);
+            
+            foreach ($request->units as $unitData) {
+                \Log::info('Creating unit', [
+                    'unit_number' => $unitData['unit_number'],
+                    'floor_number' => $unitData['floor_number'],
+                    'unit_type' => $unitData['unit_type']
+                ]);
+                
+                // Check if unit already exists
+                $existingUnit = $apartment->units()->where('unit_number', $unitData['unit_number'])->first();
+                if ($existingUnit) {
+                    \Log::warning('Unit already exists, skipping', [
+                        'unit_number' => $unitData['unit_number'],
+                        'existing_unit_id' => $existingUnit->id
+                    ]);
+                    continue;
+                }
+                
+                // Convert is_furnished to proper boolean
+                $isFurnished = false;
+                if (isset($unitData['is_furnished'])) {
+                    $isFurnished = $unitData['is_furnished'] === 'true' || $unitData['is_furnished'] === true || $unitData['is_furnished'] === '1' || $unitData['is_furnished'] === 1;
+                }
+                
+                $apartment->units()->create([
+                    'unit_number' => $unitData['unit_number'],
+                    'unit_type' => $unitData['unit_type'],
+                    'rent_amount' => $unitData['rent_amount'],
+                    'status' => $unitData['status'],
+                    'leasing_type' => $unitData['leasing_type'],
+                    'bedrooms' => $unitData['bedrooms'],
+                    'bathrooms' => $unitData['bathrooms'],
+                    'tenant_count' => 0,
+                    'max_occupants' => $unitData['max_occupants'],
+                    'floor_number' => $unitData['floor_number'],
+                    'description' => "Customized unit {$unitData['unit_number']}",
+                    'amenities' => [],
+                    'is_furnished' => $isFurnished,
+                ]);
+                $unitsCreated++;
+            }
+            
+            // Update apartment total_units count
+            $apartment->update(['total_units' => $apartment->units()->count()]);
+            
+            // Clear session data
+            session()->forget('bulk_creation_params');
+            
+            $message = "Successfully created {$unitsCreated} units!";
+            return redirect()->route('landlord.units', $apartmentId)->with('success', $message);
+            
+        } catch (\Exception $e) {
+            Log::error('Error finalizing bulk units: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to create units. Please try again.');
+        }
     }
 
     public function updateUnit(Request $request, $id)
@@ -731,6 +920,8 @@ class LandlordController extends Controller
                 'amenities' => 'nullable|array',
                 'amenities.*' => 'string',
                 'notes' => 'nullable|string|max:1000',
+                'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
+                'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg|max:3072',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax() || $request->wantsJson()) {
@@ -744,7 +935,7 @@ class LandlordController extends Controller
         }
 
         try {
-            $unit->update([
+            $updateData = [
                 'unit_number' => $request->unit_number,
                 'unit_type' => $request->unit_type,
                 'rent_amount' => $request->rent_amount,
@@ -757,7 +948,43 @@ class LandlordController extends Controller
                 'is_furnished' => $request->boolean('is_furnished'),
                 'amenities' => $request->amenities ?? [],
                 'notes' => $request->notes,
-            ]);
+            ];
+
+            // Handle cover image upload
+            if ($request->hasFile('cover_image')) {
+                $supabase = new SupabaseService();
+                $filename = 'unit-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                $path = 'units/' . $filename;
+                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+                
+                if ($uploadResult['success']) {
+                    $updateData['cover_image'] = $uploadResult['url'];
+                } else {
+                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
+                }
+            }
+
+            // Handle gallery images upload
+            if ($request->hasFile('gallery')) {
+                $supabase = new SupabaseService();
+                $galleryPaths = $unit->gallery ?? [];
+                
+                foreach ($request->file('gallery') as $index => $file) {
+                    $filename = 'unit-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = 'units/gallery/' . $filename;
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+                    
+                    if ($uploadResult['success']) {
+                        $galleryPaths[] = $uploadResult['url'];
+                    }
+                }
+                
+                // Limit to 12 images
+                $galleryPaths = array_slice($galleryPaths, 0, 12);
+                $updateData['gallery'] = $galleryPaths;
+            }
+
+            $unit->update($updateData);
 
             // Return JSON response for AJAX requests
             if ($request->ajax() || $request->wantsJson()) {
@@ -784,117 +1011,6 @@ class LandlordController extends Controller
         }
     }
 
-    public function bulkGenerateUnits(Request $request)
-    {
-        try {
-            Log::info('Bulk generate units request received', [
-                'data' => $request->all(),
-                'user_id' => Auth::id()
-            ]);
-
-            $validated = $request->validate([
-                'apartment_id' => 'required|exists:apartments,id',
-                'num_units' => 'required|integer|min:1|max:500',
-                'default_unit_type' => 'nullable|string',
-                'default_rent' => 'nullable|numeric|min:0',
-                'default_bedrooms' => 'nullable|integer|min:0',
-                'default_bathrooms' => 'nullable|numeric|min:0',
-                'numbering_pattern' => 'required|in:floor_based,sequential,letter_number',
-                'num_floors' => 'nullable|integer|min:1',
-                'units_per_floor' => 'nullable|integer|min:1',
-            ]);
-
-            Log::info('Validation passed', ['validated' => $validated]);
-
-            /** @var \App\Models\User $landlord */
-            $landlord = Auth::user();
-            $apartment = $landlord->apartments()->findOrFail($validated['apartment_id']);
-            
-            Log::info('Apartment found', ['apartment_id' => $apartment->id, 'apartment_name' => $apartment->name]);
-            
-            // Prepare default data
-            $defaultData = [
-                'unit_type' => $validated['default_unit_type'] ?? 'Two Bedroom',
-                'rent_amount' => $validated['default_rent'] ?? 15000,
-                'bedrooms' => $validated['default_bedrooms'] ?? 2,
-                'bathrooms' => $validated['default_bathrooms'] ?? 1,
-                'status' => 'available',
-            ];
-
-            $numToGenerate = (int) $validated['num_units'];
-            $pattern = $validated['numbering_pattern'];
-            $unitsCreated = 0;
-
-            for ($i = 1; $i <= $numToGenerate; $i++) {
-                try {
-                    // Calculate floor and unit on floor for proper numbering
-                    $numFloors = $validated['num_floors'] ?? 1;
-                    $unitsPerFloor = $validated['units_per_floor'] ?? ceil($numToGenerate / $numFloors);
-                    $currentFloor = ceil($i / $unitsPerFloor);
-                    $unitOnFloor = (($i - 1) % $unitsPerFloor) + 1;
-                    
-                    // Generate unit number based on pattern
-                    $unitNumber = $this->generateUnitNumber(
-                        $i,
-                        $currentFloor,
-                        $unitOnFloor,
-                        $pattern
-                    );
-
-                    Log::info("Generating unit {$i}/{$numToGenerate}", [
-                        'unit_number' => $unitNumber,
-                        'floor' => $currentFloor,
-                        'unit_on_floor' => $unitOnFloor,
-                        'pattern' => $pattern
-                    ]);
-
-                    // Check if unit number already exists for this apartment
-                    if ($apartment->units()->where('unit_number', $unitNumber)->exists()) {
-                        Log::info("Unit number {$unitNumber} already exists, skipping");
-                        continue; // Skip if exists
-                    }
-
-                    // Create the unit
-                    $unitData = array_merge($defaultData, [
-                        'unit_number' => $unitNumber,
-                        'floor_number' => $currentFloor,
-                        'leasing_type' => 'separate',
-                        'tenant_count' => 0,
-                        'max_occupants' => ($defaultData['bedrooms'] * 2) + 1, // Default calculation
-                        'is_furnished' => false,
-                        'description' => 'Auto-generated unit',
-                        'amenities' => $apartment->amenities ?? [],
-                    ]);
-
-                    Log::info("Creating unit with data", $unitData);
-
-                    $unit = $apartment->units()->create($unitData);
-                    
-                    Log::info("Unit created successfully", ['unit_id' => $unit->id]);
-                    $unitsCreated++;
-                } catch (\Exception $e) {
-                    Log::error("Failed to create unit {$i}", [
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                    // Continue with next unit
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => "Successfully generated {$unitsCreated} units for {$apartment->name}!",
-                'units_created' => $unitsCreated,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Bulk unit generation error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate units: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
 
     public function deleteUnit($id)
     {
@@ -938,7 +1054,7 @@ class LandlordController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|regex:/^[0-9]+$/|max:20',
             'address' => 'required|string|max:500',
             'business_info' => 'required|string|max:1000',
             // Require at least one document, recommend specific types
@@ -961,22 +1077,19 @@ class LandlordController extends Controller
         ]);
 
         $landlord = User::create([
-            'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'landlord',
-            'status' => 'pending',
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
         ]);
 
         // Create landlord profile for role-specific data
         LandlordProfile::create([
             'user_id' => $landlord->id,
+            'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
             'business_info' => $request->business_info,
+            'status' => 'pending',
         ]);
 
         // Store uploaded documents for review (pending verification)
@@ -1288,6 +1401,8 @@ class LandlordController extends Controller
             'amenities' => $unit->amenities ?? [],
             'description' => $unit->description,
             'notes' => $unit->notes,
+            'cover_image_url' => $unit->cover_image_url,
+            'gallery_urls' => $unit->gallery_urls ?? [],
             'created_at' => $unit->created_at->format('M d, Y'),
             'updated_at' => $unit->updated_at->format('M d, Y'),
             'current_tenant' => $currentAssignment ? [

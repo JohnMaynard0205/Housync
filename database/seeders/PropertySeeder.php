@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Property;
 use App\Models\Amenity;
 use App\Models\User;
+use App\Models\LandlordProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -19,15 +20,20 @@ class PropertySeeder extends Seeder
         
         // If no landlords exist, create a default one
         if ($landlords->isEmpty()) {
-            $landlords = collect([
-                User::create([
-                    'name' => 'Demo Landlord',
-                    'email' => 'landlord@demo.com',
-                    'password' => bcrypt('password'),
-                    'role' => 'landlord',
-                    'status' => 'approved',
-                ])
+            $user = User::create([
+                'email' => 'landlord@demo.com',
+                'password' => bcrypt('password'),
+                'role' => 'landlord',
             ]);
+
+            // Create landlord profile
+            LandlordProfile::create([
+                'user_id' => $user->id,
+                'name' => 'Demo Landlord',
+                'status' => 'approved',
+            ]);
+
+            $landlords = collect([$user]);
         }
 
         $amenities = Amenity::all();

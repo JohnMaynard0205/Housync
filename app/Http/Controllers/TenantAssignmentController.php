@@ -41,7 +41,7 @@ class TenantAssignmentController extends Controller
         // Enhanced validation rules
         $request->validate([
             'email' => 'required|email',
-            'phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
+            'phone' => 'nullable|regex:/^[0-9]+$/|max:20',
             'address' => 'nullable|string|max:500',
             'lease_start_date' => 'required|date|after_or_equal:today',
             'lease_end_date' => 'required|date|after:lease_start_date|before:2 years',
@@ -49,7 +49,7 @@ class TenantAssignmentController extends Controller
             'security_deposit' => 'nullable|numeric|min:0|max:50000',
             'notes' => 'nullable|string|max:1000',
         ], [
-            'phone.regex' => 'Please enter a valid phone number',
+            'phone.regex' => 'Phone must contain digits only',
             'lease_end_date.before' => 'Lease cannot exceed 2 years',
             'rent_amount.min' => 'Rent must be at least ₱1,000',
             'rent_amount.max' => 'Rent cannot exceed ₱100,000',
@@ -282,6 +282,7 @@ class TenantAssignmentController extends Controller
      */
     public function tenantDashboard()
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         $assignments = $tenant->tenantAssignments()
             ->with(['unit.apartment', 'tenant.documents']) // Documents are now at tenant level
@@ -290,8 +291,8 @@ class TenantAssignmentController extends Controller
             ->get();
 
         if ($assignments->isEmpty()) {
-            // Redirect prospects (tenants without assignments) to property listings
-            return redirect()->route('explore')->with('info', 'Browse available properties and contact landlords to get assigned to a unit.');
+            // Show a lightweight tenant dashboard explaining next steps instead of redirecting
+            return view('tenant.no-assignment');
         }
 
         return view('tenant.dashboard', compact('assignments'));
@@ -302,10 +303,11 @@ class TenantAssignmentController extends Controller
      */
     public function uploadDocuments()
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         // Get the active assignment if one exists (optional now)
-        $assignment = $tenant->tenantAssignments()->with(['unit.apartment'])->first();
+        $assignment = $tenant->tenantAssignments()->with(['unit.apartment', 'documents'])->first();
         
         // Get tenant's personal documents (uploaded before assignment)
         $personalDocuments = $tenant->documents()->orderBy('created_at', 'desc')->get();
@@ -350,6 +352,7 @@ class TenantAssignmentController extends Controller
             throw $e;
         }
     
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         try {
@@ -577,6 +580,7 @@ class TenantAssignmentController extends Controller
         $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
         
         // Check if user has access to this document
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $hasAccess = false;
         
@@ -620,33 +624,61 @@ class TenantAssignmentController extends Controller
     public function deleteDocument($documentId)
     {
         try {
-            $document = TenantDocument::with(['tenant'])->findOrFail($documentId);
+            $document = TenantDocument::with(['tenantAssignment.tenant', 'tenant'])->findOrFail($documentId);
             
             // Check if user is the tenant who uploaded this document
-            if ($document->tenant_id !== Auth::id()) {
+            // Check both tenant_id (for profile documents) and assignment tenant_id
+            if ($document->tenant_id !== Auth::id() && 
+                (!$document->tenantAssignment || $document->tenantAssignment->tenant_id !== Auth::id())) {
                 abort(403, 'Unauthorized access to document.');
             }
 
-            $assignment = null; // Documents are now directly associated with tenants, not assignments
+            $assignment = $document->tenantAssignment;
             $documentType = $document->document_type;
             $fileName = $document->file_name;
             $fileSize = $document->file_size;
 
             // Use database transaction for document deletion
-            DB::transaction(function() use ($document) {
+            DB::transaction(function() use ($document, $assignment) {
                 // Delete the document record
                 $document->delete();
+
+                // Update assignment status based on remaining documents (if assignment exists)
+                if ($assignment) {
+                    $remainingDocuments = $assignment->documents()->count();
+                    
+                    if ($remainingDocuments === 0) {
+                        // No documents left, mark as not uploaded
+                        $assignment->update([
+                            'documents_uploaded' => false,
+                            'documents_verified' => false,
+                        ]);
+                    } else {
+                        // Check if all remaining documents are verified
+                        $pendingDocuments = $assignment->documents()->where('verification_status', 'pending')->count();
+                        $allVerified = $pendingDocuments === 0;
+                        
+                        $assignment->update([
+                            'documents_uploaded' => true,
+                            'documents_verified' => $allVerified,
+                        ]);
+                    }
+                }
             });
 
             // Audit log for document deletion
             Log::info('Document deleted successfully', [
                 'tenant_id' => Auth::id(),
-                'tenant_name' => $document->tenant->name ?? 'Unknown',
+                'tenant_name' => $document->tenant->name ?? ($assignment ? $assignment->tenant->name : 'Unknown'),
                 'document_id' => $documentId,
+                'assignment_id' => $assignment?->id,
+                'unit_id' => $assignment?->unit_id,
+                'landlord_id' => $assignment?->landlord_id,
                 'document_type' => $documentType,
                 'document_name' => $fileName,
                 'file_size' => $fileSize,
                 'verification_status' => $document->verification_status,
+                'remaining_documents' => $assignment ? $assignment->documents()->count() : 0,
                 'timestamp' => now()
             ]);
 
@@ -714,9 +746,13 @@ class TenantAssignmentController extends Controller
                 $documentsCount = $assignment->tenant->documents->count();
                 $totalFileSize = $assignment->tenant->documents->sum('file_size');
 
-                // Note: Documents are now personal to tenants, not assignment-specific
-                // We don't delete tenant documents when deleting assignments
-                // Documents remain with the tenant for future applications
+                // Delete all associated documents first
+                foreach ($assignment->documents as $document) {
+                    // Note: Files are stored in Supabase, not local storage
+                    // Supabase files will remain accessible unless explicitly deleted from Supabase
+                    // Delete the document record
+                    $document->delete();
+                }
 
                 // Update the unit status back to available
                 $assignment->unit->update([
@@ -772,6 +808,7 @@ class TenantAssignmentController extends Controller
     public function tenantProfile()
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -807,7 +844,7 @@ class TenantAssignmentController extends Controller
             return view('tenant-profile', compact('tenant', 'assignment', 'rfidCards', 'personalDocuments'));
             
         } catch (\Exception $e) {
-            \Log::error('Tenant profile error: ' . $e->getMessage(), [
+            Log::error('Tenant profile error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -824,6 +861,7 @@ class TenantAssignmentController extends Controller
     public function tenantLease()
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -842,7 +880,7 @@ class TenantAssignmentController extends Controller
             return view('tenant-lease', compact('tenant', 'assignment'));
             
         } catch (\Exception $e) {
-            \Log::error('Tenant lease error: ' . $e->getMessage(), [
+            Log::error('Tenant lease error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -857,6 +895,7 @@ class TenantAssignmentController extends Controller
     public function updatePassword(Request $request)
     {
         try {
+            /** @var \App\Models\User $tenant */
             $tenant = Auth::user();
             
             if (!$tenant) {
@@ -890,7 +929,7 @@ class TenantAssignmentController extends Controller
             ]);
 
             // Log the password change
-            \Log::info('Tenant password updated', [
+            Log::info('Tenant password updated', [
                 'tenant_id' => $tenant->id,
                 'tenant_email' => $tenant->email,
                 'updated_at' => now()
@@ -899,7 +938,7 @@ class TenantAssignmentController extends Controller
             return response()->json(['success' => 'Password updated successfully!']);
 
         } catch (\Exception $e) {
-            \Log::error('Password update error: ' . $e->getMessage(), [
+            Log::error('Password update error: ' . $e->getMessage(), [
                 'tenant_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -913,6 +952,7 @@ class TenantAssignmentController extends Controller
      */
     public function applyForProperty(Request $request, $propertyId)
     {
+        /** @var \App\Models\User $tenant */
         $tenant = Auth::user();
         
         // Check if tenant has uploaded personal documents
@@ -925,7 +965,7 @@ class TenantAssignmentController extends Controller
         // Validate the application data (no documents required in form anymore)
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|regex:/^[0-9]+$/|max:20',
             'address' => 'required|string|max:500',
             'occupation' => 'required|string|max:255',
             'monthly_income' => 'required|numeric|min:0',

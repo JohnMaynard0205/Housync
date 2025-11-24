@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Property - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+@extends('layouts.landlord-app')
+
+@section('title', 'Edit Property')
+
+@push('styles')
     <style>
         * {
             margin: 0;
@@ -17,119 +14,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Orange Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item.active {
-            background-color: #f97316;
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .badge-count {
-            background-color: #ef4444;
-            color: white;
-            border-radius: 9999px;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.5rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
         }
 
         .content-header {
@@ -395,6 +279,17 @@
             background: #dc2626;
         }
 
+        .btn-outline-primary {
+            background: transparent;
+            border: 2px solid #f97316;
+            color: #f97316;
+        }
+
+        .btn-outline-primary:hover {
+            background: #f97316;
+            color: white;
+        }
+
         .btn-lg {
             padding: 1rem 2rem;
             font-size: 1rem;
@@ -454,6 +349,7 @@
         .preview-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
@@ -509,62 +405,14 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item active">
-                    <i class="fas fa-building"></i> My Properties
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item">
-                    <i class="fas fa-door-open"></i> My Units
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-users"></i> Tenants
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
+@endpush
 
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
+@section('content')
             <!-- Header -->
             <div class="content-header">
                 <div>
                     <h1>Edit Property</h1>
                     <p style="color: #64748b; margin-top: 0.5rem;">Update property information</p>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>Property Manager</p>
-                    </div>
                 </div>
             </div>
 
@@ -590,6 +438,19 @@
                 <div class="preview-header">
                     <i class="fas fa-eye preview-icon"></i>
                     <h3 class="preview-title">Editing: {{ $apartment->name }}</h3>
+                    <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+                        <a href="{{ route('landlord.units', $apartment->id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-door-open"></i> View Units
+                        </a>
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                            <i class="fas fa-trash"></i> Delete Property
+                        </button>
+                        @if($apartment->units()->count() > 0)
+                        <button type="button" class="btn btn-danger" onclick="showForceDeleteModal()" style="background-color: #dc3545; border-color: #dc3545;">
+                            <i class="fas fa-exclamation-triangle"></i> Force Delete
+                        </button>
+                        @endif
+                    </div>
                 </div>
                 <div class="preview-info">
                     <div class="preview-item">
@@ -620,7 +481,7 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('landlord.update-apartment', $apartment->id) }}" class="form-container">
+                <form method="POST" action="{{ route('landlord.update-apartment', $apartment->id) }}" class="form-container" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     
@@ -902,20 +763,67 @@
                         </div>
                     </div>
 
+                    <!-- Property Photos -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-image"></i>
+                            Property Photos
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label class="form-label">Cover Image</label>
+                                @if($apartment->cover_image_url)
+                                    <div class="mb-2">
+                                        <p class="text-muted small mb-2">Current cover image:</p>
+                                        <img src="{{ $apartment->cover_image_url }}" alt="Current Cover" style="max-width: 300px; max-height: 300px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                    </div>
+                                @else
+                                    <p class="text-muted small mb-2">No cover image yet. Upload one below.</p>
+                                @endif
+                                <input type="file" name="cover_image" id="cover_image" accept="image/*" class="form-control" onchange="previewCoverImage(this)">
+                                <div id="cover_image_preview" class="mt-2" style="display: none;">
+                                    <img id="cover_preview_img" src="" alt="Cover Preview" style="max-width: 300px; max-height: 300px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                                <p class="form-help text-muted mt-1">Main image displayed for this property (JPEG/PNG, max 5MB)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group full-width mt-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            @if($apartment->gallery_urls && count($apartment->gallery_urls) > 0)
+                                <div class="mb-2">
+                                    <p class="text-muted small">Current gallery images ({{ count($apartment->gallery_urls) }}):</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        @foreach($apartment->gallery_urls as $url)
+                                            <div style="position: relative;">
+                                                <img src="{{ $url }}" alt="Gallery Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 2px solid #e2e8f0;">
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-muted small mb-2">No gallery images yet. Add images below.</p>
+                            @endif
+                            <div class="gallery-upload-container">
+                                <input type="file" name="gallery[]" id="gallery_input" accept="image/*" multiple class="form-control" onchange="handleGalleryUpload(this)" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('gallery_input').click()">
+                                    <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                                </button>
+                                <p class="form-help text-muted mt-2">Add multiple images to showcase the property (JPEG/PNG, max 5MB each)</p>
+                            </div>
+                            
+                            <div id="gallery_preview" class="gallery-preview mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                                <!-- Gallery previews will be added here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Form Actions -->
                     <div class="form-actions">
                         <div class="form-actions-left">
                             <a href="{{ route('landlord.apartments') }}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
-                            <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                                <i class="fas fa-trash"></i> Delete Property
-                            </button>
-                            @if($apartment->units()->count() > 0)
-                            <button type="button" class="btn btn-danger" onclick="showForceDeleteModal()" style="background-color: #dc3545; border-color: #dc3545;">
-                                <i class="fas fa-exclamation-triangle"></i> Force Delete ({{ $apartment->units()->count() }} units)
-                            </button>
-                            @endif
                         </div>
                         <div class="form-actions-right">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -1123,10 +1031,123 @@
         });
 
         function confirmDelete() {
-            if (confirm('Are you sure you want to delete this property?\n\nThis action cannot be undone.\n\nNote: You must first delete all units in this property before you can delete the property itself.')) {
+            const unitCount = {{ $apartment->units()->count() }};
+            let message = 'Are you sure you want to delete this property?\n\nThis action cannot be undone.';
+            
+            if (unitCount > 0) {
+                message += '\n\nNote: You must first delete all units in this property before you can delete the property itself.';
+            }
+            
+            if (confirm(message)) {
                 document.getElementById('delete-form').submit();
             }
         }
+
+        // Cover image preview
+        function previewCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('cover_image_preview');
+                    const previewImg = document.getElementById('cover_preview_img');
+                    if (preview && previewImg) {
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Gallery images handling
+        let galleryFiles = [];
+        const maxGalleryImages = 12;
+        const existingGalleryCount = {{ $apartment->gallery_urls ? count($apartment->gallery_urls) : 0 }};
+        
+        function handleGalleryUpload(input) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxGalleryImages - existingGalleryCount;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (galleryFiles.length < remainingSlots) {
+                        galleryFiles.push(file);
+                        addGalleryPreview(file, galleryFiles.length - 1);
+                    }
+                });
+                
+                updateGalleryInput();
+            }
+        }
+        
+        function addGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('gallery_preview');
+                if (!previewContainer) return;
+                
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 150px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeGalleryImage(${index})"
+                            style="position: absolute; top: 5px; right: 5px; padding: 0.25rem 0.5rem; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeGalleryImage(index) {
+            galleryFiles.splice(index, 1);
+            updateGalleryPreview();
+            updateGalleryInput();
+        }
+        
+        function updateGalleryPreview() {
+            const previewContainer = document.getElementById('gallery_preview');
+            if (!previewContainer) return;
+            
+            previewContainer.innerHTML = '';
+            
+            if (galleryFiles.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            galleryFiles.forEach((file, index) => {
+                addGalleryPreview(file, index);
+            });
+        }
+        
+        function updateGalleryInput() {
+            const input = document.getElementById('gallery_input');
+            if (!input) return;
+            
+            const dataTransfer = new DataTransfer();
+            galleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            input.files = dataTransfer.files;
+        }
     </script>
-</body>
-</html> 
+@endsection

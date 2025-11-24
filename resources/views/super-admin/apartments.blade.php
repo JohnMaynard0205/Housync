@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Properties - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+@extends('layouts.super-admin-app')
+
+@section('title', 'Properties')
+
+@push('styles')
     <style>
         * {
             margin: 0;
@@ -17,109 +14,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Blue Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #60a5fa;
-        }
-
-        .nav-item.active {
-            background-color: #3b82f6;
-            color: white;
-            border-left-color: #60a5fa;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.5rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
         }
 
         .content-header {
@@ -135,38 +29,6 @@
             color: #1e293b;
         }
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #1e40af);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 0.75rem;
-        }
-
-        .user-info h3 {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .user-info p {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
 
         /* Stats Cards */
         .stats-grid {
@@ -198,7 +60,6 @@
             font-weight: 500;
         }
 
-        /* Page Content */
         .page-section {
             background: white;
             border-radius: 1rem;
@@ -228,7 +89,6 @@
             margin-top: 0.25rem;
         }
 
-        /* Search and Filters */
         .filters-section {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
@@ -263,7 +123,6 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        /* Property Cards Grid */
         .properties-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -365,7 +224,6 @@
             letter-spacing: 0.05em;
         }
 
-        /* Action Buttons */
         .btn {
             padding: 0.5rem 1rem;
             border: none;
@@ -409,7 +267,6 @@
             gap: 0.5rem;
         }
 
-        /* Alert Styles */
         .alert {
             padding: 1rem 1.5rem;
             border-radius: 0.5rem;
@@ -426,7 +283,6 @@
             color: #047857;
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
@@ -450,7 +306,6 @@
             margin-bottom: 2rem;
         }
 
-        /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
@@ -480,58 +335,14 @@
             color: white;
         }
     </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Super Admin Portal</h2>
-                <p>System Administrator</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('super-admin.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('super-admin.pending-landlords') }}" class="nav-item">
-                    <i class="fas fa-user-clock"></i> Pending Approvals
-                </a>
-                <a href="{{ route('super-admin.users') }}" class="nav-item">
-                    <i class="fas fa-users"></i> User Management
-                </a>
-                <a href="{{ route('super-admin.apartments') }}" class="nav-item active">
-                    <i class="fas fa-building"></i> Properties
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-cog"></i> System Settings
-                </a>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-            </div>
-        </div>
+@endpush
 
-        <!-- Main Content -->
-        <div class="main-content">
+@section('content')
             <!-- Header -->
             <div class="content-header">
                 <div>
                     <h1>Property Management</h1>
                     <p style="color: #64748b; margin-top: 0.5rem;">View and manage all properties in the system</p>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>System Administrator</p>
-                    </div>
                 </div>
             </div>
 
@@ -714,9 +525,6 @@
                     </div>
                 @endif
             </div>
-        </div>
-    </div>
-
     <script>
         function viewProperty(apartmentId) {
             // You can implement property details modal or redirect to detail page
@@ -728,5 +536,4 @@
             alert('Units view for property ID: ' + apartmentId + '\nThis would show all units in this property.');
         }
     </script>
-</body>
-</html> 
+@endsection

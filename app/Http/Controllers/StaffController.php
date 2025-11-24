@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\StaffAssignment;
+use App\Models\StaffProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -68,14 +69,19 @@ class StaffController extends Controller
 
             // Create staff user
             $staff = User::create([
-                'name' => $request->name,
                 'email' => $email,
                 'password' => Hash::make($password),
                 'role' => 'staff',
+            ]);
+
+            // Create staff profile
+            StaffProfile::create([
+                'user_id' => $staff->id,
+                'name' => $request->name,
                 'staff_type' => $request->staff_type,
-                'status' => 'active',
                 'phone' => $request->phone,
                 'address' => $request->address,
+                'status' => 'active',
             ]);
 
             return redirect()->route('landlord.staff')

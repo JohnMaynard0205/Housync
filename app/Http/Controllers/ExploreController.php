@@ -24,11 +24,17 @@ class ExploreController extends Controller
         $properties = Property::with(['amenities', 'landlord'])
             ->active()
             ->available()
-            ->latest()
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(12);
 
         $propertyTypes = ['apartment', 'house', 'condo', 'studio'];
         
+        // If the user is an authenticated tenant, render within the tenant layout (with sidebar)
+        if (auth()->check() && auth()->user()->role === 'tenant') {
+            return view('tenant.explore', compact('properties', 'amenities', 'propertyTypes'));
+        }
+
         return view('explore', compact('properties', 'amenities', 'propertyTypes'));
     }
 
@@ -72,16 +78,18 @@ class ExploreController extends Controller
         $sortBy = $request->get('sort_by', 'latest');
         switch ($sortBy) {
             case 'price_low':
-                $query->orderBy('price', 'asc');
+                $query->orderBy('price', 'asc')->orderBy('id', 'desc');
                 break;
             case 'price_high':
-                $query->orderBy('price', 'desc');
+                $query->orderBy('price', 'desc')->orderBy('id', 'desc');
                 break;
             case 'featured':
-                $query->orderBy('is_featured', 'desc')->latest();
+                $query->orderBy('is_featured', 'desc')
+                      ->orderBy('created_at', 'desc')
+                      ->orderBy('id', 'desc');
                 break;
             default:
-                $query->latest();
+                $query->orderBy('created_at', 'desc')->orderBy('id', 'desc');
         }
 
         $properties = $query->paginate(12);
@@ -91,7 +99,7 @@ class ExploreController extends Controller
             return response()->json([
                 'success' => true,
                 'html' => view('partials.property-cards', compact('properties'))->render(),
-                'pagination' => $properties->links('pagination::bootstrap-5')->render(),
+                'pagination' => $properties->links('pagination::bootstrap-5')->toHtml(),
                 'count' => $properties->total(),
             ]);
         }

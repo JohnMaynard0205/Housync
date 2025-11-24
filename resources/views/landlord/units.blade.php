@@ -4,985 +4,176 @@
 
 @push('styles')
 <style>
-.units-list {
-    background: white;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-}
-
-.units-list .list-header {
-    display: flex;
-    padding: 1rem 1.5rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-.units-list .list-row {
-    display: flex;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    align-items: center;
-    transition: background 0.15s ease;
-}
-
-.units-list .list-row:hover {
-    background: #f8fafc;
-}
-
-.units-list .list-row:last-child {
-    border-bottom: none;
-}
-
-.units-list .list-column {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    font-size: 0.875rem;
-}
-
-.units-list .text-center {
-    justify-content: center;
-}
-
-.units-list .text-right {
-    justify-content: flex-end;
-}
-
-.btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 0.375rem;
-    border: 1px solid #e2e8f0;
-    background: white;
-    color: #64748b;
-    transition: all 0.15s ease;
-    cursor: pointer;
-}
-
-.btn-icon:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-color: #cbd5e1;
-}
 </style>
 @endpush
 
 @section('content')
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Units - Housesync</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles - Orange Theme */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #ea580c 0%, #dc2626 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header p {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item.active {
-            background-color: #f97316;
-            color: white;
-            border-left-color: #fb923c;
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-            font-size: 1rem;
-        }
-
-        .badge-count {
-            background-color: #ef4444;
-            color: white;
-            border-radius: 9999px;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.875rem;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 0.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .logout-btn i {
-            margin-right: 0.5rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
-        }
-
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .content-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 0.75rem;
-        }
-
-        .user-info h3 {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .user-info p {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid #f97316;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: #64748b;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        /* Page Content */
-        .page-section {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .section-subtitle {
-            color: #64748b;
-            font-size: 1rem;
-            margin-top: 0.25rem;
-        }
-
-        /* Search and Filters */
-        .filters-section {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            align-items: end;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control {
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #f97316;
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-        }
-
-        /* Units Grid */
-        .units-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .unit-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            transition: all 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .unit-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border-color: #f97316;
-        }
-
-        .unit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .unit-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.25rem;
-        }
-
-        .unit-property {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .unit-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-available {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .status-occupied {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .status-maintenance {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .unit-info {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .info-item i {
-            width: 16px;
-            text-align: center;
-            color: #f97316;
-        }
-
-        .unit-details {
-            background: #f8fafc;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .detail-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .detail-label {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .detail-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .rent-amount {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #f97316;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        /* Action Buttons */
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: #f97316;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #ea580c;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.75rem;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Alert Styles */
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            border: 1px solid #a7f3d0;
-            color: #047857;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            color: #94a3b8;
-            margin-bottom: 1rem;
-        }
-
-        .empty-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-text {
-            color: #64748b;
-            margin-bottom: 2rem;
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .pagination nav {
-            display: flex;
-            gap: 0.25rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .pagination a,
-        .pagination span {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.375rem;
-            text-decoration: none;
-            color: #475569;
-            font-size: 0.875rem;
-            background: white;
-            transition: all 0.15s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 36px;
-            height: 36px;
-        }
-
-        .pagination a:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #0f172a;
-        }
-
-        .pagination .active span {
-            background: #f97316;
-            border-color: #f97316;
-            color: white;
-        }
-
-        /* Fix Tailwind SVG arrow sizing */
-        .pagination svg {
-            width: 1rem !important;
-            height: 1rem !important;
-            display: inline-block;
-        }
-
-        /* Disabled pagination elements */
-        .pagination .disabled span,
-        .pagination [aria-disabled="true"] {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f8fafc;
-        }
-
-        /* Pagination ellipsis */
-        .pagination .dots {
-            padding: 0.5rem;
-            color: #94a3b8;
-        }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Landlord Portal</h2>
-                <p>Property Manager</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ route('landlord.dashboard') }}" class="nav-item">
-                    <i class="fas fa-home"></i> My Dashboard
-                </a>
-                <a href="{{ route('landlord.apartments') }}" class="nav-item">
-                    <i class="fas fa-building"></i> My Properties
-                    @if(isset($apartments) && $apartments->count() > 0)
-                        <span class="badge-count">{{ $apartments->count() }}</span>
-                    @endif
-                </a>
-                <a href="{{ route('landlord.units') }}" class="nav-item active">
-                    <i class="fas fa-door-open"></i> My Units
-                    @if(isset($units) && $units->count() > 0)
-                        <span class="badge-count">{{ $units->count() }}</span>
-                    @endif
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-users"></i> Tenants
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-tools"></i> Maintenance
-                </a>
-
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ route('logout') }}" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-            </div>
+<div class="content-header mb-4">
+    <div>
+        <h1>My Units</h1>
+        <p style="color: #64748b; margin-top: 0.5rem;">Manage all your rental units</p>
+    </div>
+</div>
+@if(session('success'))
+    <div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</div>
+@endif
+<!-- Stats Cards -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['total_units'] }}</div>
+        <div class="stat-label">Total Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['available_units'] }}</div>
+        <div class="stat-label">Available Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $stats['occupied_units'] }}</div>
+        <div class="stat-label">Occupied Units</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">₱{{ number_format($stats['monthly_revenue'], 0) }}</div>
+        <div class="stat-label">Monthly Revenue</div>
+    </div>
+</div>
+<!-- Units Section -->
+<div class="page-section">
+    <div class="section-header d-flex flex-wrap justify-content-between align-items-end mb-3">
+        <div>
+            <h2 class="section-title">All Units</h2>
+            <p class="section-subtitle">View and manage your rental units across all properties</p>
         </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="content-header">
-                <div>
-                    <h1>My Units</h1>
-                    <p style="color: #64748b; margin-top: 0.5rem;">Manage all your rental units</p>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ substr(auth()->user()->name, 0, 1) }}
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ auth()->user()->name }}</h3>
-                        <p>Property Manager</p>
-                    </div>
-                </div>
+        <div class="d-flex flex-wrap gap-2 align-items-end ms-auto" style="min-width:270px;">
+            <div class="me-2">
+                <label class="me-2" style="font-size: 0.875rem; color: #64748b;">Property:</label>
+                <select id="apartmentFilter" style="padding: 0.5rem; min-width:200px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                    <option value="">All Properties</option>
+                    @foreach($apartments as $apt)
+                        <option value="{{ $apt->id }}" {{ (request('apartment') == $apt->id || ($apartmentId ?? null) == $apt->id) ? 'selected' : '' }}>
+                            {{ $apt->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-
-            @if(session('success'))
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-                </div>
-            @endif
-
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['total_units'] }}</div>
-                    <div class="stat-label">Total Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['available_units'] }}</div>
-                    <div class="stat-label">Available Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $stats['occupied_units'] }}</div>
-                    <div class="stat-label">Occupied Units</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">₱{{ number_format($stats['monthly_revenue'], 0) }}</div>
-                    <div class="stat-label">Monthly Revenue</div>
-                </div>
+            <div class="sort-dropdown">
+                <label class="me-2" style="font-size: 0.875rem; color: #64748b;">Sort by:</label>
+                <select id="unitSort" style="padding: 0.5rem; min-width:155px; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                    <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Floor → Unit</option>
+                    <option value="floor" {{ request('sort') == 'floor' ? 'selected' : '' }}>Floor → Unit Number</option>
+                    <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
+                    <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
+                    <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
+                    <option value="rent" {{ request('sort') == 'rent' ? 'selected' : '' }}>Rent (Highest First)</option>
+                    <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                </select>
             </div>
-
-            <!-- Units Section -->
-            <div class="page-section">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title">All Units</h2>
-                        <p class="section-subtitle">View and manage your rental units across all properties</p>
-                    </div>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div class="sort-dropdown">
-                            <label style="margin-right: 0.5rem; font-size: 0.875rem; color: #64748b;">Sort by:</label>
-                            <select id="unitSort" onchange="window.location.href='?sort=' + this.value" style="padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
-                                <option value="property_unit" {{ request('sort', 'property_unit') == 'property_unit' ? 'selected' : '' }}>Property → Unit Number</option>
-                                <option value="property" {{ request('sort') == 'property' ? 'selected' : '' }}>Property Name</option>
-                                <option value="unit_number" {{ request('sort') == 'unit_number' ? 'selected' : '' }}>Unit Number Only</option>
-                                <option value="status" {{ request('sort') == 'status' ? 'selected' : '' }}>Status (Available First)</option>
-                                <option value="rent" {{ request('sort') == 'rent' ? 'selected' : '' }}>Rent (Highest First)</option>
-                                <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#generateUnitsModal">
-                            <i class="fas fa-layer-group"></i> Generate Units
-                        </button>
-                        <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add New Unit
-                        </a>
-                    </div>
-                </div>
-
-                @if($units->count() > 0)
-                    <div class="units-list">
-                        <div class="list-header">
-                            <div class="list-column" style="flex: 1.5;">Unit Number</div>
-                            <div class="list-column" style="flex: 1.5;">Property</div>
-                            <div class="list-column">Type</div>
-                            <div class="list-column text-center">Beds / Baths</div>
-                            <div class="list-column text-center">Floor</div>
-                            <div class="list-column text-center">Status</div>
-                            <div class="list-column text-right">Rent/Month</div>
-                            <div class="list-column text-center">Actions</div>
-                        </div>
-                        
-                        @foreach($units as $unit)
-                            <div class="list-row">
-                                <div class="list-column" style="flex: 1.5;">
-                                    <div style="font-weight: 600; color: #1e293b;">{{ $unit->unit_number }}</div>
-                                </div>
-                                <div class="list-column" style="flex: 1.5;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <i class="fas fa-building" style="color: #94a3b8; font-size: 0.75rem;"></i>
-                                        <span>{{ $unit->apartment->name ?? 'Unknown' }}</span>
-                                    </div>
-                                </div>
-                                <div class="list-column">
-                                    <span style="color: #64748b;">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: center;">
-                                        <span title="Bedrooms"><i class="fas fa-bed" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bedrooms ?? 0 }}</span>
-                                        <span title="Bathrooms"><i class="fas fa-bath" style="color: #94a3b8; margin-right: 0.25rem;"></i>{{ $unit->bathrooms ?? 1 }}</span>
-                                    </div>
-                                </div>
-                                <div class="list-column text-center">
-                                    <span style="color: #64748b;">{{ $unit->floor_number ?? 'N/A' }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    @php
-                                        $statusColors = [
-                                            'available' => ['bg' => '#dcfce7', 'text' => '#16a34a'],
-                                            'occupied' => ['bg' => '#fee2e2', 'text' => '#dc2626'],
-                                            'maintenance' => ['bg' => '#fef3c7', 'text' => '#d97706'],
-                                        ];
-                                        $color = $statusColors[$unit->status] ?? ['bg' => '#e2e8f0', 'text' => '#64748b'];
-                                    @endphp
-                                    <span style="background: {{ $color['bg'] }}; color: {{ $color['text'] }}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                                        {{ ucfirst($unit->status) }}
-                                    </span>
-                                </div>
-                                <div class="list-column text-right">
-                                    <span style="color: #0f172a; font-weight: 600;">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span>
-                                </div>
-                                <div class="list-column text-center">
-                                    <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                        <button onclick="editUnit({{ $unit->id }})" class="btn-icon" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="viewUnitDetails({{ $unit->id }})" class="btn-icon" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <!-- Pagination -->
-                    @if($units->hasPages())
-                        <div class="pagination" style="margin-top: 1.5rem;">
-                            {{ $units->appends(['sort' => request('sort')])->links() }}
-                        </div>
-                    @endif
-                @else
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-door-open"></i>
-                        </div>
-                        <h3 class="empty-title">No Units Found</h3>
-                        <p class="empty-text">
-                            @if(request()->hasAny(['search', 'status', 'apartment']))
-                                No units match your search criteria. Try adjusting your filters.
-                            @else
-                                You haven't added any units yet. Start by adding units to your properties.
-                            @endif
-                        </p>
-                        @if(request()->hasAny(['search', 'status', 'apartment']))
-                            <a href="{{ route('landlord.units') }}" class="btn btn-primary">
-                                <i class="fas fa-refresh"></i> Clear Filters
-                            </a>
-                        @else
-                            <a href="{{ route('landlord.apartments') }}" class="btn btn-primary">
-                                <i class="fas fa-building"></i> Go to Properties
-                            </a>
-                        @endif
-                    </div>
-                @endif
-            </div>
+            <a href="{{ route('landlord.create-unit') }}" class="btn btn-primary ms-2"><i class="fas fa-plus"></i> Add New Unit</a>
         </div>
     </div>
+    @if($units->count() > 0)
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 12%;">Unit Number</th>
+                        <th style="width: 18%;">Property</th>
+                        <th style="width: 12%;">Type</th>
+                        <th style="width: 10%;" class="text-center">Beds / Baths</th>
+                        <th style="width: 8%;" class="text-center">Floor</th>
+                        <th style="width: 10%;" class="text-center">Status</th>
+                        <th style="width: 12%;" class="text-end">Rent/Month</th>
+                        <th style="width: 8%;" class="text-center">Max Occupants</th>
+                        <th style="width: 10%;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($units as $unit)
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="unit-number-badge">{{ $unit->unit_number }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-building text-muted me-2"></i>
+                                <span class="property-name">{{ $unit->apartment->name ?? 'Unknown' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="unit-type">{{ str_replace('_', ' ', ucfirst($unit->unit_type ?? 'N/A')) }}</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-3">
+                                <span class="bed-bath-info" title="Bedrooms">
+                                    <i class="fas fa-bed text-muted me-1"></i>{{ $unit->bedrooms ?? 0 }}
+                                </span>
+                                <span class="bed-bath-info" title="Bathrooms">
+                                    <i class="fas fa-bath text-muted me-1"></i>{{ $unit->bathrooms ?? 1 }}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="text-center"><span class="floor-number">{{ $unit->floor_number ?? 'N/A' }}</span></td>
+                        <td class="text-center">
+                            @php
+                                $statusConfig = [
+                                    'available' => ['class' => 'badge bg-success', 'text' => 'Available'],
+                                    'occupied' => ['class' => 'badge bg-danger', 'text' => 'Occupied'],
+                                    'maintenance' => ['class' => 'badge bg-warning', 'text' => 'Maintenance'],
+                                ];
+                                $config = $statusConfig[$unit->status] ?? ['class' => 'badge bg-secondary', 'text' => ucfirst($unit->status)];
+                            @endphp
+                            <span class="{{ $config['class'] }}">{{ $config['text'] }}</span>
+                        </td>
+                        <td class="text-end"><span class="rent-amount">₱{{ number_format($unit->rent_amount ?? 0, 0) }}</span></td>
+                        <td class="text-center"><span class="max-occupants">{{ $unit->max_occupants ?? '-' }}</span></td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button onclick="editUnit({{ $unit->id }})" class="btn btn-sm btn-outline-primary" title="Edit Unit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="viewUnitDetails({{ $unit->id }})" class="btn btn-sm btn-outline-info" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination -->
+        @if($units->hasPages())
+            <div class="pagination mt-4">
+                {{ $units->appends(['sort' => request('sort'), 'apartment' => request('apartment')])->links() }}
+            </div>
+        @endif
+    @else
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-door-open"></i></div>
+            <h3 class="empty-title">No Units Found</h3>
+            <p class="empty-text">
+                @if(request()->hasAny(['search', 'status', 'apartment']))
+                    No units match your search criteria. Try adjusting your filters.
+                @else
+                    You haven't added any units yet. Start by adding units to your properties.
+                @endif
+            </p>
+            @if(request()->hasAny(['search', 'status', 'apartment']))
+                <a href="{{ route('landlord.units') }}" class="btn btn-primary"><i class="fas fa-refresh"></i> Clear Filters</a>
+            @else
+                <a href="{{ route('landlord.apartments') }}" class="btn btn-primary"><i class="fas fa-building"></i> Go to Properties</a>
+            @endif
+        </div>
+    @endif
+</div>
+<!-- Modals and JS remain below as before -->
+@endsection
 
     <script>
-        // Generate Units Modal Logic
-        document.addEventListener('DOMContentLoaded', function() {
-            const propertySelect = document.getElementById('gen_property_id');
-            const numFloorsInput = document.getElementById('gen_num_floors');
-            const numUnitsInput = document.getElementById('gen_num_units');
-            const unitsPerFloorInput = document.getElementById('gen_units_per_floor');
-            const unitTypeSelect = document.getElementById('gen_unit_type');
-            const bedroomsInput = document.getElementById('gen_bedrooms');
-            const numberingPattern = document.getElementById('gen_numbering_pattern');
-            const floorConfig = document.getElementById('gen_floor_config');
-
-            // When property is selected, populate floor count
-            if (propertySelect) {
-                propertySelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    const floors = selectedOption.getAttribute('data-floors') || 1;
-                    numFloorsInput.value = floors;
-                    calculateUnitsPerFloor();
-                });
-            }
-
-            // Auto-populate bedrooms based on unit type
-            if (unitTypeSelect) {
-                unitTypeSelect.addEventListener('change', function() {
-                    const bedroomMap = {
-                        'Studio': 0,
-                        'One Bedroom': 1,
-                        'Two Bedroom': 2,
-                        'Three Bedroom': 3,
-                        'Penthouse': 3
-                    };
-                    bedroomsInput.value = bedroomMap[this.value] || 0;
-                });
-            }
-
-            // Toggle floor configuration visibility
-            if (numberingPattern) {
-                numberingPattern.addEventListener('change', function() {
-                    if (this.value === 'floor_based') {
-                        floorConfig.style.display = 'flex';
-                    } else {
-                        floorConfig.style.display = 'none';
-                    }
-                });
-            }
-
-            // Auto-calculate units per floor
-            function calculateUnitsPerFloor() {
-                if (numUnitsInput && numFloorsInput) {
-                    const totalUnits = parseInt(numUnitsInput.value) || 0;
-                    const floors = parseInt(numFloorsInput.value) || 1;
-                    
-                    if (totalUnits > 0 && floors > 0 && !unitsPerFloorInput.value) {
-                        const perFloor = Math.ceil(totalUnits / floors);
-                        unitsPerFloorInput.placeholder = `Auto: ${perFloor} units/floor`;
-                    }
-                }
-            }
-
-            if (numUnitsInput) {
-                numUnitsInput.addEventListener('input', calculateUnitsPerFloor);
-            }
-
-            // Handle form submission
-            const generateForm = document.getElementById('generateUnitsForm');
-            if (generateForm) {
-                generateForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-                    fetch(this.action, {
-                        method: 'POST',
-                        body: new FormData(this),
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('generateUnitsModal'));
-                            modal.hide();
-                            
-                            // Show success message and reload
-                            alert(data.message || 'Units generated successfully!');
-                            window.location.reload();
-                        } else {
-                            alert(data.message || 'Error generating units. Please try again.');
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalText;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred. Please try again.');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                    });
-                });
-            }
-        });
 
         function editUnit(unitId) {
             // Show the edit modal
@@ -1006,12 +197,22 @@
             // Show modal
             modal.show();
             
+            // Reset gallery files array
+            editGalleryFiles = [];
+            
             // Fetch unit data
             fetch(`/landlord/units/${unitId}/details`)
                 .then(response => response.json())
                 .then(data => {
                     modalTitle.textContent = `Edit Unit ${data.unit_number}`;
                     form.action = `/landlord/units/${unitId}`;
+                    
+                    // Clear any previous previews
+                    const editGalleryPreview = document.getElementById('edit_gallery_preview');
+                    if (editGalleryPreview) {
+                        editGalleryPreview.innerHTML = '';
+                        editGalleryPreview.style.display = 'none';
+                    }
                     
                     // Generate form content
                     modalContent.innerHTML = `
@@ -1109,6 +310,46 @@
                             <label for="edit_notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="edit_notes" name="notes" rows="2">${data.notes || ''}</textarea>
                         </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="mb-3">
+                            <label for="edit_cover_image" class="form-label">Cover Image</label>
+                            ${data.cover_image_url ? `
+                                <div class="mb-2">
+                                    <img src="${data.cover_image_url}" alt="Current Cover" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                </div>
+                            ` : ''}
+                            <input type="file" class="form-control" id="edit_cover_image" name="cover_image" accept="image/*" onchange="previewEditCoverImage(this)">
+                            <div id="edit_cover_preview" class="mt-2" style="display: none;">
+                                <img id="edit_cover_preview_img" src="" alt="Cover Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                            </div>
+                            <small class="form-text text-muted">Upload a new cover image (JPEG/PNG, max 5MB)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Gallery Images (up to 12)</label>
+                            ${data.gallery_urls && data.gallery_urls.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-muted small">Current gallery images (${data.gallery_urls.length}):</p>
+                                    <div class="d-flex flex-wrap gap-2 mb-2" id="existing_gallery_images">
+                                        ${data.gallery_urls.map((url, idx) => `
+                                            <div style="position: relative;">
+                                                <img src="${url}" alt="Existing Gallery ${idx + 1}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 2px solid #e2e8f0;">
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted small mb-2">No gallery images yet. Add images below.</p>'}
+                            <input type="file" class="form-control" id="edit_gallery_input" name="gallery[]" accept="image/*" multiple style="display: none;" onchange="handleEditGalleryUpload(this, ${data.gallery_urls ? data.gallery_urls.length : 0})">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('edit_gallery_input').click()">
+                                <i class="fas fa-plus-circle me-2"></i>Add Images to Gallery
+                            </button>
+                            <small class="form-text text-muted d-block mt-1">Add more images to showcase the unit (JPEG/PNG, max 5MB each)</small>
+                            <div id="edit_gallery_preview" class="mt-3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem;">
+                                <!-- New gallery previews will be added here -->
+                            </div>
+                        </div>
                     `;
                     
                     // Show save button
@@ -1185,6 +426,113 @@
             }).join('');
         }
         
+        // Image preview functions for edit form
+        function previewEditCoverImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('edit_cover_preview');
+                    const previewImg = document.getElementById('edit_cover_preview_img');
+                    if (preview && previewImg) {
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        let editGalleryFiles = [];
+        const maxEditGalleryImages = 12;
+        
+        function handleEditGalleryUpload(input, existingCount = 0) {
+            if (input.files && input.files.length > 0) {
+                const files = Array.from(input.files);
+                const remainingSlots = maxEditGalleryImages - existingCount;
+                
+                if (files.length > remainingSlots) {
+                    alert(`You can only add ${remainingSlots} more image(s). Maximum ${maxEditGalleryImages} images allowed.`);
+                    files.splice(remainingSlots);
+                }
+                
+                files.forEach(file => {
+                    if (editGalleryFiles.length < remainingSlots) {
+                        editGalleryFiles.push(file);
+                        addEditGalleryPreview(file, editGalleryFiles.length - 1);
+                    }
+                });
+                
+                updateEditGalleryInput();
+            }
+        }
+        
+        function addEditGalleryPreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('edit_gallery_preview');
+                if (!previewContainer) return;
+                
+                previewContainer.style.display = 'grid';
+                
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'gallery-item';
+                previewDiv.style.position = 'relative';
+                previewDiv.style.border = '2px solid #e2e8f0';
+                previewDiv.style.borderRadius = '8px';
+                previewDiv.style.overflow = 'hidden';
+                previewDiv.dataset.index = index;
+                
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Gallery Preview ${index + 1}" 
+                         style="width: 100%; height: 100px; object-fit: cover; display: block;">
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            onclick="removeEditGalleryImage(${index})"
+                            style="position: absolute; top: 2px; right: 2px; padding: 0.2rem 0.4rem; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                previewContainer.appendChild(previewDiv);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeEditGalleryImage(index) {
+            editGalleryFiles.splice(index, 1);
+            updateEditGalleryPreview();
+            updateEditGalleryInput();
+        }
+        
+        function updateEditGalleryPreview() {
+            const previewContainer = document.getElementById('edit_gallery_preview');
+            if (!previewContainer) return;
+            
+            // Remove only new previews (not existing ones)
+            const newPreviews = previewContainer.querySelectorAll('.gallery-item[data-index]');
+            newPreviews.forEach(preview => preview.remove());
+            
+            if (editGalleryFiles.length === 0 && previewContainer.children.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+            
+            previewContainer.style.display = 'grid';
+            editGalleryFiles.forEach((file, index) => {
+                addEditGalleryPreview(file, index);
+            });
+        }
+        
+        function updateEditGalleryInput() {
+            const input = document.getElementById('edit_gallery_input');
+            if (!input) return;
+            
+            const dataTransfer = new DataTransfer();
+            editGalleryFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            input.files = dataTransfer.files;
+        }
+        
         // Handle form submission
         document.addEventListener('DOMContentLoaded', function() {
             const editForm = document.getElementById('editUnitForm');
@@ -1204,7 +552,8 @@
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                         }
                     })
                     .then(response => response.json())
@@ -1471,111 +820,6 @@
         </div>
     </div>
 
-    <!-- Generate Units Modal -->
-    <div class="modal fade" id="generateUnitsModal" tabindex="-1" aria-labelledby="generateUnitsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="generateUnitsModalLabel">
-                        <i class="fas fa-layer-group"></i> Generate Units
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="generateUnitsForm" method="POST" action="{{ route('landlord.bulk-generate-units') }}">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Automatically create multiple units for a property with your configured settings.
-                        </div>
-
-                        <!-- Select Property -->
-                        <div class="mb-3">
-                            <label for="gen_property_id" class="form-label">Select Property <span class="text-danger">*</span></label>
-                            <select class="form-control" id="gen_property_id" name="apartment_id" required>
-                                <option value="">-- Select Property --</option>
-                                @foreach($apartments as $apartment)
-                                    <option value="{{ $apartment->id }}" data-floors="{{ $apartment->floors ?? 1 }}">
-                                        {{ $apartment->name }} ({{ $apartment->units->count() }} units)
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Number of Units -->
-                        <div class="mb-3">
-                            <label for="gen_num_units" class="form-label">Number of Units to Generate <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="gen_num_units" name="num_units" min="1" max="500" required>
-                            <small class="text-muted">Maximum 500 units per generation</small>
-                        </div>
-
-                        <!-- Unit Configuration -->
-                        <h6 class="mt-4 mb-3">Unit Configuration</h6>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_unit_type" class="form-label">Default Unit Type</label>
-                                <select class="form-control" id="gen_unit_type" name="default_unit_type">
-                                    <option value="Studio">Studio</option>
-                                    <option value="One Bedroom">One Bedroom</option>
-                                    <option value="Two Bedroom" selected>Two Bedroom</option>
-                                    <option value="Three Bedroom">Three Bedroom</option>
-                                    <option value="Penthouse">Penthouse</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_rent" class="form-label">Default Rent Amount (₱)</label>
-                                <input type="number" class="form-control" id="gen_rent" name="default_rent" step="100" min="0" placeholder="15000">
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_bedrooms" class="form-label">Default Bedrooms</label>
-                                <input type="number" class="form-control" id="gen_bedrooms" name="default_bedrooms" min="0" value="2" readonly>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_bathrooms" class="form-label">Default Bathrooms</label>
-                                <input type="number" class="form-control" id="gen_bathrooms" name="default_bathrooms" min="0" step="0.5" value="1">
-                            </div>
-                        </div>
-
-                        <!-- Numbering Pattern -->
-                        <div class="mb-3">
-                            <label for="gen_numbering_pattern" class="form-label">Unit Numbering Pattern</label>
-                            <select class="form-control" id="gen_numbering_pattern" name="numbering_pattern">
-                                <option value="floor_based" selected>Floor-based (101, 102, 201, 202...)</option>
-                                <option value="sequential">Sequential (1, 2, 3, 4...)</option>
-                                <option value="letter_number">Letter-Number (A1, A2, B1, B2...)</option>
-                            </select>
-                        </div>
-
-                        <!-- Floor Configuration -->
-                        <div id="gen_floor_config" class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_num_floors" class="form-label">Number of Floors</label>
-                                <input type="number" class="form-control" id="gen_num_floors" name="num_floors" min="1" value="1" readonly>
-                                <small class="text-muted">From property details</small>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="gen_units_per_floor" class="form-label">Units per Floor</label>
-                                <input type="number" class="form-control" id="gen_units_per_floor" name="units_per_floor" min="1" placeholder="Auto-calculated">
-                                <small class="text-muted">Leave blank to auto-distribute</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-layer-group"></i> Generate Units
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- Edit Unit Modal -->
     <div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="editUnitModalLabel" aria-hidden="true">
@@ -1585,7 +829,7 @@
                     <h5 class="modal-title" id="editUnitModalLabel">Edit Unit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editUnitForm" method="POST">
+                <form id="editUnitForm" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="modal-body" id="editUnitContent">

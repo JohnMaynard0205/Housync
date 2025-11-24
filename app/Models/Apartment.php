@@ -26,10 +26,18 @@ class Apartment extends Model
 
     protected $fillable = [
         'name',
+        'property_type',
         'address',
+        'city',
+        'state',
+        'postal_code',
         'description',
         'landlord_id',
         'total_units',
+        'floors',
+        'bedrooms',
+        'year_built',
+        'parking_spaces',
         'amenities',
         'contact_person',
         'contact_phone',
@@ -48,7 +56,7 @@ class Apartment extends Model
     protected $appends = ['cover_image_url', 'gallery_urls'];
 
     // Accessors
-    public function getCoverImageUrlAttribute()
+    public function getCoverImageUrlAttribute(): ?string
     {
         if (empty($this->cover_image)) {
             return null;
@@ -63,7 +71,7 @@ class Apartment extends Model
         return url('api/storage/' . $this->cover_image);
     }
 
-    public function getGalleryUrlsAttribute()
+    public function getGalleryUrlsAttribute(): array
     {
         if (empty($this->gallery) || !is_array($this->gallery)) {
             return [];

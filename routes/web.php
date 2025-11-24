@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuperAdminController;
@@ -51,6 +52,10 @@ Route::middleware(['role:super_admin'])->prefix('super-admin')->name('super-admi
     Route::put('/users/{id}', [SuperAdminController::class, 'updateUser'])->name('update-user');
     Route::delete('/users/{id}', [SuperAdminController::class, 'deleteUser'])->name('delete-user');
     Route::get('/apartments', [SuperAdminController::class, 'apartments'])->name('apartments');
+    Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
+    Route::post('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/{group}', [SuperAdminController::class, 'updateSettingsGroup'])->name('settings.group.update');
+    Route::get('/check-dark-mode', [SuperAdminController::class, 'checkDarkMode'])->name('check-dark-mode');
 });
 
 // Landlord Routes
@@ -66,11 +71,14 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     // Create Unit routes must come BEFORE parameterized units route to avoid "create" being captured as {apartmentId}
     Route::get('/units/create', [LandlordController::class, 'createUnit'])->name('create-unit');
     Route::get('/apartments/{apartmentId}/units/create', [LandlordController::class, 'createUnit'])->name('create-unit-for-apartment')->whereNumber('apartmentId');
+    Route::get('/apartments/{apartmentId}/units/create-multiple', [LandlordController::class, 'createMultipleUnits'])->name('create-multiple-units')->whereNumber('apartmentId');
     Route::post('/apartments/{apartmentId}/units', [LandlordController::class, 'storeUnit'])->name('store-unit')->whereNumber('apartmentId');
+    Route::post('/apartments/{apartmentId}/units/bulk', [LandlordController::class, 'storeBulkUnits'])->name('store-bulk-units')->whereNumber('apartmentId');
+    Route::get('/apartments/{apartmentId}/units/bulk-edit', [LandlordController::class, 'bulkEditUnits'])->name('bulk-edit-units')->whereNumber('apartmentId');
+    Route::post('/apartments/{apartmentId}/units/finalize-bulk', [LandlordController::class, 'finalizeBulkUnits'])->name('finalize-bulk-units')->whereNumber('apartmentId');
     Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
     
     // Bulk Unit Generation Route
-    Route::post('/units/bulk-generate', [LandlordController::class, 'bulkGenerateUnits'])->name('bulk-generate-units');
     
     // Unit Update Route (for AJAX modal)
     Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
@@ -130,7 +138,7 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
 
 // Original dashboard route - redirect based on role
 Route::get('/dashboard', function () {
-    $user = auth()->user();
+    $user = Auth::user();
     if (!$user) {
         return redirect()->route('login');
     }
@@ -157,6 +165,8 @@ Route::get('/dashboard', function () {
 
 // Tenant Routes
 Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(function () {
+    // Tenant Dashboard
+    Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
     Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
     Route::get('/upload-documents', [TenantAssignmentController::class, 'uploadDocuments'])->name('upload-documents');
     Route::post('/upload-documents', [TenantAssignmentController::class, 'storeDocuments'])->name('store-documents');

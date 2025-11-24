@@ -9,6 +9,7 @@ use App\Models\StaffProfile;
 use App\Models\SuperAdminProfile;
 use App\Models\Apartment;
 use App\Models\LandlordDocument;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -25,8 +26,25 @@ class SuperAdminController extends Controller
             'total_apartments' => Apartment::count(),
         ];
 
-        $pendingLandlords = User::pendingLandlords()->latest()->take(5)->get();
-        $recentUsers = User::latest()->take(10)->get();
+        // Use whereHas to avoid duplicates from JOIN
+        $pendingLandlords = User::where('role', 'landlord')
+            ->whereHas('landlordProfile', function($query) {
+                $query->where('status', 'pending');
+            })
+            ->with('landlordProfile')
+            ->latest('users.created_at')
+            ->take(5)
+            ->get()
+            ->filter(function($landlord) {
+                // Double-check that status is actually pending
+                return $landlord->landlordProfile && $landlord->landlordProfile->status === 'pending';
+            })
+            ->unique('id')
+            ->values();
+        $recentUsers = User::with('landlordProfile')
+            ->latest()
+            ->take(10)
+            ->get();
 
         return view('super-admin.dashboard', compact('stats', 'pendingLandlords', 'recentUsers'));
     }
@@ -60,7 +78,34 @@ class SuperAdminController extends Controller
 
     public function pendingLandlords()
     {
-        $pendingLandlords = User::pendingLandlords()->with(['approvedBy', 'landlordDocuments'])->latest()->paginate(15);
+        // Get only landlords with 'pending' status in their profile
+        // Use whereHas to avoid duplicates from JOIN
+        $pendingLandlords = User::where('role', 'landlord')
+            ->whereHas('landlordProfile', function($query) {
+                $query->where('status', 'pending');
+            })
+            ->with(['landlordProfile', 'approvedBy', 'landlordDocuments'])
+            ->latest('users.created_at')
+            ->get()
+            ->filter(function($landlord) {
+                // Double-check that status is actually pending
+                return $landlord->landlordProfile && $landlord->landlordProfile->status === 'pending';
+            })
+            ->unique('id')
+            ->values();
+        
+        // Manually paginate the filtered collection
+        $currentPage = request()->get('page', 1);
+        $perPage = 15;
+        $currentItems = $pendingLandlords->slice(($currentPage - 1) * $perPage, $perPage)->all();
+        $pendingLandlords = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $pendingLandlords->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+        
         return view('super-admin.pending-landlords', compact('pendingLandlords'));
     }
 
@@ -72,7 +117,15 @@ class SuperAdminController extends Controller
             return back()->with('error', 'User is not a landlord.');
         }
 
+        // Check if already approved
+        if ($landlord->landlordProfile && $landlord->landlordProfile->status === 'approved') {
+            return back()->with('error', 'This landlord is already approved.');
+        }
+
         $landlord->approve(Auth::id());
+        
+        // Refresh the relationship to ensure status is updated
+        $landlord->load('landlordProfile');
 
         return back()->with('success', 'Landlord approved successfully.');
     }
@@ -137,14 +190,9 @@ class SuperAdminController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
-            'status' => $request->role === 'landlord' ? 'pending' : 'active',
         ]);
 
         // Create role-specific profile
@@ -152,9 +200,11 @@ class SuperAdminController extends Controller
             case 'landlord':
                 LandlordProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'business_info' => $request->business_info,
+                    'status' => 'pending',
                 ]);
                 if ($request->approve_immediately) {
                     $user->approve(Auth::id());
@@ -163,23 +213,29 @@ class SuperAdminController extends Controller
             case 'tenant':
                 TenantProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    'status' => 'active',
                 ]);
                 break;
             case 'staff':
                 StaffProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
                     'staff_type' => $request->staff_type,
+                    'status' => 'active',
                 ]);
                 break;
             case 'super_admin':
                 SuperAdminProfile::create([
                     'user_id' => $user->id,
+                    'name' => $request->name,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    'status' => 'active',
                 ]);
                 break;
         }
@@ -258,5 +314,115 @@ class SuperAdminController extends Controller
         
         $apartments = $query->latest()->paginate(15);
         return view('super-admin.apartments', compact('apartments'));
+    }
+
+    public function settings()
+    {
+        $settings = Setting::getGrouped();
+        $groups = ['general', 'email', 'security', 'features', 'notifications', 'system'];
+        
+        // Apply dark mode to layout if enabled
+        $darkMode = Setting::get('dark_mode', false);
+        
+        return view('super-admin.settings', compact('settings', 'groups', 'darkMode'));
+    }
+    
+    public function checkDarkMode()
+    {
+        $darkMode = Setting::get('dark_mode', false);
+        return response()->json(['darkMode' => $darkMode]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'settings' => 'required|array',
+        ]);
+
+        foreach ($request->settings as $key => $value) {
+            $setting = Setting::where('key', $key)->first();
+            
+            if ($setting) {
+                // Handle different types
+                if ($setting->type === 'boolean') {
+                    $value = isset($value) && $value !== '0' && $value !== 'false';
+                } elseif ($setting->type === 'integer') {
+                    $value = (int) $value;
+                } elseif ($setting->type === 'json' && is_array($value)) {
+                    $value = json_encode($value);
+                }
+
+                $setting->update(['value' => $value]);
+            }
+        }
+
+        // Clear cache
+        Setting::clearCache();
+
+        return back()->with('success', 'Settings updated successfully.');
+    }
+
+    public function updateSettingsGroup(Request $request, $group)
+    {
+        $validGroups = ['general', 'email', 'security', 'features', 'notifications', 'system'];
+        
+        if (!in_array($group, $validGroups)) {
+            return back()->with('error', 'Invalid settings group.');
+        }
+
+        $settings = Setting::getByGroup($group);
+        $rules = [];
+
+        foreach ($settings as $setting) {
+            $rules["settings.{$setting->key}"] = $this->getValidationRule($setting);
+        }
+
+        $request->validate($rules);
+
+        foreach ($request->settings as $key => $value) {
+            $setting = Setting::where('key', $key)->where('group', $group)->first();
+            
+            if ($setting) {
+                // Handle different types
+                if ($setting->type === 'boolean') {
+                    $value = isset($value) && $value !== '0' && $value !== 'false';
+                } elseif ($setting->type === 'integer') {
+                    $value = (int) $value;
+                } elseif ($setting->type === 'json' && is_array($value)) {
+                    $value = json_encode($value);
+                }
+
+                $setting->update(['value' => $value]);
+            }
+        }
+
+        // Clear cache
+        Setting::clearCache();
+
+        return back()->with('success', ucfirst($group) . ' settings updated successfully.');
+    }
+
+    protected function getValidationRule($setting)
+    {
+        $rules = [];
+
+        switch ($setting->type) {
+            case 'integer':
+                $rules[] = 'nullable|integer';
+                break;
+            case 'boolean':
+                $rules[] = 'nullable|boolean';
+                break;
+            case 'email':
+                $rules[] = 'nullable|email';
+                break;
+            case 'url':
+                $rules[] = 'nullable|url';
+                break;
+            default:
+                $rules[] = 'nullable|string|max:1000';
+        }
+
+        return implode('|', $rules);
     }
 }
