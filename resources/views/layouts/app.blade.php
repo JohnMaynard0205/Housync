@@ -228,7 +228,13 @@
             </a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span></a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
-            <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-message"></i></span> <span class="nav-label">Messages</span></a>
+            <a class="nav-link{{ request()->routeIs('tenant.chat*') ? ' active' : '' }}" href="{{ route('tenant.chat') }}">
+                <span class="nav-icon"><i class="fas fa-comments"></i></span> 
+                <span class="nav-label">Messages</span>
+                @if(auth()->user()->total_unread_messages > 0)
+                    <span class="badge-count">{{ auth()->user()->total_unread_messages }}</span>
+                @endif
+            </a>
             <a class="nav-link{{ request()->routeIs('tenant.lease') ? ' active' : '' }}" href="{{ route('tenant.lease') }}">
                 <span class="nav-icon"><i class="fas fa-file-contract"></i></span> <span class="nav-label">Lease</span>
             </a>

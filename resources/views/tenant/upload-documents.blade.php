@@ -42,6 +42,26 @@
                 </div>
             @endif
             
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="mdi mdi-alert-circle me-2"></i>
+                    <div>
+                        <strong>Validation Error:</strong>
+                        <ul class="mb-0 mt-2">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <br>
+                        <small class="text-muted">
+                            <i class="mdi mdi-information-outline me-1"></i>
+                            <strong>Note:</strong> Please ensure files are under 5MB and in PDF, JPG, or PNG format.
+                        </small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            
             @if($personalDocuments->isEmpty())
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                     <i class="mdi mdi-information me-2"></i>
@@ -96,20 +116,20 @@
                                     <td>{{ $doc->uploaded_at->format('M d, Y') }}</td>
                                     <td>
                                         @if(in_array($doc->mime_type, ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']))
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewImage('{{ $doc->file_url }}', '{{ $doc->file_name }}')">
                                                 <i class="fas fa-eye"></i> View
                                             </button>
                                         @elseif($doc->mime_type === 'application/pdf')
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ $doc->file_path }}', '{{ $doc->file_name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPDF('{{ $doc->file_url }}', '{{ $doc->file_name }}')">
                                                 <i class="fas fa-eye"></i> View
                                             </button>
                                         @else
-                                            <a href="{{ $doc->file_path }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ $doc->file_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i> View
                                             </a>
                                         @endif
                                         
-                                        <a href="{{ $doc->file_path }}" download="{{ $doc->file_name }}" class="btn btn-sm btn-outline-success">
+                                        <a href="{{ $doc->file_url }}" download="{{ $doc->file_name }}" class="btn btn-sm btn-outline-success">
                                             <i class="fas fa-download"></i> Download
                                         </a>
                                         
@@ -213,7 +233,7 @@
 
                     <div class="alert alert-warning">
                         <h6 class="alert-heading">File Size Limit:</h6>
-                        <p class="mb-0">Maximum 5MB per document</p>
+                        <p class="mb-0">Maximum <strong>5MB</strong> per document</p>
                     </div>
 
                     <h6>Required Documents:</h6>
@@ -448,7 +468,7 @@ function addDocumentField() {
         <div class="col-md-6">
             <label class="form-label">File <span class="text-danger">*</span></label>
             <input type="file" name="documents[]" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
-            <small class="text-muted">Max size: 5MB</small>
+                            <small class="text-muted">Max size: 2MB (compress large files)</small>
         </div>
         <div class="col-md-2">
             <label class="form-label">&nbsp;</label>
@@ -487,6 +507,7 @@ function removeDocumentField(button) {
 document.getElementById('documentForm')?.addEventListener('submit', function(e) {
     const fileInputs = document.querySelectorAll('input[type="file"]');
     const documentTypeSelects = document.querySelectorAll('select[name="document_types[]"]');
+    // Server now configured for 10MB - allow 5MB uploads
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     
     // Clear any previous error messages
@@ -516,10 +537,11 @@ document.getElementById('documentForm')?.addEventListener('submit', function(e) 
         if (input.files.length > 0) {
             const file = input.files[0];
             
-            // Check file size
+            // Check file size (server configured for 10MB max, we allow 5MB)
             if (file.size > maxSize) {
                 e.preventDefault();
-                showError(`File "${file.name}" is too large. Maximum size is 5MB.`);
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                showError(`File "${file.name}" is too large (${fileSizeMB}MB). Maximum allowed size is 5MB. Please compress or resize your file.`);
                 return false;
             }
             

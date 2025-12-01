@@ -6,7 +6,7 @@ use App\Models\RfidCard;
 use App\Models\AccessLog;
 use App\Models\TenantAssignment;
 use App\Models\TenantRfidAssignment;
-use App\Models\Apartment;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +21,8 @@ class RfidController extends Controller
         $user = Auth::user();
         $apartmentId = $request->get('apartment_id');
         
-        // Get landlord's apartments
-        $apartments = $user->apartments;
+        // Get landlord's properties
+        $apartments = $user->properties;
         
         // If no specific apartment selected, use the first one
         if (!$apartmentId && $apartments->count() > 0) {
@@ -64,8 +64,8 @@ class RfidController extends Controller
         $user = Auth::user();
         $apartmentId = $request->get('apartment_id');
         
-        // Get landlord's apartments
-        $apartments = $user->apartments;
+        // Get landlord's properties
+        $apartments = $user->properties;
         
         // Get active tenant assignments for the apartment
         $tenantAssignments = TenantAssignment::with(['tenant', 'unit'])
@@ -91,7 +91,7 @@ class RfidController extends Controller
         $request->validate([
             'card_uid' => 'required|string|max:255|unique:rfid_cards',
             'tenant_assignment_id' => 'required|exists:tenant_assignments,id',
-            'apartment_id' => 'required|exists:apartments,id',
+            'apartment_id' => 'required|exists:properties,id',
             'card_name' => 'nullable|string|max:255',
             'expires_at' => 'nullable|date|after:today',
             'notes' => 'nullable|string|max:1000'
@@ -108,8 +108,8 @@ class RfidController extends Controller
             return back()->withErrors(['tenant_assignment_id' => 'Invalid tenant assignment.']);
         }
         
-        // Verify the apartment belongs to this landlord
-        $apartment = $user->apartments()->find($request->apartment_id);
+        // Verify the property belongs to this landlord
+        $apartment = $user->properties()->find($request->apartment_id);
         if (!$apartment) {
             return back()->withErrors(['apartment_id' => 'Invalid apartment.']);
         }
@@ -182,8 +182,8 @@ class RfidController extends Controller
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
         
-        // Get landlord's apartments
-        $apartments = $user->apartments;
+        // Get landlord's properties
+        $apartments = $user->properties;
         
         // Build query
         $query = AccessLog::with(['rfidCard', 'tenantAssignment.tenant', 'apartment'])

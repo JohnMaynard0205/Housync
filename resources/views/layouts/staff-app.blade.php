@@ -51,7 +51,13 @@
             </a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance Requests</span></a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-calendar"></i></span> <span class="nav-label">Work Schedule</span></a>
-            <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-message"></i></span> <span class="nav-label">Messages</span></a>
+            <a class="nav-link{{ request()->routeIs('staff.chat*') ? ' active' : '' }}" href="{{ route('staff.chat') }}">
+                <span class="nav-icon"><i class="fas fa-comments"></i></span> 
+                <span class="nav-label">Messages</span>
+                @if(auth()->user()->total_unread_messages > 0)
+                    <span style="background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:0.7rem;margin-left:6px;">{{ auth()->user()->total_unread_messages }}</span>
+                @endif
+            </a>
             <a class="nav-link{{ request()->routeIs('staff.profile') ? ' active' : '' }}" href="{{ route('staff.profile') }}">
                 <span class="nav-icon"><i class="fas fa-user"></i></span> <span class="nav-label">Profile</span>
             </a>

@@ -137,7 +137,7 @@ class TenantAssignmentController extends Controller
                 $oldUnit = $assignment->unit;
                 
                 // Race condition protection: Lock the target unit and check availability
-                $newUnit = Unit::whereHas('apartment', function($q) {
+                $newUnit = Unit::whereHas('property', function($q) {
                     $q->where('landlord_id', Auth::id());
                 })
                 ->where('id', $request->unit_id)
@@ -719,10 +719,10 @@ class TenantAssignmentController extends Controller
      */
     public function getAvailableUnits()
     {
-        $units = Unit::whereHas('apartment', function($query) {
+        $units = Unit::whereHas('property', function($query) {
             $query->where('landlord_id', Auth::id());
         })->where('status', 'available')
-        ->with('apartment')
+        ->with('property')
         ->get();
 
         return response()->json($units);
@@ -833,7 +833,7 @@ class TenantAssignmentController extends Controller
             if ($assignment && class_exists('\App\Models\RfidCard')) {
                 try {
                     $rfidCards = \App\Models\RfidCard::where('tenant_id', $tenant->id)
-                        ->where('apartment_id', $assignment->unit->apartment->id)
+                        ->where('property_id', $assignment->unit->property->id)
                         ->get();
                 } catch (\Exception $e) {
                     // RFID functionality might not be fully implemented yet
@@ -978,13 +978,18 @@ class TenantAssignmentController extends Controller
             // Get the property from explore page
             $property = \App\Models\Property::findOrFail($propertyId);
             
-            // Find an available unit from this landlord's apartments
-            $unit = Unit::whereHas('apartment', function($q) use ($property) {
-                $q->where('landlord_id', $property->landlord_id);
-            })
-            ->where('status', 'available')
-            ->with('apartment.landlord')
-            ->first();
+            // First, try to get the unit directly linked to this property (via slug)
+            $unit = $property->getUnit();
+            
+            // If no direct link, try to find an available unit from this landlord's apartments
+            if (!$unit || $unit->status !== 'available') {
+                $unit = Unit::whereHas('property', function($q) use ($property) {
+                    $q->where('landlord_id', $property->landlord_id);
+                })
+                ->where('status', 'available')
+                ->with('property.landlord')
+                ->first();
+            }
             
             if (!$unit) {
                 Log::warning('No available units found for application', [
@@ -994,7 +999,13 @@ class TenantAssignmentController extends Controller
                     'timestamp' => now()
                 ]);
                 
-                return back()->with('error', 'No available units found for this property. The landlord may not have set up units yet. Please contact the landlord directly.');
+                // Provide more helpful error message with next steps
+                return back()->with('error', 'This property listing does not have units configured yet. This may be a showcase listing. Please contact the landlord directly to inquire about availability.');
+            }
+            
+            // Ensure apartment relationship is loaded
+            if (!$unit->relationLoaded('apartment')) {
+                $unit->load('apartment.landlord');
             }
             
             // Check if tenant already has an application for this specific unit
@@ -1009,7 +1020,7 @@ class TenantAssignmentController extends Controller
             
             Log::info('Found unit for application', [
                 'unit_id' => $unit->id,
-                'apartment_id' => $unit->apartment_id,
+                'property_id' => $unit->property_id,
                 'landlord_id' => $property->landlord_id
             ]);
 
@@ -1028,7 +1039,7 @@ class TenantAssignmentController extends Controller
                 $assignment = TenantAssignment::create([
                     'tenant_id' => $tenant->id,
                     'unit_id' => $unit->id,
-                    'landlord_id' => $unit->apartment->landlord_id,
+                    'landlord_id' => $unit->property->landlord_id,
                     'status' => 'pending_approval',
                     'lease_start_date' => null,
                     'lease_end_date' => null,
@@ -1049,8 +1060,8 @@ class TenantAssignmentController extends Controller
                 'tenant_name' => $tenant->name,
                 'property_id' => $property->id,
                 'unit_id' => $unit->id,
-                'landlord_id' => $unit->apartment->landlord_id,
-                'property_name' => $unit->apartment->name,
+                'landlord_id' => $unit->property->landlord_id,
+                'property_name' => $unit->property->name,
                 'documents_count' => $personalDocuments->count(),
                 'timestamp' => now()
             ]);
@@ -1062,6 +1073,119 @@ class TenantAssignmentController extends Controller
             Log::error('Tenant application failed', [
                 'tenant_id' => Auth::id(),
                 'property_id' => $propertyId,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'timestamp' => now()
+            ]);
+
+            // Show detailed error in development
+            $errorMessage = config('app.debug') 
+                ? 'Failed to submit application: ' . $e->getMessage()
+                : 'Failed to submit application. Please try again.';
+
+            return back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
+     * Apply for a specific unit directly
+     */
+    public function applyForUnit(Request $request, $unitId)
+    {
+        /** @var \App\Models\User $tenant */
+        $tenant = Auth::user();
+        
+        // Check if tenant has uploaded personal documents
+        $personalDocuments = TenantDocument::where('tenant_id', $tenant->id)->get();
+        
+        if ($personalDocuments->isEmpty()) {
+            return back()->with('error', 'You must upload your personal documents before applying for a unit. Please visit your profile or upload documents page to add required documents.');
+        }
+        
+        // Validate the application data
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|regex:/^[0-9]+$/|max:20',
+            'address' => 'required|string|max:500',
+            'occupation' => 'required|string|max:255',
+            'monthly_income' => 'required|numeric|min:0',
+            'move_in_date' => 'required|date|after_or_equal:today',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            // Get the unit directly
+            $unit = Unit::with(['property.landlord'])->findOrFail($unitId);
+            
+            if ($unit->status !== 'available') {
+                return back()->with('error', 'This unit is no longer available for application.');
+            }
+            
+            // Check if tenant already has an application for this specific unit
+            $existingApplicationForUnit = TenantAssignment::where('tenant_id', $tenant->id)
+                ->where('unit_id', $unit->id)
+                ->whereIn('status', ['active', 'pending_approval'])
+                ->first();
+
+            if ($existingApplicationForUnit) {
+                return back()->with('error', 'You already have an active or pending application for this unit.');
+            }
+            
+            Log::info('Tenant applying for unit directly', [
+                'tenant_id' => $tenant->id,
+                'unit_id' => $unit->id,
+                'property_id' => $unit->property_id,
+                'landlord_id' => $unit->property->landlord_id
+            ]);
+
+            // Create the tenant assignment with pending_approval status
+            DB::transaction(function() use ($request, $unit, $tenant, $personalDocuments) {
+                // Update user info if provided (profile-centric)
+                if ($tenant->tenantProfile) {
+                    $tenant->tenantProfile->update([
+                        'name' => $request->name,
+                        'phone' => $request->phone,
+                        'address' => $request->address,
+                    ]);
+                }
+
+                // Create the assignment as pending approval
+                $assignment = TenantAssignment::create([
+                    'tenant_id' => $tenant->id,
+                    'unit_id' => $unit->id,
+                    'landlord_id' => $unit->property->landlord_id,
+                    'status' => 'pending_approval',
+                    'lease_start_date' => $request->move_in_date,
+                    'lease_end_date' => null,
+                    'rent_amount' => $unit->rent_amount ?? 0,
+                    'security_deposit' => 0,
+                    'occupation' => $request->occupation,
+                    'monthly_income' => $request->monthly_income,
+                    'notes' => $request->notes,
+                ]);
+            });
+
+            // Audit log
+            Log::info('Tenant application submitted for unit', [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->tenantProfile->name ?? $tenant->name,
+                'unit_id' => $unit->id,
+                'property_id' => $unit->property_id,
+                'landlord_id' => $unit->property->landlord_id,
+                'property_name' => $unit->property->name,
+                'documents_count' => $personalDocuments->count(),
+                'timestamp' => now()
+            ]);
+
+            return redirect()->route('explore')
+                ->with('success', 'Your application has been submitted successfully! The landlord will review it shortly.');
+
+        } catch (\Exception $e) {
+            Log::error('Tenant unit application failed', [
+                'tenant_id' => Auth::id(),
+                'unit_id' => $unitId,
                 'error_message' => $e->getMessage(),
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),

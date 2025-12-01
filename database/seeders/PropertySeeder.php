@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Property;
-use App\Models\Amenity;
 use App\Models\User;
 use App\Models\LandlordProfile;
 use Illuminate\Database\Seeder;
@@ -13,114 +12,63 @@ class PropertySeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * Note: Properties are now landlord buildings (formerly apartments).
+     * Public listings come from Units, not this table.
      */
     public function run(): void
     {
-        $landlords = User::where('role', 'landlord')->get();
-        
-        // If no landlords exist, create a default one
+        // Find landlords to create properties for
+        $landlords = User::where('role', 'landlord')
+            ->whereHas('landlordProfile', function($q) {
+                $q->where('status', 'approved');
+            })->get();
+
         if ($landlords->isEmpty()) {
-            $user = User::create([
-                'email' => 'landlord@demo.com',
-                'password' => bcrypt('password'),
-                'role' => 'landlord',
-            ]);
-
-            // Create landlord profile
-            LandlordProfile::create([
-                'user_id' => $user->id,
-                'name' => 'Demo Landlord',
-                'status' => 'approved',
-            ]);
-
-            $landlords = collect([$user]);
+            $this->command->info('No approved landlords found. Skipping property seeding.');
+            return;
         }
-
-        $amenities = Amenity::all();
 
         $properties = [
             [
-                'title' => 'Modern Studio Apartment Downtown',
-                'description' => 'Beautiful modern studio apartment in the heart of downtown. Features include high ceilings, hardwood floors, and large windows with city views.',
-                'type' => 'studio',
-                'price' => 15000.00,
-                'address' => '123 Main Street',
-                'city' => 'Manila',
-                'state' => 'Metro Manila',
-                'bedrooms' => 1,
-                'bathrooms' => 1,
-                'area' => 35.5,
-                'availability_status' => 'available',
+                'name' => 'Sunrise Apartments',
+                'slug' => 'sunrise-apartments',
+                'property_type' => 'apartment',
+                'address' => '123 Main Street, Manila',
+                'description' => 'Modern apartment complex with excellent amenities.',
+                'total_units' => 10,
+                'floors' => 5,
+                'contact_person' => 'John Manager',
+                'contact_phone' => '09171234567',
+                'amenities' => ['wifi', 'parking', 'security'],
+                'status' => 'active',
+                'is_active' => true,
             ],
             [
-                'title' => 'Spacious 2-Bedroom Condo',
-                'description' => 'Spacious 2-bedroom condo with modern amenities. Perfect for small families or professionals.',
-                'type' => 'condo',
-                'price' => 25000.00,
-                'address' => '456 Skyline Avenue',
-                'city' => 'Quezon City',
-                'state' => 'Metro Manila',
-                'bedrooms' => 2,
-                'bathrooms' => 2,
-                'area' => 65.0,
-                'availability_status' => 'available',
-            ],
-            [
-                'title' => 'Luxury 3-Bedroom House',
-                'description' => 'Luxurious 3-bedroom house with garden and garage. Quiet neighborhood with excellent schools nearby.',
-                'type' => 'house',
-                'price' => 45000.00,
-                'address' => '789 Garden Street',
-                'city' => 'Makati',
-                'state' => 'Metro Manila',
-                'bedrooms' => 3,
-                'bathrooms' => 2,
-                'area' => 120.0,
-                'availability_status' => 'available',
-            ],
-            [
-                'title' => 'Cozy 1-Bedroom Apartment',
-                'description' => 'Cozy 1-bedroom apartment perfect for singles or couples. Close to public transportation.',
-                'type' => 'apartment',
-                'price' => 12000.00,
-                'address' => '321 Sunset Boulevard',
-                'city' => 'Pasig',
-                'state' => 'Metro Manila',
-                'bedrooms' => 1,
-                'bathrooms' => 1,
-                'area' => 40.0,
-                'availability_status' => 'available',
-            ],
-            [
-                'title' => 'Premium Penthouse',
-                'description' => 'Premium penthouse with panoramic city views. Features include a private terrace and premium finishes throughout.',
-                'type' => 'condo',
-                'price' => 75000.00,
-                'address' => '999 Highrise Tower',
-                'city' => 'Bonifacio Global City',
-                'state' => 'Metro Manila',
-                'bedrooms' => 3,
-                'bathrooms' => 3,
-                'area' => 150.0,
-                'availability_status' => 'occupied',
+                'name' => 'Green Valley Condos',
+                'slug' => 'green-valley-condos',
+                'property_type' => 'condominium',
+                'address' => '456 Ayala Avenue, Makati',
+                'description' => 'Premium condominium in the heart of the business district.',
+                'total_units' => 20,
+                'floors' => 10,
+                'contact_person' => 'Jane Admin',
+                'contact_phone' => '09187654321',
+                'amenities' => ['pool', 'gym', 'wifi', 'parking', 'security', '24/7 reception'],
+                'status' => 'active',
+                'is_active' => true,
             ],
         ];
 
         foreach ($properties as $propertyData) {
-            $property = Property::create([
-                ...$propertyData,
-                'slug' => Str::slug($propertyData['title']),
-                'landlord_id' => $landlords->random()->id,
-                'is_featured' => rand(0, 1) == 1,
-                'is_active' => true,
-            ]);
-
-            // Attach random amenities (3-6 amenities per property)
-            if ($amenities->isNotEmpty()) {
-                $randomAmenities = $amenities->random(rand(3, min(6, $amenities->count())));
-                $property->amenities()->attach($randomAmenities->pluck('id'));
-            }
+            Property::updateOrCreate(
+                ['slug' => $propertyData['slug']],
+                array_merge($propertyData, [
+                    'landlord_id' => $landlords->random()->id,
+                ])
+            );
         }
+
+        $this->command->info('Created ' . count($properties) . ' sample properties.');
     }
 }
-

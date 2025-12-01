@@ -134,6 +134,21 @@ class TenantDocument extends Model
         return round($bytes, 2) . ' ' . $units[$i];
     }
 
+    /**
+     * Get the full URL for the document file
+     * Handles both Supabase URLs and local storage paths
+     */
+    public function getFileUrlAttribute()
+    {
+        // If it's already a full URL (Supabase), return as-is
+        if (str_starts_with($this->file_path, 'http://') || str_starts_with($this->file_path, 'https://')) {
+            return $this->file_path;
+        }
+        
+        // For local storage, generate the proper URL
+        return asset('storage/' . $this->file_path);
+    }
+
     public function isExpired()
     {
         return $this->expiry_date && $this->expiry_date->isPast();

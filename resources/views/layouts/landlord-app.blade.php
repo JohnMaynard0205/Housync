@@ -237,6 +237,13 @@
             <a class="nav-link{{ request()->routeIs('landlord.security*') ? ' active' : '' }}" href="{{ route('landlord.security') }}">
                 <span class="nav-icon"><i class="fas fa-shield-alt"></i></span> <span class="nav-label">Security</span>
             </a>
+            <a class="nav-link{{ request()->routeIs('landlord.chat*') ? ' active' : '' }}" href="{{ route('landlord.chat') }}">
+                <span class="nav-icon"><i class="fas fa-comments"></i></span> 
+                <span class="nav-label">Messages</span>
+                @if(auth()->user()->total_unread_messages > 0)
+                    <span class="badge-count">{{ auth()->user()->total_unread_messages }}</span>
+                @endif
+            </a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span></a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
         </nav>

@@ -53,7 +53,7 @@ class AccessLog extends Model
 
     public function apartment()
     {
-        return $this->belongsTo(Apartment::class);
+        return $this->belongsTo(Property::class);
     }
 
     // Scopes

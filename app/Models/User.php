@@ -70,9 +70,21 @@ class User extends Authenticatable
     }
 
     // Relationships
+    /**
+     * Get properties owned by this landlord
+     */
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'landlord_id');
+    }
+
+    /**
+     * Alias for backward compatibility
+     * @deprecated Use properties() instead
+     */
     public function apartments()
     {
-        return $this->hasMany(Apartment::class, 'landlord_id');
+        return $this->properties();
     }
 
     public function approvedBy()
@@ -250,6 +262,29 @@ class User extends Authenticatable
     public function verifiedDocuments()
     {
         return $this->hasMany(TenantDocument::class, 'verified_by');
+    }
+
+    // Chat relationships
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+                    ->withPivot(['role', 'last_read_at', 'unread_count', 'is_muted'])
+                    ->withTimestamps();
+    }
+
+    public function conversationParticipants()
+    {
+        return $this->hasMany(ConversationParticipant::class);
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function getTotalUnreadMessagesAttribute(): int
+    {
+        return $this->conversationParticipants()->sum('unread_count');
     }
 
     // Role helper methods

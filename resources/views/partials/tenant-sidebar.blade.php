@@ -20,8 +20,11 @@
         <a href="{{ route('tenant.maintenance') }}" class="nav-item {{ request()->routeIs('tenant.maintenance') ? 'active' : '' }}">
             <i class="fas fa-tools"></i> Maintenance
         </a>
-        <a href="{{ route('tenant.messages') }}" class="nav-item {{ request()->routeIs('tenant.messages') ? 'active' : '' }}">
-            <i class="fas fa-envelope"></i> Messages
+        <a href="{{ route('tenant.chat') }}" class="nav-item {{ request()->routeIs('tenant.chat*') ? 'active' : '' }}">
+            <i class="fas fa-comments"></i> Messages
+            @if(auth()->user()->total_unread_messages > 0)
+                <span class="unread-badge">{{ auth()->user()->total_unread_messages }}</span>
+            @endif
         </a>
         <a href="{{ route('tenant.lease') }}" class="nav-item {{ request()->routeIs('tenant.lease') ? 'active' : '' }}">
             <i class="fas fa-file-contract"></i> Lease

@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
+ * Unit Model - Represents a rentable space within a Property
+ * 
  * @property int $id
  * @property string $unit_number
- * @property int $apartment_id
+ * @property int $property_id
  * @property string $unit_type
  * @property float $rent_amount
  * @property string $status
@@ -23,6 +25,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property bool $is_furnished
  * @property array|null $amenities
  * @property string|null $notes
+ * @property string|null $cover_image
+ * @property array|null $gallery
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
@@ -32,7 +36,7 @@ class Unit extends Model
 
     protected $fillable = [
         'unit_number',
-        'apartment_id',
+        'property_id',
         'unit_type',
         'rent_amount',
         'status',
@@ -66,22 +70,27 @@ class Unit extends Model
 
     protected $appends = ['cover_image_url', 'gallery_urls'];
 
-    // Accessors
+    // ==================== ACCESSORS ====================
+
+    /**
+     * Get the cover image URL
+     */
     public function getCoverImageUrlAttribute()
     {
         if (empty($this->cover_image)) {
             return null;
         }
 
-        // If already starts with http/https, return as is
         if (str_starts_with($this->cover_image, 'http')) {
             return $this->cover_image;
         }
 
-        // Return the API URL with storage path for Railway
         return url('api/storage/' . $this->cover_image);
     }
 
+    /**
+     * Get gallery image URLs
+     */
     public function getGalleryUrlsAttribute()
     {
         if (empty($this->gallery) || !is_array($this->gallery)) {
@@ -89,79 +98,32 @@ class Unit extends Model
         }
 
         return array_map(function ($path) {
-            // If already starts with http/https, return as is
             if (str_starts_with($path, 'http')) {
                 return $path;
             }
-            // Return the API URL with storage path for Railway
             return url('api/storage/' . $path);
         }, $this->gallery);
     }
 
-    // Relationships
-    public function apartment()
-    {
-        return $this->belongsTo(Apartment::class);
-    }
-
-    public function tenantAssignment()
-    {
-        return $this->hasOne(TenantAssignment::class);
-    }
-
-    public function tenantAssignments()
-    {
-        return $this->hasMany(TenantAssignment::class);
-    }
-
-    public function currentTenant()
-    {
-        return $this->hasOneThrough(User::class, TenantAssignment::class, 'unit_id', 'id', 'id', 'tenant_id');
-    }
-
-    // Helper method to get landlord through apartment
-    public function getLandlord()
-    {
-        return $this->apartment ? $this->apartment->landlord : null;
-    }
-
-    // Scopes for filtering
-    public function scopeAvailable($query)
-    {
-        return $query->where('status', 'available');
-    }
-
-    public function scopeOccupied($query)
-    {
-        return $query->where('status', 'occupied');
-    }
-
-    public function scopeUnderMaintenance($query)
-    {
-        return $query->where('status', 'maintenance');
-    }
-
-    public function scopeByType($query, $type)
-    {
-        return $query->where('unit_type', $type);
-    }
-
-    public function scopeRentRange($query, $min, $max)
-    {
-        return $query->whereBetween('rent_amount', [$min, $max]);
-    }
-
-    // Helper methods
+    /**
+     * Get formatted rent amount
+     */
     public function getFormattedRentAttribute()
     {
         return '₱' . number_format($this->rent_amount, 2);
     }
 
+    /**
+     * Check if unit is available
+     */
     public function getIsAvailableAttribute()
     {
         return $this->status === 'available';
     }
 
+    /**
+     * Get status badge CSS class
+     */
     public function getStatusBadgeClassAttribute()
     {
         return match($this->status) {
@@ -172,7 +134,9 @@ class Unit extends Model
         };
     }
 
-    // Leasing type helper methods
+    /**
+     * Get leasing type label
+     */
     public function getLeasingTypeLabelAttribute()
     {
         return match($this->leasing_type) {
@@ -182,6 +146,9 @@ class Unit extends Model
         };
     }
 
+    /**
+     * Get leasing type description
+     */
     public function getLeasingTypeDescriptionAttribute()
     {
         return match($this->leasing_type) {
@@ -191,13 +158,129 @@ class Unit extends Model
         };
     }
 
+    // ==================== RELATIONSHIPS ====================
+
+    /**
+     * Get the property this unit belongs to
+     */
+    public function property()
+    {
+        return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * Alias for backward compatibility - maps to property()
+     * @deprecated Use property() instead
+     */
+    public function apartment()
+    {
+        return $this->property();
+    }
+
+    /**
+     * Get the current tenant assignment
+     */
+    public function tenantAssignment()
+    {
+        return $this->hasOne(TenantAssignment::class);
+    }
+
+    /**
+     * Get all tenant assignments (history)
+     */
+    public function tenantAssignments()
+    {
+        return $this->hasMany(TenantAssignment::class);
+    }
+
+    /**
+     * Get current tenant through assignment
+     */
+    public function currentTenant()
+    {
+        return $this->hasOneThrough(
+            User::class, 
+            TenantAssignment::class, 
+            'unit_id', 
+            'id', 
+            'id', 
+            'tenant_id'
+        )->where('tenant_assignments.status', 'active');
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    /**
+     * Get the landlord through property
+     */
+    public function getLandlord()
+    {
+        return $this->property ? $this->property->landlord : null;
+    }
+
+    /**
+     * Check if leasing is inclusive
+     */
     public function isInclusiveLeasing()
     {
         return $this->leasing_type === 'inclusive';
     }
 
+    /**
+     * Check if leasing is separate
+     */
     public function isSeparateLeasing()
     {
         return $this->leasing_type === 'separate';
+    }
+
+    // ==================== SCOPES ====================
+
+    /**
+     * Scope to get available units
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'available');
+    }
+
+    /**
+     * Scope to get occupied units
+     */
+    public function scopeOccupied($query)
+    {
+        return $query->where('status', 'occupied');
+    }
+
+    /**
+     * Scope to get units under maintenance
+     */
+    public function scopeUnderMaintenance($query)
+    {
+        return $query->where('status', 'maintenance');
+    }
+
+    /**
+     * Scope to filter by type
+     */
+    public function scopeByType($query, $type)
+    {
+        return $query->where('unit_type', $type);
+    }
+
+    /**
+     * Scope to filter by rent range
+     */
+    public function scopeRentRange($query, $min, $max)
+    {
+        return $query->whereBetween('rent_amount', [$min, $max]);
+    }
+
+    /**
+     * Scope to get units by property
+     */
+    public function scopeByProperty($query, $propertyId)
+    {
+        return $query->where('property_id', $propertyId);
     }
 }

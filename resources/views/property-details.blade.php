@@ -179,12 +179,27 @@
                         <i class="fas fa-calendar me-1"></i> Schedule Viewing
                     </button>
                     
+                    @php
+                        // Check if this property has a linked unit
+                        $linkedUnit = $property->getUnit();
+                        $hasAvailableUnit = $linkedUnit && $linkedUnit->status === 'available';
+                    @endphp
+                    
                     @if($property->availability_status === 'available')
                         @auth
                             @if(Auth::user()->role === 'tenant')
-                                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#applyTenantModal">
-                                    <i class="fas fa-file-signature me-1"></i> Apply as Tenant
-                                </button>
+                                @if($hasAvailableUnit)
+                                    <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#applyTenantModal">
+                                        <i class="fas fa-file-signature me-1"></i> Apply as Tenant
+                                    </button>
+                                @else
+                                    <button class="btn btn-secondary w-100" disabled title="This listing doesn't have units configured yet">
+                                        <i class="fas fa-file-signature me-1"></i> Applications Not Available
+                                    </button>
+                                    <small class="text-muted d-block mt-2 text-center">
+                                        <i class="fas fa-info-circle me-1"></i>Contact landlord to inquire
+                                    </small>
+                                @endif
                             @endif
                         @else
                             <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#loginRequiredModal">

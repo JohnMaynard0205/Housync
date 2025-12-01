@@ -10,6 +10,7 @@ use App\Http\Controllers\LandlordController;
 use App\Http\Controllers\TenantAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\RfidController;
+use App\Http\Controllers\ChatController;
 use App\Models\Apartment;
 use App\Models\Unit;
 
@@ -134,6 +135,18 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::get('/units/{id}/details', [LandlordController::class, 'getUnitDetails'])->name('unit-details')->whereNumber('id');
     // Keep JSON API separate from form POST to avoid route conflicts with landlord.store-unit
     Route::post('/apartments/{apartmentId}/units/json', [LandlordController::class, 'storeApartmentUnit'])->name('store-apartment-unit-json')->whereNumber('apartmentId');
+    
+    // Chat Routes for Landlord
+    Route::get('/messages', [ChatController::class, 'landlordIndex'])->name('chat');
+    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/messages/start-with-tenant', [ChatController::class, 'startWithTenant'])->name('chat.start-with-tenant');
+    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
+    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
+    Route::post('/messages/{id}/ticket-status', [ChatController::class, 'updateTicketStatus'])->name('chat.ticket-status');
+    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
+    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
+    Route::get('/api/tenants-list', [ChatController::class, 'getTenantsList'])->name('chat.tenants-list');
 });
 
 // Original dashboard route - redirect based on role
@@ -178,6 +191,20 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     
     // Apply for property
     Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');
+    
+    // Apply for unit directly
+    Route::post('/apply-unit/{unitId}', [TenantAssignmentController::class, 'applyForUnit'])->name('apply.unit');
+    
+    // Chat Routes for Tenant
+    Route::get('/messages', [ChatController::class, 'tenantIndex'])->name('chat');
+    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/messages/start-with-landlord', [ChatController::class, 'startWithLandlord'])->name('chat.start-with-landlord');
+    Route::post('/messages/create-ticket', [ChatController::class, 'createTicket'])->name('chat.create-ticket');
+    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
+    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
+    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
+    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
 });
 
 // Staff Routes
@@ -186,6 +213,15 @@ Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(functi
     Route::post('/assignments/{id}/complete', [StaffController::class, 'completeAssignment'])->name('complete-assignment');
     Route::get('/profile', [StaffController::class, 'staffProfile'])->name('profile');
     Route::post('/update-password', [StaffController::class, 'updatePassword'])->name('update-password');
+    
+    // Chat Routes for Staff
+    Route::get('/messages', [ChatController::class, 'staffIndex'])->name('chat');
+    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
+    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
+    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
+    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
 });
 
 // Units routes (need to be updated for role-based access)

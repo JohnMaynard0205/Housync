@@ -7,7 +7,7 @@ use App\Models\LandlordProfile;
 use App\Models\TenantProfile;
 use App\Models\StaffProfile;
 use App\Models\SuperAdminProfile;
-use App\Models\Apartment;
+use App\Models\Property;
 use App\Models\LandlordDocument;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -23,7 +23,7 @@ class SuperAdminController extends Controller
             'pending_landlords' => User::pendingLandlords()->count(),
             'approved_landlords' => User::approvedLandlords()->count(),
             'total_tenants' => User::byRole('tenant')->count(),
-            'total_apartments' => Apartment::count(),
+            'total_properties' => Property::count(),
         ];
 
         // Use whereHas to avoid duplicates from JOIN
@@ -289,11 +289,11 @@ class SuperAdminController extends Controller
         return back()->with('success', 'User deleted successfully.');
     }
 
-    public function apartments()
+    public function properties()
     {
-        $query = Apartment::with('landlord', 'units');
+        $query = Property::with('landlord', 'units');
         
-        // Search by apartment name or address
+        // Search by property name or address
         if (request('search')) {
             $search = request('search');
             $query->where(function($q) use ($search) {
@@ -312,8 +312,12 @@ class SuperAdminController extends Controller
             $query->where('landlord_id', request('landlord'));
         }
         
-        $apartments = $query->latest()->paginate(15);
-        return view('super-admin.apartments', compact('apartments'));
+        $properties = $query->latest()->paginate(15);
+        
+        // Backward compatibility
+        $apartments = $properties;
+        
+        return view('super-admin.apartments', compact('apartments', 'properties'));
     }
 
     public function settings()
