@@ -564,8 +564,9 @@ class LandlordController extends Controller
         $property = $landlord->properties()->findOrFail($propertyId);
         $apartment = $property;
         $bulkParams = session('bulk_creation_params', []);
+        $existingUnitsCount = $property->units()->count();
         
-        return view('landlord.bulk-edit-units', compact('apartment', 'property', 'bulkParams'));
+        return view('landlord.bulk-edit-units', compact('apartment', 'property', 'bulkParams', 'existingUnitsCount'));
     }
 
     public function finalizeBulkUnits(Request $request, $propertyId)
@@ -593,12 +594,16 @@ class LandlordController extends Controller
 
         try {
             $unitsCreated = 0;
+            $unitsSkipped = 0;
+            $skippedUnitNumbers = [];
             $existingUnitNumbers = $property->units()->pluck('unit_number')->toArray();
             $unitsToInsert = [];
             $now = now();
             
             foreach ($request->units as $unitData) {
                 if (in_array($unitData['unit_number'], $existingUnitNumbers)) {
+                    $unitsSkipped++;
+                    $skippedUnitNumbers[] = $unitData['unit_number'];
                     continue;
                 }
                 
@@ -637,7 +642,17 @@ class LandlordController extends Controller
             $property->update(['total_units' => $property->units()->count()]);
             session()->forget('bulk_creation_params');
             
-            return redirect()->route('landlord.units', $propertyId)->with('success', "Successfully created {$unitsCreated} units!");
+            // Build success message with skipped unit info
+            $message = "Successfully created {$unitsCreated} units!";
+            if ($unitsSkipped > 0) {
+                $message .= " ({$unitsSkipped} units skipped - already exist: " . implode(', ', array_slice($skippedUnitNumbers, 0, 10));
+                if (count($skippedUnitNumbers) > 10) {
+                    $message .= '...';
+                }
+                $message .= ')';
+            }
+            
+            return redirect()->route('landlord.units', $propertyId)->with('success', $message);
             
         } catch (\Exception $e) {
             Log::error('Error finalizing bulk units: ' . $e->getMessage());

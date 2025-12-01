@@ -209,6 +209,19 @@
     </div>
     @endif
 
+    @if(isset($existingUnitsCount) && $existingUnitsCount > 0)
+    <!-- Existing Units Warning -->
+    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #d97706; font-size: 1.25rem;"></i>
+            <div>
+                <h4 style="color: #92400e; margin: 0 0 0.25rem 0; font-size: 1rem; font-weight: 600;">This property already has {{ $existingUnitsCount }} units</h4>
+                <p style="color: #92400e; margin: 0; font-size: 0.875rem;">Units with duplicate numbers will be skipped. Only new unit numbers will be created.</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Summary Stats -->
     <div class="summary-stats">
         <div class="stat-card">
@@ -315,6 +328,7 @@
 let unitsData = {};
 let currentFloor = 1;
 let existingUnits = [];
+let unitIdCounter = 0; // Global counter for unique unit IDs
 
 // Loading modal functions
 function showLoadingMessage(message, progress = '') {
@@ -470,19 +484,10 @@ async function initializeBulkEdit() {
                             console.error(`✗ Failed to create unit ${unitNumber} for floor ${floor}`);
                         }
                         
-                        // Small delay to prevent DOM conflicts (reduced for better performance with 100+ units)
-                        if (totalUnitsCreated % 10 === 0) {
-                            // Only delay every 10 units for better performance
-                            await new Promise(resolve => setTimeout(resolve, 5));
-                        }
-                        
                     } catch (error) {
                         console.error(`Error creating unit ${unitNumber} for floor ${floor}:`, error);
                     }
                 }
-                
-                // Delay between floors to ensure DOM is ready (optimized for large unit counts)
-                await new Promise(resolve => setTimeout(resolve, 20));
             }
         };
         
@@ -510,7 +515,7 @@ function addUnitToFloor(floor, unitData = null) {
         return false;
     }
     
-    const unitId = `unit-${floor}-${Date.now()}`;
+    const unitId = `unit-${floor}-${++unitIdCounter}`;
     
     console.log(`Adding unit to floor ${floor}, container:`, floorContainer);
     
@@ -816,8 +821,15 @@ function finalizeUnits() {
     console.log('Form prepared with', units.length, 'units');
     console.log('Form data before submit:', new FormData(form));
     
-    // Show confirmation
-    if (confirm(`Are you sure you want to create ${units.length} units?\n\nUnits: ${units.map(u => u.unit_number).join(', ')}`)) {
+    // Show confirmation with existing units info
+    const existingCount = {{ $existingUnitsCount ?? 0 }};
+    let confirmMessage = `Are you sure you want to create ${units.length} units?`;
+    if (existingCount > 0) {
+        confirmMessage += `\n\n⚠️ Note: This property already has ${existingCount} units. Units with duplicate numbers will be skipped.`;
+    }
+    confirmMessage += `\n\nUnits: ${units.map(u => u.unit_number).join(', ')}`;
+    
+    if (confirm(confirmMessage)) {
         console.log('Submitting form...');
         
         // Debug: Log the form data before submission
