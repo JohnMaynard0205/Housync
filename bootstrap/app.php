@@ -11,10 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware) {
-        // ADD THIS LINE:
+    ->withMiddleware(function (Middleware $middleware): void {
+        // 1. Register the Role Middleware Alias (Fixes "Target class [role] does not exist")
+        $middleware->alias([
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+        ]);
+
+        // 2. Trust Proxies (Fixes disfigured UI / Mixed Content on Railway)
         $middleware->trustProxies(at: '*');
     })
-    ->withExceptions(function (Exceptions $exceptions) {
+    ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
