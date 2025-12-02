@@ -3,7 +3,11 @@
 @section('title', 'Create Maintenance Request')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/maintenance.css') }}">
+@php
+    $cssPath = public_path('css/maintenance.css');
+    $version = file_exists($cssPath) ? filemtime($cssPath) : time();
+@endphp
+<link rel="stylesheet" href="{{ url('/css/maintenance.css') }}?v={{ $version }}">
 @endpush
 
 @section('content')
