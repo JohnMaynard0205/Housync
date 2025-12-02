@@ -193,9 +193,14 @@
                                                 @endif
                                             </td>
                             <td>
-                                <a href="{{ route('landlord.maintenance.show', $request->id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{{ route('landlord.maintenance.show', $request->id) }}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <button onclick="deleteMaintenanceRequest({{ $request->id }}, '{{ addslashes($request->title) }}')" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -215,5 +220,38 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+function deleteMaintenanceRequest(requestId, requestTitle) {
+    if (confirm(`Are you sure you want to delete the maintenance request "${requestTitle}"?\n\nThis action cannot be undone.`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/landlord/maintenance/${requestId}`;
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add method spoofing for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        // Append to body and submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+@endpush
+
 @endsection
 

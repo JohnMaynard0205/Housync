@@ -158,6 +158,7 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::post('/maintenance/{id}/update-status', [MaintenanceController::class, 'updateStatus'])->name('maintenance.update-status');
     Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'updateNotes'])->name('maintenance.update-notes');
     Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
+    Route::delete('/maintenance/{id}', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
 });
 
 // Original dashboard route - redirect based on role

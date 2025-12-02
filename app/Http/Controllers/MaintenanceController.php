@@ -305,8 +305,25 @@ class MaintenanceController extends Controller
         ]);
         
         return redirect()
-            ->route('landlord.maintenance.index')
+            ->route('landlord.maintenance')
             ->with('success', 'Maintenance request cancelled successfully!');
+    }
+    
+    /**
+     * Delete a maintenance request
+     */
+    public function destroy($id)
+    {
+        $landlordId = Auth::id();
+        
+        $maintenanceRequest = MaintenanceRequest::where('landlord_id', $landlordId)
+            ->findOrFail($id);
+        
+        $maintenanceRequest->delete();
+        
+        return redirect()
+            ->route('landlord.maintenance')
+            ->with('success', 'Maintenance request deleted successfully!');
     }
     
     // ==================== TENANT METHODS ====================
