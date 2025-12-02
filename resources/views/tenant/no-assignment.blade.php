@@ -43,12 +43,15 @@
                     </div>
                     
                     <div class="mt-4">
-                        <a href="#" class="btn btn-primary">
+                        <a href="javascript:void(0)" class="btn btn-primary" onclick="alert('Please contact your landlord directly or use the Messages feature once you have a unit assignment.')">
                             <i class="mdi mdi-message me-1"></i> Contact Landlord
                         </a>
-                        <a href="{{ route('logout') }}" class="btn btn-outline-secondary ms-2">
+                        <a href="{{ route('logout') }}" class="btn btn-outline-secondary ms-2" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                             <i class="mdi mdi-logout me-1"></i> Logout
                         </a>
+                        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                            @csrf
+                        </form>
                     </div>
                 </div>
             </div>

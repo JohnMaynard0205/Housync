@@ -21,215 +21,303 @@
             </span>
         </div>
         <div>
-            <h4 class="mb-1">Welcome, {{ Auth::user()->name }}!</h4>
+            <h4 class="mb-1">Welcome, {{ Auth::user()->staffProfile->name ?? Auth::user()->email }}!</h4>
             <p class="text-muted mb-0">
-                <i class="mdi {{ $assignment->staff_type_icon }} me-1"></i>
-                {{ $assignment->staff_type_display }} - Assigned to {{ $assignment->unit->unit_number }}
+                <i class="mdi mdi-tools me-1"></i>
+                {{ ucwords(str_replace('_', ' ', Auth::user()->staffProfile->staff_type ?? 'Staff')) }}
+                @if($stats['active_tasks'] > 0)
+                    - {{ $stats['active_tasks'] }} Active {{ Str::plural('Task', $stats['active_tasks']) }}
+                @else
+                    - No Active Tasks
+                @endif
             </p>
         </div>
     </div>
 </div>
 
-<!-- Assignment Details -->
+<!-- Statistics Row -->
+<div class="row">
+    <div class="col-xl-3 col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="text-muted fw-normal mt-0" title="Total Assigned">Total Assigned</h5>
+                        <h3 class="mt-3 mb-3">{{ $stats['total_assigned'] }}</h3>
+                    </div>
+                    <div class="avatar-sm">
+                        <span class="avatar-title bg-soft-primary rounded">
+                            <i class="mdi mdi-clipboard-list-outline font-20 text-primary"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="text-muted fw-normal mt-0" title="Active Tasks">Active Tasks</h5>
+                        <h3 class="mt-3 mb-3">{{ $stats['active_tasks'] }}</h3>
+                    </div>
+                    <div class="avatar-sm">
+                        <span class="avatar-title bg-soft-warning rounded">
+                            <i class="mdi mdi-clock-outline font-20 text-warning"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="text-muted fw-normal mt-0" title="In Progress">In Progress</h5>
+                        <h3 class="mt-3 mb-3">{{ $stats['in_progress'] }}</h3>
+                    </div>
+                    <div class="avatar-sm">
+                        <span class="avatar-title bg-soft-info rounded">
+                            <i class="mdi mdi-progress-wrench font-20 text-info"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="text-muted fw-normal mt-0" title="Completed">Completed</h5>
+                        <h3 class="mt-3 mb-3">{{ $stats['completed'] }}</h3>
+                    </div>
+                    <div class="avatar-sm">
+                        <span class="avatar-title bg-soft-success rounded">
+                            <i class="mdi mdi-check-circle-outline font-20 text-success"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if($currentTask)
+<!-- Current Active Task -->
 <div class="row">
     <div class="col-xl-8">
         <div class="card mb-4">
-            <div class="card-header">
-                <h4 class="card-title"><i class="mdi mdi-tools me-1"></i> Unit Assignment Maintenance Details</h4>
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0 text-white"><i class="mdi mdi-star me-1"></i> Current Priority Task</h4>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h5 class="text-primary mb-3">Unit Information</h5>
-                        <div class="mb-3"><label class="form-label fw-bold">Unit Number:</label><p class="mb-1">{{ $assignment->unit->unit_number }}</p></div>
-                        <div class="mb-3"><label class="form-label fw-bold">Apartment:</label><p class="mb-1">{{ $assignment->unit->apartment->name }}</p></div>
-                        <div class="mb-3"><label class="form-label fw-bold">Address:</label><p class="mb-1">{{ $assignment->unit->apartment->address }}</p></div>
-                        @if($assignment->unit->description)
-                        <div class="mb-3"><label class="form-label fw-bold">Description:</label><p class="mb-1">{{ $assignment->unit->description }}</p></div>
-                        @endif
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-primary mb-3">Maintenance Assignment Details</h5>
-                        <div class="mb-3"><label class="form-label fw-bold">Staff Type:</label><p class="mb-1"><span class="badge bg-info"><i class="mdi {{ $assignment->staff_type_icon }} me-1"></i>{{ $assignment->staff_type_display }}</span></p></div>
-                        <div class="mb-3"><label class="form-label fw-bold">Assignment Period:</label><p class="mb-1"><strong>Start:</strong> {{ $assignment->assignment_start_date->format('M d, Y') }}<br>@if($assignment->assignment_end_date)<strong>End:</strong> {{ $assignment->assignment_end_date->format('M d, Y') }}@else<strong>Status:</strong> <span class="text-success">Ongoing</span>@endif</p></div>
-                        @if($assignment->hourly_rate)
-                        <div class="mb-3"><label class="form-label fw-bold">Hourly Rate:</label><p class="mb-1">₱{{ number_format($assignment->hourly_rate, 2) }}/hr</p></div>
-                        @endif
-                        @if($assignment->notes)
-                        <div class="mb-3"><label class="form-label fw-bold">Assignment Notes:</label><p class="mb-1">{{ $assignment->notes }}</p></div>
-                        @endif
-                        <div class="mt-4 p-3 bg-light rounded">
-                            <h6 class="text-primary mb-3"><i class="mdi mdi-check-circle me-1"></i> Assignment Completion</h6>
-                            @if($assignment->status === 'active')
-                                <p class="text-muted small mb-3">Mark this assignment as completed when you have finished all maintenance work for this unit.</p>
-                                <button type="button" class="btn btn-success" onclick="markAssignmentAsCompleted({{ $assignment->id }})"><i class="mdi mdi-check me-1"></i> Mark Assignment as Completed</button>
-                            @elseif($assignment->status === 'completed')
-                                <div class="alert alert-success mb-0"><i class="mdi mdi-check-circle me-1"></i> This assignment has been completed successfully!@if($assignment->assignment_end_date)<br><small>Completed on: {{ $assignment->assignment_end_date->format('M d, Y') }}</small>@endif</div>
-                            @elseif($assignment->status === 'terminated')
-                                <div class="alert alert-info mb-0"><i class="mdi mdi-information me-1"></i> This assignment has been terminated by the landlord.</div>
-                            @else
-                                <div class="alert alert-warning mb-0"><i class="mdi mdi-pause me-1"></i> This assignment is currently inactive.</div>
-                            @endif
+                    <div class="col-md-8">
+                        <h5 class="mb-3">{{ $currentTask->title }}</h5>
+                        <p class="text-muted">{{ $currentTask->description }}</p>
+                        
+                        <div class="mb-3">
+                            <span class="badge bg-{{ $currentTask->priority_badge_class }} me-2">
+                                {{ ucfirst($currentTask->priority) }} Priority
+                            </span>
+                            <span class="badge bg-{{ $currentTask->status_badge_class }}">
+                                {{ ucwords(str_replace('_', ' ', $currentTask->status)) }}
+                            </span>
+                            <span class="badge bg-secondary ms-2">
+                                <i class="mdi mdi-shape me-1"></i>{{ ucfirst($currentTask->category) }}
+                            </span>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Location:</label>
+                            <p class="mb-1"><i class="mdi mdi-map-marker me-1"></i>{{ $currentTask->unit->apartment->name }} - Unit {{ $currentTask->unit->unit_number }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Requested Date:</label>
+                            <p class="mb-1">{{ $currentTask->requested_date->format('F d, Y') }}</p>
+                        </div>
+
+                        @if($currentTask->expected_completion_date)
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Expected Completion:</label>
+                            <p class="mb-1">
+                                {{ $currentTask->expected_completion_date->format('F d, Y') }}
+                                @if($currentTask->expected_completion_date->isPast() && $currentTask->status != 'completed')
+                                    <span class="badge bg-danger ms-2">Overdue</span>
+                                @endif
+                            </p>
+                        </div>
+                        @endif
+
+                        <div class="mt-4">
+                            <a href="{{ route('staff.maintenance.show', $currentTask->id) }}" class="btn btn-primary">
+                                <i class="mdi mdi-eye me-1"></i> View Full Details
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <h6 class="text-primary mb-3">Tenant Information</h6>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Name:</label>
+                            <p class="mb-1">{{ $currentTask->tenant->tenantProfile->name ?? $currentTask->tenant->email }}</p>
+                        </div>
+                        @if($currentTask->tenant->email)
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email:</label>
+                            <p class="mb-1">{{ $currentTask->tenant->email }}</p>
+                        </div>
+                        @endif
+                        @if($currentTask->tenant->tenantProfile && $currentTask->tenant->tenantProfile->phone)
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Phone:</label>
+                            <p class="mb-1">{{ $currentTask->tenant->tenantProfile->phone }}</p>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="col-xl-4">
         <div class="card mb-4">
-            <div class="card-header"><h4 class="card-title"><i class="mdi mdi-account me-1"></i> Landlord Information</h4></div>
+            <div class="card-header">
+                <h4 class="card-title"><i class="mdi mdi-account-tie me-1"></i> Landlord Information</h4>
+            </div>
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="avatar-sm me-3"><span class="avatar-title bg-soft-primary rounded-circle">{{ substr($assignment->landlord->name, 0, 1) }}</span></div>
-                    <div><h6 class="mb-0">{{ $assignment->landlord->name }}</h6><small class="text-muted">{{ $assignment->landlord->email }}</small></div>
+                    <div class="avatar-sm me-3">
+                        <span class="avatar-title bg-soft-primary rounded-circle">
+                            {{ substr($currentTask->landlord->landlordProfile->name ?? 'L', 0, 1) }}
+                        </span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ $currentTask->landlord->landlordProfile->name ?? 'Landlord' }}</h6>
+                        <small class="text-muted">{{ $currentTask->landlord->email }}</small>
+                    </div>
                 </div>
-                @if($assignment->landlord->phone)
-                <div class="mb-2"><label class="form-label fw-bold">Phone:</label><p class="mb-1">{{ $assignment->landlord->phone }}</p></div>
-                @endif
-                @if($assignment->landlord->address)
-                <div class="mb-2"><label class="form-label fw-bold">Address:</label><p class="mb-1">{{ $assignment->landlord->address }}</p></div>
+                @if($currentTask->landlord->landlordProfile && $currentTask->landlord->landlordProfile->phone)
+                <div class="mb-2">
+                    <label class="form-label fw-bold">Phone:</label>
+                    <p class="mb-1">{{ $currentTask->landlord->landlordProfile->phone }}</p>
+                </div>
                 @endif
             </div>
         </div>
+
         <div class="card mb-4">
-            <div class="card-header"><h4 class="card-title"><i class="mdi mdi-lightning-bolt me-1"></i> Quick Actions</h4></div>
+            <div class="card-header">
+                <h4 class="card-title"><i class="mdi mdi-lightning-bolt me-1"></i> Quick Actions</h4>
+            </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="#" class="btn btn-primary" onclick="viewAllMaintenanceRequests()"><i class="mdi mdi-tools me-1"></i> View All Maintenance Requests</a>
-                    <a href="#" class="btn btn-outline-secondary"><i class="mdi mdi-message me-1"></i> Contact Landlord</a>
-                    <a href="#" class="btn btn-outline-info"><i class="mdi mdi-account-edit me-1"></i> Update Profile</a>
+                    <a href="{{ route('staff.maintenance') }}" class="btn btn-primary">
+                        <i class="mdi mdi-format-list-bulleted me-1"></i> View All Tasks
+                    </a>
+                    <a href="{{ route('staff.maintenance.show', $currentTask->id) }}" class="btn btn-outline-success">
+                        <i class="mdi mdi-pencil me-1"></i> Update Task Status
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+@else
+<!-- No Active Tasks -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center py-5">
+                <i class="mdi mdi-check-circle text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">All Caught Up!</h4>
+                <p class="text-muted">You have no active maintenance tasks assigned at the moment.</p>
+                <a href="{{ route('staff.maintenance') }}" class="btn btn-outline-primary mt-3">
+                    <i class="mdi mdi-history me-1"></i> View Task History
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
-<!-- Maintenance Requests Section -->
+<!-- Recent Maintenance Tasks -->
+@if($activeMaintenanceRequests->count() > 0)
 <div class="card mb-4">
-    <div class="card-header"><h4 class="card-title"><i class="mdi mdi-tools me-1"></i> Maintenance Requests</h4></div>
+    <div class="card-header">
+        <h4 class="card-title"><i class="mdi mdi-tools me-1"></i> Your Maintenance Tasks</h4>
+    </div>
     <div class="card-body">
-        @if($maintenanceRequests->count() > 0)
         <div class="table-responsive">
             <table class="table table-centered table-striped">
-                <thead><tr><th>Request ID</th><th>Issue</th><th>Category</th><th>Priority</th><th>Status</th><th>Requested Date</th><th>Actions</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Requested</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 <tbody>
-                @foreach($maintenanceRequests as $request)
-                <tr>
-                    <td>#{{ $request->id }}</td>
-                    <td><strong>{{ $request->title }}</strong><br><small class="text-muted">{{ Str::limit($request->description, 50) }}</small></td>
-                    <td><span class="badge bg-secondary"><i class="mdi {{ $request->category_icon }} me-1"></i>{{ ucfirst($request->category) }}</span></td>
-                    <td><span class="badge bg-{{ $request->priority_badge_class }}">{{ ucfirst($request->priority) }}</span></td>
-                    <td><span class="badge bg-{{ $request->status_badge_class }}">{{ ucfirst($request->status) }}</span></td>
-                    <td>{{ $request->requested_date->format('M d, Y') }}</td>
-                    <td><div class="btn-group" role="group"><button type="button" class="btn btn-sm btn-outline-primary" onclick="viewMaintenanceDetails({{ $request->id }})" title="View Details"><i class="mdi mdi-eye"></i></button>@if($request->status !== 'completed')<button type="button" class="btn btn-sm btn-success" onclick="markAsCompleted({{ $request->id }})" title="Mark as Completed"><i class="mdi mdi-check"></i></button>@endif</div></td>
-                </tr>
-                @endforeach
+                    @foreach($activeMaintenanceRequests as $request)
+                    <tr>
+                        <td>#{{ $request->id }}</td>
+                        <td>
+                            <strong>{{ Str::limit($request->title, 40) }}</strong><br>
+                            <small class="text-muted">{{ Str::limit($request->description, 50) }}</small>
+                        </td>
+                        <td>
+                            <small>{{ $request->unit->apartment->name }}</small><br>
+                            <small class="text-muted">Unit {{ $request->unit->unit_number }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ $request->priority_badge_class }}">
+                                {{ ucfirst($request->priority) }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ $request->status_badge_class }}">
+                                {{ ucwords(str_replace('_', ' ', $request->status)) }}
+                            </span>
+                        </td>
+                        <td>{{ $request->requested_date->format('M d, Y') }}</td>
+                        <td>
+                            <a href="{{ route('staff.maintenance.show', $request->id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="mdi mdi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>
-        @else
-        <div class="text-center py-4">
-            <i class="mdi mdi-check-circle text-success" style="font-size: 3rem;"></i>
-            <h5 class="mt-3">No Maintenance Requests</h5>
-            <p class="text-muted">There are currently no maintenance requests for your assigned unit.</p>
+        @if($activeMaintenanceRequests->count() >= 10)
+        <div class="text-center mt-3">
+            <a href="{{ route('staff.maintenance') }}" class="btn btn-outline-primary">
+                View All Tasks <i class="mdi mdi-arrow-right ms-1"></i>
+            </a>
         </div>
         @endif
     </div>
 </div>
+@endif
 
-<!-- Unit Details -->
-<div class="card mb-4">
-    <div class="card-header"><h4 class="card-title"><i class="mdi mdi-information me-1"></i> Unit Specifications</h4></div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-3"><div class="text-center"><i class="mdi mdi-bed text-primary" style="font-size: 2rem;"></i><h5 class="mt-2">{{ $assignment->unit->bedrooms }}</h5><p class="text-muted">Bedrooms</p></div></div>
-            <div class="col-md-3"><div class="text-center"><i class="mdi mdi-shower text-info" style="font-size: 2rem;"></i><h5 class="mt-2">{{ $assignment->unit->bathrooms }}</h5><p class="text-muted">Bathrooms</p></div></div>
-            <div class="col-md-3"><div class="text-center"><i class="mdi mdi-ruler text-success" style="font-size: 2rem;"></i><h5 class="mt-2">{{ $assignment->unit->floor_area ?? 'N/A' }}</h5><p class="text-muted">Floor Area (sqm)</p></div></div>
-            <div class="col-md-3"><div class="text-center"><i class="mdi mdi-currency-php text-warning" style="font-size: 2rem;"></i><h5 class="mt-2">₱{{ number_format($assignment->unit->rent_amount, 0) }}</h5><p class="text-muted">Monthly Rent</p></div></div>
-        </div>
-        @if($assignment->unit->amenities)
-        <div class="mt-4">
-            <h6 class="text-primary">Unit Amenities:</h6>
-            <div class="row">
-                @foreach($assignment->unit->amenities as $amenity)
-                <div class="col-md-3 mb-2"><span class="badge bg-light text-dark"><i class="mdi mdi-check me-1"></i>{{ $amenity }}</span></div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-    </div>
-</div>
 @endsection
 
 @push('scripts')
 <script>
-function viewMaintenanceDetails(requestId) {
-    // TODO: Implement maintenance details modal
-    alert('Maintenance request details will be shown here. Request ID: ' + requestId);
-}
-
-function markAsCompleted(requestId) {
-    if (confirm('Are you sure you want to mark this maintenance request as completed?')) {
-        // TODO: Implement API call to mark request as completed
-        fetch(`/staff/maintenance-requests/${requestId}/complete`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Maintenance request marked as completed successfully!');
-                location.reload(); // Refresh the page to show updated status
-            } else {
-                alert('Error marking request as completed: ' + (data.message || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error marking request as completed. Please try again.');
-        });
-    }
-}
-
-function markAssignmentAsCompleted(assignmentId) {
-    if (confirm('Are you sure you want to mark this assignment as completed? This will indicate that all maintenance work for this unit has been finished.')) {
-        // TODO: Implement API call to mark assignment as completed
-        fetch(`/staff/assignments/${assignmentId}/complete`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Assignment marked as completed successfully! The landlord will be notified.');
-                location.reload(); // Refresh the page to show updated status
-            } else {
-                alert('Error marking assignment as completed: ' + (data.message || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error marking assignment as completed. Please try again.');
-        });
-    }
-}
-
-function viewAllMaintenanceRequests() {
-    // Scroll to maintenance requests section
-    document.querySelector('.card-header h4[class*="card-title"]').scrollIntoView({ 
-        behavior: 'smooth' 
-    });
-}
-
 // Add any additional staff dashboard functionality here
 </script>
-@endpush 
+@endpush

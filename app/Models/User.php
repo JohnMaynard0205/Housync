@@ -258,6 +258,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(StaffAssignment::class, 'landlord_id');
     }
+    
+    // Maintenance requests assigned to staff
+    public function assignedMaintenanceRequests()
+    {
+        return $this->hasMany(MaintenanceRequest::class, 'assigned_staff_id');
+    }
 
     public function verifiedDocuments()
     {

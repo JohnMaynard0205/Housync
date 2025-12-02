@@ -49,7 +49,7 @@
             <a class="nav-link{{ request()->routeIs('staff.dashboard') ? ' active' : '' }}" href="{{ route('staff.dashboard') }}">
                 <span class="nav-icon"><i class="fas fa-home"></i></span> <span class="nav-label">Dashboard</span>
             </a>
-            <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance Requests</span></a>
+            <a class="nav-link{{ request()->routeIs('staff.maintenance*') ? ' active' : '' }}" href="{{ route('staff.maintenance') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance Requests</span></a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-calendar"></i></span> <span class="nav-label">Work Schedule</span></a>
             <a class="nav-link{{ request()->routeIs('staff.chat*') ? ' active' : '' }}" href="{{ route('staff.chat') }}">
                 <span class="nav-icon"><i class="fas fa-comments"></i></span> 

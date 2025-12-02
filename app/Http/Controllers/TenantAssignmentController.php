@@ -359,7 +359,8 @@ class TenantAssignmentController extends Controller
             $uploadedDocuments = [];
             
             // --- START FIX: Determine Storage Mechanism ---
-            $useSupabase = config('app.env') !== 'local' || config('services.supabase.key');
+            // Force local storage when in local environment, regardless of Supabase config
+            $useSupabase = config('app.env') !== 'local' && config('services.supabase.key');
     
             if ($useSupabase) {
                 $supabase = new \App\Services\SupabaseService();

@@ -14,15 +14,40 @@ use Illuminate\Support\Str;
 class StaffController extends Controller
 {
     /**
-     * Show staff assignments for landlord
+     * Show staff for landlord (both assigned and unassigned)
      */
     public function index(Request $request)
     {
         $filters = $request->only(['status', 'staff_type']);
-        $assignments = $this->getLandlordStaffAssignments(Auth::id(), $filters);
-        $stats = $this->getLandlordStaffStats(Auth::id());
+        $landlordId = Auth::id();
+        
+        // Get all staff members with their active maintenance tasks
+        $staffQuery = User::where('role', 'staff')
+            ->with(['staffProfile', 
+                   'assignedMaintenanceRequests' => function($query) use ($landlordId) {
+                       $query->where('landlord_id', $landlordId)
+                             ->whereNotIn('status', ['completed', 'cancelled'])
+                             ->with(['unit.apartment'])
+                             ->latest();
+                   }]);
+        
+        // Apply filters
+        if (isset($filters['staff_type']) && $filters['staff_type']) {
+            $staffQuery->whereHas('staffProfile', function($query) use ($filters) {
+                $query->where('staff_type', $filters['staff_type']);
+            });
+        }
+        
+        if (isset($filters['status']) && $filters['status']) {
+            $staffQuery->whereHas('staffProfile', function($query) use ($filters) {
+                $query->where('status', $filters['status']);
+            });
+        }
+        
+        $staff = $staffQuery->paginate(15);
+        $stats = $this->getStaffStats();
 
-        return view('landlord.staff', compact('assignments', 'stats', 'filters'));
+        return view('landlord.staff', compact('staff', 'stats', 'filters'));
     }
 
     /**
@@ -74,9 +99,15 @@ class StaffController extends Controller
                 'role' => 'staff',
             ]);
 
-            // Create staff profile
+            // Delete auto-created profile if it exists (the boot method creates a generic one)
+            if ($staff->staffProfile) {
+                $staff->staffProfile->delete();
+            }
+
+            // Create staff profile with actual data
             StaffProfile::create([
                 'user_id' => $staff->id,
+                'created_by_landlord_id' => Auth::id(), // CRITICAL: Track which landlord created this staff
                 'name' => $request->name,
                 'staff_type' => $request->staff_type,
                 'phone' => $request->phone,
@@ -276,6 +307,30 @@ class StaffController extends Controller
             'total_staff_types' => $assignments->distinct('staff_type')->count(),
         ];
     }
+    
+    /**
+     * Get overall staff statistics
+     */
+    private function getStaffStats()
+    {
+        $totalStaff = User::where('role', 'staff')->count();
+        $activeStaff = User::where('role', 'staff')
+            ->whereHas('staffProfile', function($query) {
+                $query->where('status', 'active');
+            })->count();
+        $inactiveStaff = User::where('role', 'staff')
+            ->whereHas('staffProfile', function($query) {
+                $query->where('status', 'inactive');
+            })->count();
+        $staffTypes = StaffProfile::distinct('staff_type')->count('staff_type');
+        
+        return [
+            'total' => $totalStaff,
+            'active' => $activeStaff,
+            'inactive' => $inactiveStaff,
+            'staff_types' => $staffTypes,
+        ];
+    }
 
     /**
      * Show staff dashboard
@@ -283,25 +338,39 @@ class StaffController extends Controller
     public function staffDashboard()
     {
         $staff = Auth::user();
+        $staffId = $staff->id;
         
-        // Get staff's active assignment
-        $assignment = StaffAssignment::where('staff_id', $staff->id)
-            ->where('status', 'active')
-            ->with(['unit.apartment', 'landlord'])
-            ->first();
+        // Get maintenance requests assigned to this staff member
+        $activeMaintenanceRequests = \App\Models\MaintenanceRequest::where('assigned_staff_id', $staffId)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->with(['unit.apartment', 'tenant.tenantProfile', 'landlord.landlordProfile'])
+            ->orderBy('priority', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
 
-        if (!$assignment) {
-            return view('staff.no-assignment');
-        }
+        // Get current active task (highest priority, not completed)
+        $currentTask = $activeMaintenanceRequests->first();
+        
+        // Get stats
+        $stats = [
+            'total_assigned' => \App\Models\MaintenanceRequest::where('assigned_staff_id', $staffId)->count(),
+            'active_tasks' => \App\Models\MaintenanceRequest::where('assigned_staff_id', $staffId)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count(),
+            'in_progress' => \App\Models\MaintenanceRequest::where('assigned_staff_id', $staffId)
+                ->where('status', 'in_progress')
+                ->count(),
+            'completed' => \App\Models\MaintenanceRequest::where('assigned_staff_id', $staffId)
+                ->where('status', 'completed')
+                ->count(),
+        ];
 
-        // Get maintenance requests for the assigned unit
-        $maintenanceRequests = $this->getMaintenanceRequests($assignment->unit_id);
-
-        return view('staff.dashboard', compact('assignment', 'maintenanceRequests'));
+        return view('staff.dashboard', compact('activeMaintenanceRequests', 'currentTask', 'stats'));
     }
 
     /**
-     * Get maintenance requests for a unit
+     * Get maintenance requests for a unit (legacy method)
      */
     private function getMaintenanceRequests($unitId)
     {

@@ -11,6 +11,7 @@ class StaffProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by_landlord_id',
         'name',
         'phone',
         'address',
@@ -22,6 +23,11 @@ class StaffProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    
+    public function createdByLandlord()
+    {
+        return $this->belongsTo(User::class, 'created_by_landlord_id');
     }
 }
 

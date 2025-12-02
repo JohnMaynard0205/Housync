@@ -37,7 +37,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-muted fw-normal mt-0" title="Total Staff">Total Staff</h5>
-                            <h3 class="mt-3 mb-3">{{ $stats['total_assignments'] }}</h3>
+                            <h3 class="mt-3 mb-3">{{ $stats['total'] }}</h3>
                         </div>
                         <div class="avatar-sm">
                             <span class="avatar-title bg-soft-primary rounded">
@@ -55,7 +55,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-muted fw-normal mt-0" title="Active Staff">Active Staff</h5>
-                            <h3 class="mt-3 mb-3">{{ $stats['active_assignments'] }}</h3>
+                            <h3 class="mt-3 mb-3">{{ $stats['active'] }}</h3>
                         </div>
                         <div class="avatar-sm">
                             <span class="avatar-title bg-soft-success rounded">
@@ -73,7 +73,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-muted fw-normal mt-0" title="Inactive Staff">Inactive Staff</h5>
-                            <h3 class="mt-3 mb-3">{{ $stats['inactive_assignments'] }}</h3>
+                            <h3 class="mt-3 mb-3">{{ $stats['inactive'] }}</h3>
                         </div>
                         <div class="avatar-sm">
                             <span class="avatar-title bg-soft-warning rounded">
@@ -91,7 +91,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-muted fw-normal mt-0" title="Staff Types">Staff Types</h5>
-                            <h3 class="mt-3 mb-3">{{ $stats['total_staff_types'] }}</h3>
+                            <h3 class="mt-3 mb-3">{{ $stats['staff_types'] }}</h3>
                         </div>
                         <div class="avatar-sm">
                             <span class="avatar-title bg-soft-info rounded">
@@ -140,116 +140,9 @@
                             <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#addStaffModal">
                                 <i class="mdi mdi-account-plus me-1"></i> Add Staff
                             </button>
-                            <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#assignStaffModal">
-                                <i class="mdi mdi-account-check me-1"></i> Assign Staff
-                            </button>
                         </div>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assign Staff Modal -->
-    <div class="modal fade" id="assignStaffModal" tabindex="-1" aria-labelledby="assignStaffModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignStaffModalLabel">Assign Staff to Unit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="{{ route('landlord.store-staff') }}" id="assignStaffForm">
-                    @csrf
-                    <div class="modal-body">
-                        @if($errors->any())
-                            <div class="alert alert-danger">
-                                <h6 class="alert-heading">Please fix the following errors:</h6>
-                                <ul class="mb-0">
-                                    @foreach($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        
-                        @if(session('error'))
-                            <div class="alert alert-danger">
-                                {{ session('error') }}
-                            </div>
-                        @endif
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="unit_id" class="form-label">Select Unit <span class="text-danger">*</span></label>
-                                <select class="form-select" id="unit_id" name="unit_id" required>
-                                    <option value="">-- Select a Unit --</option>
-                                    @foreach(\App\Models\Unit::whereHas('apartment', function($q){ $q->where('landlord_id', auth()->id()); })->get() as $unit)
-                                        <option value="{{ $unit->id }}" {{ old('unit_id') == $unit->id ? 'selected' : '' }}>
-                                            {{ $unit->unit_number }} ({{ $unit->apartment->name ?? 'N/A' }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="staff_type_filter" class="form-label">Staff Type <span class="text-danger">*</span></label>
-                                <select class="form-select" id="staff_type_filter" name="staff_type" required onchange="filterStaffByType()">
-                                    <option value="">-- Select Staff Type First --</option>
-                                    <option value="maintenance_worker" {{ old('staff_type') == 'maintenance_worker' ? 'selected' : '' }}>Maintenance Worker</option>
-                                    <option value="plumber" {{ old('staff_type') == 'plumber' ? 'selected' : '' }}>Plumber</option>
-                                    <option value="electrician" {{ old('staff_type') == 'electrician' ? 'selected' : '' }}>Electrician</option>
-                                    <option value="cleaner" {{ old('staff_type') == 'cleaner' ? 'selected' : '' }}>Cleaner</option>
-                                    <option value="painter" {{ old('staff_type') == 'painter' ? 'selected' : '' }}>Painter</option>
-                                    <option value="carpenter" {{ old('staff_type') == 'carpenter' ? 'selected' : '' }}>Carpenter</option>
-                                    <option value="security_guard" {{ old('staff_type') == 'security_guard' ? 'selected' : '' }}>Security Guard</option>
-                                    <option value="gardener" {{ old('staff_type') == 'gardener' ? 'selected' : '' }}>Gardener</option>
-                                    <option value="others" {{ old('staff_type') == 'others' ? 'selected' : '' }}>Others</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="staff_id" class="form-label">Select Staff Member <span class="text-danger">*</span></label>
-                                <select class="form-select" id="staff_id" name="staff_id" required disabled>
-                                    <option value="">-- Select Staff Type First --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="assignment_start_date" class="form-label">Assignment Start Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="assignment_start_date" name="assignment_start_date" value="{{ old('assignment_start_date') }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="assignment_end_date" class="form-label">Assignment End Date</label>
-                                <input type="date" class="form-control" id="assignment_end_date" name="assignment_end_date" value="{{ old('assignment_end_date') }}">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="hourly_rate" class="form-label">Hourly Rate (₱)</label>
-                                <input type="number" step="0.01" class="form-control" id="hourly_rate" name="hourly_rate" value="{{ old('hourly_rate') }}">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Additional Notes</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2">{{ old('notes') }}</textarea>
-                        </div>
-                        <div class="alert alert-info mt-3">
-                            <h6 class="alert-heading">Assignment Process</h6>
-                            <ul class="mb-0">
-                                <li>Select a staff type to see available staff members</li>
-                                <li>Choose an existing staff member to assign to the unit</li>
-                                <li>The staff member will be notified of their new assignment</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="mdi mdi-account-plus me-1"></i> Assign Staff
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -327,97 +220,111 @@
                                 <tr>
                                     <th>Staff</th>
                                     <th>Type</th>
-                                    <th>Unit</th>
-                                    <th>Apartment</th>
-                                    <th>Assignment Period</th>
-                                    <th>Hourly Rate</th>
+                                    <th>Active Tasks</th>
+                                    <th>Current Task</th>
+                                    <th>Expected Completion</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($assignments as $assignment)
+                                @forelse($staff as $staffMember)
+                                @php
+                                    $activeTasks = $staffMember->assignedMaintenanceRequests;
+                                    $currentTask = $activeTasks->first();
+                                @endphp
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-sm me-3">
                                                 <span class="avatar-title bg-soft-primary rounded-circle">
-                                                    {{ substr($assignment->staff->name, 0, 1) }}
+                                                    {{ substr($staffMember->staffProfile->name ?? 'N', 0, 1) }}
                                                 </span>
                                             </div>
                                             <div>
-                                                <h5 class="font-14 mb-0">{{ $assignment->staff->name }}</h5>
-                                                <small class="text-muted">{{ $assignment->staff->email }}</small>
+                                                <h5 class="font-14 mb-0">{{ $staffMember->staffProfile->name ?? 'N/A' }}</h5>
+                                                <small class="text-muted">{{ $staffMember->email }}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-info">
-                                            <i class="mdi {{ $assignment->staff_type_icon }} me-1"></i>
-                                            {{ $assignment->staff_type_display }}
+                                            <i class="mdi mdi-tools me-1"></i>
+                                            {{ ucwords(str_replace('_', ' ', $staffMember->staffProfile->staff_type ?? 'N/A')) }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">{{ $assignment->unit->unit_number }}</span>
-                                    </td>
-                                    <td>{{ $assignment->unit->apartment->name }}</td>
-                                    <td>
-                                        <div>
-                                            <small class="text-muted">Start: {{ $assignment->assignment_start_date->format('M d, Y') }}</small><br>
-                                            @if($assignment->assignment_end_date)
-                                                <small class="text-muted">End: {{ $assignment->assignment_end_date->format('M d, Y') }}</small>
-                                            @else
-                                                <small class="text-muted">Ongoing</small>
-                                            @endif
-                                        </div>
+                                        @if($activeTasks->count() > 0)
+                                            <span class="badge bg-primary" style="font-size: 0.9rem;">
+                                                {{ $activeTasks->count() }} {{ $activeTasks->count() == 1 ? 'Task' : 'Tasks' }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">No active tasks</span>
+                                        @endif
                                     </td>
                                     <td>
-                                        @if($assignment->hourly_rate)
-                                            ₱{{ number_format($assignment->hourly_rate, 2) }}/hr
+                                        @if($currentTask)
+                                            <div>
+                                                <strong style="font-size: 0.9rem;">{{ Str::limit($currentTask->title, 30) }}</strong><br>
+                                                <small class="text-muted">
+                                                    <i class="mdi mdi-home me-1"></i>{{ $currentTask->unit->apartment->name }} - Unit {{ $currentTask->unit->unit_number }}
+                                                </small><br>
+                                                <span class="badge bg-{{ $currentTask->status_badge_class }}" style="font-size: 0.75rem;">
+                                                    {{ ucwords(str_replace('_', ' ', $currentTask->status)) }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($currentTask && $currentTask->expected_completion_date)
+                                            <div>
+                                                <small class="text-muted">{{ $currentTask->expected_completion_date->format('M d, Y') }}</small>
+                                                @if($currentTask->expected_completion_date->isPast() && $currentTask->status != 'completed')
+                                                    <br><span class="badge bg-danger" style="font-size: 0.7rem;">Overdue</span>
+                                                @endif
+                                            </div>
                                         @else
                                             <span class="text-muted">Not set</span>
                                         @endif
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ $assignment->status_badge_class }}">
-                                            {{ ucfirst($assignment->status) }}
+                                        <span class="badge bg-{{ $staffMember->staffProfile->status == 'active' ? 'success' : 'warning' }}">
+                                            {{ ucfirst($staffMember->staffProfile->status ?? 'N/A') }}
                                         </span>
                                     </td>
                                     <td>
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="View Details">
-                                                <i class="mdi mdi-eye"></i>
+                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Actions">
+                                                <i class="mdi mdi-dots-vertical"></i>
                                             </button>
                                             <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="#" onclick="viewStaffCredentials({{ $assignment->id }}, '{{ $assignment->staff->email }}')" title="View Login Credentials">
+                                                @if($activeTasks->count() > 0)
+                                                <li><a class="dropdown-item" href="{{ route('landlord.maintenance') }}?staff={{ $staffMember->id }}" title="View All Tasks">
+                                                    <i class="mdi mdi-format-list-bulleted me-1"></i> View All Tasks ({{ $activeTasks->count() }})
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                @endif
+                                                <li><a class="dropdown-item" href="#" onclick="alert('Email: {{ $staffMember->email }}\nPassword: Use password reset if needed')" title="View Login Credentials">
                                                     <i class="mdi mdi-key me-1"></i> View Credentials
                                                 </a></li>
-                                                @if($assignment->status === 'active')
-                                                <li><a class="dropdown-item" href="#" onclick="updateStaffStatus({{ $assignment->id }}, 'inactive')" title="Deactivate Staff">
+                                                @if($staffMember->staffProfile->status === 'active')
+                                                <li><a class="dropdown-item" href="#" onclick="alert('Deactivate feature coming soon')" title="Deactivate Staff">
                                                     <i class="mdi mdi-pause me-1"></i> Deactivate
                                                 </a></li>
-                                                @endif
-                                                @if($assignment->status === 'inactive')
-                                                <li><a class="dropdown-item" href="#" onclick="updateStaffStatus({{ $assignment->id }}, 'active')" title="Activate Staff">
+                                                @else
+                                                <li><a class="dropdown-item" href="#" onclick="alert('Activate feature coming soon')" title="Activate Staff">
                                                     <i class="mdi mdi-play me-1"></i> Activate
                                                 </a></li>
                                                 @endif
-                                                @if($assignment->status !== 'terminated')
-                                                <li><a class="dropdown-item" href="#" onclick="updateStaffStatus({{ $assignment->id }}, 'terminated')" title="Terminate Assignment">
-                                                    <i class="mdi mdi-close me-1"></i> Terminate
-                                                </a></li>
-                                                @endif
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteStaffAssignment({{ $assignment->id }}, '{{ $assignment->staff->name }}')" title="Delete Assignment">
-                                                    <i class="mdi mdi-delete me-1"></i> Delete Assignment
-                                                </a></li>
                                             </ul>
                                         </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center">No staff assignments found.</td>
+                                    <td colspan="7" class="text-center">No staff members found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -426,7 +333,7 @@
 
                     <!-- Pagination -->
                     <div class="d-flex justify-content-center mt-3">
-                        {{ $assignments->links() }}
+                        {{ $staff->links() }}
                     </div>
                 </div>
             </div>

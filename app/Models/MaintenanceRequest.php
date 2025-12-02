@@ -37,6 +37,7 @@ class MaintenanceRequest extends Model
         'status',
         'category',
         'requested_date',
+        'expected_completion_date',
         'completed_date',
         'assigned_staff_id',
         'staff_notes',
@@ -45,6 +46,7 @@ class MaintenanceRequest extends Model
 
     protected $casts = [
         'requested_date' => 'date',
+        'expected_completion_date' => 'date',
         'completed_date' => 'date',
     ];
 

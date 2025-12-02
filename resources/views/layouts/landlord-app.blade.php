@@ -245,7 +245,7 @@
                 @endif
             </a>
             <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span></a>
-            <a class="nav-link" href="#"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('landlord.maintenance*') ? ' active' : '' }}" href="{{ route('landlord.maintenance') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
         </nav>
         <div class="sidebar-footer mt-auto"></div>
     </aside>

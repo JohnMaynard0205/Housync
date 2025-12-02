@@ -11,6 +11,7 @@ use App\Http\Controllers\TenantAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\RfidController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\MaintenanceController;
 use App\Models\Apartment;
 use App\Models\Unit;
 
@@ -147,6 +148,16 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
     Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
     Route::get('/api/tenants-list', [ChatController::class, 'getTenantsList'])->name('chat.tenants-list');
+    
+    // Maintenance Routes for Landlord
+    Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance');
+    Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
+    Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+    Route::get('/maintenance/{id}', [MaintenanceController::class, 'show'])->name('maintenance.show');
+    Route::post('/maintenance/{id}/assign-staff', [MaintenanceController::class, 'assignStaff'])->name('maintenance.assign-staff');
+    Route::post('/maintenance/{id}/update-status', [MaintenanceController::class, 'updateStatus'])->name('maintenance.update-status');
+    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'updateNotes'])->name('maintenance.update-notes');
+    Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
 });
 
 // Original dashboard route - redirect based on role
@@ -195,6 +206,14 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     // Apply for unit directly
     Route::post('/apply-unit/{unitId}', [TenantAssignmentController::class, 'applyForUnit'])->name('apply.unit');
     
+    // Maintenance Routes for Tenant
+    Route::get('/maintenance', [MaintenanceController::class, 'tenantIndex'])->name('maintenance');
+    Route::get('/maintenance/create', [MaintenanceController::class, 'tenantCreate'])->name('maintenance.create');
+    Route::post('/maintenance', [MaintenanceController::class, 'tenantStore'])->name('maintenance.store');
+    Route::get('/maintenance/{id}', [MaintenanceController::class, 'tenantShow'])->name('maintenance.show');
+    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'tenantUpdateNotes'])->name('maintenance.update-notes');
+    Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'tenantCancel'])->name('maintenance.cancel');
+    
     // Chat Routes for Tenant
     Route::get('/messages', [ChatController::class, 'tenantIndex'])->name('chat');
     Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
@@ -213,6 +232,12 @@ Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(functi
     Route::post('/assignments/{id}/complete', [StaffController::class, 'completeAssignment'])->name('complete-assignment');
     Route::get('/profile', [StaffController::class, 'staffProfile'])->name('profile');
     Route::post('/update-password', [StaffController::class, 'updatePassword'])->name('update-password');
+    
+    // Maintenance Routes for Staff
+    Route::get('/maintenance', [MaintenanceController::class, 'staffIndex'])->name('maintenance');
+    Route::get('/maintenance/{id}', [MaintenanceController::class, 'staffShow'])->name('maintenance.show');
+    Route::post('/maintenance/{id}/update-status', [MaintenanceController::class, 'staffUpdateStatus'])->name('maintenance.update-status');
+    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'staffUpdateNotes'])->name('maintenance.update-notes');
     
     // Chat Routes for Staff
     Route::get('/messages', [ChatController::class, 'staffIndex'])->name('chat');
