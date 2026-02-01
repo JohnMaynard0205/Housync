@@ -12,16 +12,41 @@ return new class extends Migration
      */
     public function up(): void
     {
+        $driver = DB::connection()->getDriverName();
+        
         // First, migrate existing data to the new tenant_rfid_assignments table
         $this->migrateExistingData();
         
         // Remove the tenant_assignment_id column from rfid_cards table
-        Schema::table('rfid_cards', function (Blueprint $table) {
-            // Drop foreign key constraint first
-            $table->dropForeign(['tenant_assignment_id']);
-            // Drop the column
-            $table->dropColumn('tenant_assignment_id');
-        });
+        if ($driver === 'sqlite') {
+            // SQLite doesn't support DROP COLUMN directly
+            // Check if column exists - if it does, we'd need to recreate the table
+            // For fresh SQLite installations, this column may not exist, so we skip
+            try {
+                $columns = Schema::getColumnListing('rfid_cards');
+                if (in_array('tenant_assignment_id', $columns)) {
+                    // Column exists but SQLite can't drop it easily
+                    // Skip for SQLite - the application will use tenant_rfid_assignments table
+                }
+            } catch (\Exception $e) {
+                // Table might not exist or column check failed - skip
+            }
+        } else {
+            // For MySQL/MariaDB, drop the column normally
+            try {
+                Schema::table('rfid_cards', function (Blueprint $table) {
+                    // Drop foreign key constraint first (if it exists)
+                    $table->dropForeign(['tenant_assignment_id']);
+                });
+            } catch (\Exception $e) {
+                // Foreign key might not exist - continue
+            }
+            
+            Schema::table('rfid_cards', function (Blueprint $table) {
+                // Drop the column
+                $table->dropColumn('tenant_assignment_id');
+            });
+        }
     }
 
     /**

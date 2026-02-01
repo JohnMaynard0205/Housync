@@ -233,7 +233,7 @@
                 <div class="form-group">
                     <label for="units_per_floor" class="form-label">Units Per Floor *</label>
                     <input type="number" id="units_per_floor" name="units_per_floor" class="form-control @error('units_per_floor') error @enderror" 
-                           value="{{ old('units_per_floor', 4) }}" min="1" max="500" required>
+                           value="{{ old('units_per_floor', 4) }}" min="1" required>
                     @error('units_per_floor')
                         <div class="error-message">{{ $message }}</div>
                     @enderror
@@ -339,17 +339,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            console.log('Form is being submitted!');
-            console.log('Form action:', form.action);
-            console.log('Form method:', form.method);
-            
             // Check if all required fields are filled
             const requiredFields = form.querySelectorAll('[required]');
             let allFilled = true;
             requiredFields.forEach(field => {
                 if (!field.value.trim()) {
                     allFilled = false;
-                    console.log('Missing required field:', field.name);
                 }
             });
             
@@ -357,6 +352,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 alert('Please fill in all required fields.');
                 return false;
+            }
+
+            // Soft safety check for very large bulk generations
+            const unitsPerFloorInput = document.getElementById('units_per_floor');
+            if (unitsPerFloorInput) {
+                const unitsPerFloor = parseInt(unitsPerFloorInput.value, 10) || 0;
+                const totalFloors = {{ (int) ($apartment->floors ?? 1) }};
+                const estimatedUnits = unitsPerFloor * totalFloors;
+
+                // Warn if overall unit count is very high (can slow down the bulk editor)
+                if (estimatedUnits > 300) {
+                    const message =
+                        'You are about to generate approximately ' + estimatedUnits.toLocaleString() +
+                        ' units (' + unitsPerFloor + ' per floor × ' + totalFloors + ' floors).\n\n' +
+                        'This may be slow or hard to manage in one go.\n\n' +
+                        'Do you still want to continue?';
+                    const confirmed = confirm(message);
+                    if (!confirmed) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
             }
         });
     }

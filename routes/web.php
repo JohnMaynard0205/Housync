@@ -12,6 +12,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\RfidController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\BillingController;
 use App\Models\Apartment;
 use App\Models\Unit;
 
@@ -119,6 +120,9 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     // Tenant History Routes
     Route::get('/tenant-history', [LandlordController::class, 'tenantHistory'])->name('tenant-history');
     Route::get('/tenant-history/export-csv', [LandlordController::class, 'exportTenantHistoryCSV'])->name('tenant-history.export-csv');
+
+    // Billing & Payments (Landlord)
+    Route::get('/payments', [BillingController::class, 'landlordIndex'])->name('payments');
     
     // RFID Security Management Routes
     Route::get('/security', [RfidController::class, 'index'])->name('security');
@@ -200,6 +204,9 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::get('/profile', [TenantAssignmentController::class, 'tenantProfile'])->name('profile');
     Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
     Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
+
+    // Payments (Tenant)
+    Route::get('/payments', [BillingController::class, 'tenantIndex'])->name('payments');
     
     // Apply for property
     Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');

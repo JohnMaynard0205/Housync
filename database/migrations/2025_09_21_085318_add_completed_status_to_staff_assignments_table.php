@@ -12,8 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // For MySQL, we need to use raw SQL to modify the enum
-        DB::statement("ALTER TABLE staff_assignments MODIFY COLUMN status ENUM('active', 'inactive', 'terminated', 'completed') NOT NULL DEFAULT 'active'");
+        $driver = DB::connection()->getDriverName();
+        
+        if ($driver === 'sqlite') {
+            // SQLite doesn't support MODIFY COLUMN or ENUM
+            // The status column is already TEXT in SQLite, so we just need to ensure
+            // the application logic handles 'completed' status
+            // No schema change needed for SQLite
+        } else {
+            // For MySQL/MariaDB, use raw SQL to modify the enum
+            DB::statement("ALTER TABLE staff_assignments MODIFY COLUMN status ENUM('active', 'inactive', 'terminated', 'completed') NOT NULL DEFAULT 'active'");
+        }
     }
 
     /**
@@ -21,7 +30,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert back to original enum values
-        DB::statement("ALTER TABLE staff_assignments MODIFY COLUMN status ENUM('active', 'inactive', 'terminated') NOT NULL DEFAULT 'active'");
+        $driver = DB::connection()->getDriverName();
+        
+        if ($driver === 'sqlite') {
+            // No schema change needed for SQLite
+        } else {
+            // Revert back to original enum values for MySQL/MariaDB
+            DB::statement("ALTER TABLE staff_assignments MODIFY COLUMN status ENUM('active', 'inactive', 'terminated') NOT NULL DEFAULT 'active'");
+        }
     }
 };

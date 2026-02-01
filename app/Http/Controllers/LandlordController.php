@@ -100,6 +100,11 @@ class LandlordController extends Controller
             'url' => $request->url(),
         ]);
 
+        // Sanitize phone number - remove all non-digit characters
+        if ($request->has('contact_phone') && $request->contact_phone) {
+            $request->merge(['contact_phone' => preg_replace('/[^0-9]/', '', $request->contact_phone)]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'property_type' => 'required|string|in:apartment,condominium,townhouse,house,duplex,others',
@@ -523,7 +528,9 @@ class LandlordController extends Controller
         $property = $landlord->properties()->findOrFail($propertyId);
 
         $request->validate([
-            'units_per_floor' => 'nullable|integer|min:1|max:500',
+            // No hard max here; user can choose any number.
+            // Note: very large numbers may impact performance, but we intentionally do not cap it.
+            'units_per_floor' => 'nullable|integer|min:1',
             'create_all_bedrooms' => 'nullable|boolean',
             'default_unit_type' => 'required|string|max:100',
             'default_rent' => 'required|numeric|min:0',

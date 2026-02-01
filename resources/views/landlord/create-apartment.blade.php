@@ -630,7 +630,7 @@
                 showError(field, 'Please enter a valid email address');
                 console.log('Field validation failed:', field.name, 'invalid email format');
             } else if (field.type === 'tel' && value && !isValidPhone(value)) {
-                showError(field, 'Please enter a valid phone number');
+                showError(field, 'Please enter a valid phone number (digits only, 10-20 digits)');
                 console.log('Field validation failed:', field.name, 'invalid phone format');
             } else {
                 clearError(field);
@@ -663,42 +663,48 @@
         }
 
         function isValidPhone(phone) {
-            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-            return phoneRegex.test(phone);
+            // Server expects only digits, so strip formatting and validate
+            const digitsOnly = phone.replace(/[\s\-\(\)\+]/g, '');
+            return /^[0-9]{10,20}$/.test(digitsOnly);
         }
 
         // Form submission
         form.addEventListener('submit', function(e) {
             console.log('Form submission started');
-            console.log('Form data:', new FormData(form));
             let isValid = true;
             
-            // Validate all required fields
+            // Only validate required fields strictly
             const requiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
             requiredFields.forEach(field => {
                 validateField(field);
                 if (field.classList.contains('error') || !field.value.trim()) {
                     isValid = false;
+                    console.log('Required field validation failed:', field.name);
                 }
             });
 
-            // Validate other inputs
+            // For optional fields, only validate if they have a value, but don't block submission
             inputs.forEach(input => {
-                if (!input.hasAttribute('required')) {
+                if (!input.hasAttribute('required') && input.value.trim()) {
                     validateField(input);
-                }
-                if (input.classList.contains('error')) {
-                    isValid = false;
+                    // Don't block submission for optional field errors, just show the error
                 }
             });
 
             if (!isValid) {
                 e.preventDefault();
-                alert('Please fix the errors before submitting.');
-                console.log('Form submission prevented due to validation errors');
+                alert('Please fix the errors in required fields before submitting.');
+                console.log('Form submission prevented due to validation errors in required fields');
                 return false;
             } else {
                 console.log('Form validation passed, submitting...');
+                
+                // Strip formatting from phone number before submission
+                const phoneInput = form.querySelector('input[name="contact_phone"]');
+                if (phoneInput && phoneInput.value.trim()) {
+                    phoneInput.value = phoneInput.value.replace(/[\s\-\(\)\+]/g, '');
+                }
+                
                 // Show loading state
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
