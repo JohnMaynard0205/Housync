@@ -35,7 +35,7 @@
 <!-- Stats Grid -->
 <div class="stats-grid mb-4">
     <div class="stat-card">
-        <div class="stat-value">{{ $stats['total_apartments'] ?? 0 }}</div>
+        <div class="stat-value">{{ $stats['total_properties'] ?? 0 }}</div>
         <div class="stat-label">Total Properties</div>
         <div class="stat-sublabel">In your portfolio</div>
     </div>

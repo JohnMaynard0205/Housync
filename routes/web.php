@@ -123,6 +123,12 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
 
     // Billing & Payments (Landlord)
     Route::get('/payments', [BillingController::class, 'landlordIndex'])->name('payments');
+    Route::get('/billing/create', [BillingController::class, 'create'])->name('billing.create');
+    Route::post('/billing', [BillingController::class, 'store'])->name('billing.store');
+    Route::get('/billing/{id}', [BillingController::class, 'show'])->name('billing.show');
+    Route::post('/billing/{id}/payment', [BillingController::class, 'recordPayment'])->name('billing.record-payment');
+    Route::post('/billing/{id}/mark-paid', [BillingController::class, 'markAsPaid'])->name('billing.mark-paid');
+    Route::delete('/billing/{id}', [BillingController::class, 'destroy'])->name('billing.destroy');
     
     // RFID Security Management Routes
     Route::get('/security', [RfidController::class, 'index'])->name('security');
@@ -163,6 +169,11 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
     Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'updateNotes'])->name('maintenance.update-notes');
     Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
     Route::delete('/maintenance/{id}', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
+    
+    // Settings Routes
+    Route::get('/settings', [LandlordController::class, 'settings'])->name('settings');
+    Route::put('/settings', [LandlordController::class, 'updateSettings'])->name('settings.update');
+    Route::put('/settings/password', [LandlordController::class, 'updatePassword'])->name('settings.password');
 });
 
 // Original dashboard route - redirect based on role
@@ -207,6 +218,7 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
 
     // Payments (Tenant)
     Route::get('/payments', [BillingController::class, 'tenantIndex'])->name('payments');
+    Route::get('/payments/{id}', [BillingController::class, 'tenantShowBill'])->name('payments.show');
     
     // Apply for property
     Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');

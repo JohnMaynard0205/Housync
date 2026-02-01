@@ -292,4 +292,13 @@ class Property extends Model
     {
         return $this->units()->where('status', 'available')->max('rent_amount');
     }
+
+    /**
+     * Get the first available unit for this property
+     * Used for tenant applications when property is selected directly
+     */
+    public function getUnit()
+    {
+        return $this->units()->where('status', 'available')->first();
+    }
 }

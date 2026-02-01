@@ -256,7 +256,7 @@
                 </div>
                 <div class="dropdown-menu" id="tnDropdownMenu">
                     <a href="{{ route('tenant.profile') }}" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
-                    <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="{{ route('tenant.profile') }}" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="dropdown-item" style="width:100%;background:none;border:none;text-align:left"><i class="fas fa-sign-out-alt"></i> Logout</button>

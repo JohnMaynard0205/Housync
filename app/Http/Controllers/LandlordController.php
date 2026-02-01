@@ -582,6 +582,14 @@ class LandlordController extends Controller
         $landlord = Auth::user();
         $property = $landlord->properties()->findOrFail($propertyId);
 
+        // Debug: Log the number of units received
+        $unitsReceived = $request->input('units', []);
+        Log::info('Bulk units received', [
+            'property_id' => $propertyId,
+            'units_count' => is_array($unitsReceived) ? count($unitsReceived) : 0,
+            'post_data_size' => strlen(serialize($request->all())),
+        ]);
+
         if (!$request->has('units') || empty($request->input('units'))) {
             return back()->with('error', 'No units data received. Please try again.');
         }
@@ -1099,6 +1107,83 @@ class LandlordController extends Controller
         } catch (\Exception $e) {
             Log::error('Error creating unit: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to create unit.'], 500);
+        }
+    }
+
+    /**
+     * Show the landlord settings page
+     */
+    public function settings()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $profile = $user->landlordProfile;
+
+        return view('landlord.settings', compact('user', 'profile'));
+    }
+
+    /**
+     * Update landlord profile settings
+     */
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'company_name' => 'nullable|string|max:255',
+            'business_info' => 'nullable|string|max:1000',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        
+        try {
+            // Update or create landlord profile
+            $user->landlordProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'name' => $request->name,
+                    'phone' => $request->phone,
+                    'address' => $request->address,
+                    'company_name' => $request->company_name,
+                    'business_info' => $request->business_info,
+                ]
+            );
+
+            return back()->with('success', 'Profile updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating landlord settings: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update profile. Please try again.');
+        }
+    }
+
+    /**
+     * Update landlord password
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'The current password is incorrect.']);
+        }
+
+        try {
+            $user->update([
+                'password' => Hash::make($request->password),
+            ]);
+
+            return back()->with('success', 'Password changed successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating landlord password: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update password. Please try again.');
         }
     }
 }

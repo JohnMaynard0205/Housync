@@ -270,7 +270,7 @@
                     <i class="fas fa-chevron-down" style="font-size:.85rem;color:#64748b"></i>
                 </div>
                 <div class="dropdown-menu" id="llDropdownMenu">
-                    <a href="#" class="dropdown-item"><i class="fas fa-user-cog"></i> Settings</a>
+                    <a href="{{ route('landlord.settings') }}" class="dropdown-item"><i class="fas fa-user-cog"></i> Settings</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="dropdown-item" style="width:100%;background:none;border:none;text-align:left"><i class="fas fa-sign-out-alt"></i> Logout</button>

@@ -808,6 +808,7 @@ function finalizeUnits() {
     allUnitInputs.forEach(input => input.remove());
     
     // Add new properly formatted inputs
+    let totalInputsAdded = 0;
     units.forEach((unit, index) => {
         Object.keys(unit).forEach(key => {
             const input = document.createElement('input');
@@ -815,10 +816,16 @@ function finalizeUnits() {
             input.name = `units[${index}][${key}]`;
             input.value = unit[key];
             form.appendChild(input);
+            totalInputsAdded++;
         });
     });
     
     console.log('Form prepared with', units.length, 'units');
+    console.log('Total hidden inputs added:', totalInputsAdded);
+    
+    // Count all form inputs to verify
+    const allInputs = form.querySelectorAll('input');
+    console.log('Total form inputs after preparation:', allInputs.length);
     console.log('Form data before submit:', new FormData(form));
     
     // Show confirmation with existing units info
