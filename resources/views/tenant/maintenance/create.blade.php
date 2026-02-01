@@ -211,7 +211,7 @@ textarea.form-control {
 @section('content')
 <div class="maintenance-form-container">
     <div class="maintenance-header">
-        <a href="{{ route('tenant.maintenance') }}" class="btn-back">
+        <a href="{{ route('tenant.maintenance.index') }}" class="btn-back">
             <i class="fas fa-arrow-left"></i> Back to Requests
         </a>
     </div>
@@ -411,7 +411,7 @@ textarea.form-control {
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-paper-plane"></i> Submit Request
                 </button>
-                <a href="{{ route('tenant.maintenance') }}" class="btn btn-secondary">
+                <a href="{{ route('tenant.maintenance.index') }}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Cancel
                 </a>
             </div>

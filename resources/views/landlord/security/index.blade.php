@@ -38,7 +38,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title">Filter by Apartment</h6>
-                    <form method="GET" action="{{ route('landlord.security') }}">
+                    <form method="GET" action="{{ route('landlord.security.index') }}">
                         <div class="input-group">
                             <select name="apartment_id" class="form-select" onchange="this.form.submit()">
                                 <option value="">All Apartments</option>

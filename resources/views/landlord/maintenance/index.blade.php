@@ -68,7 +68,7 @@
 
     <!-- Filters Section -->
     <div class="filters-section">
-        <form method="GET" action="{{ route('landlord.maintenance') }}" class="filters-form">
+        <form method="GET" action="{{ route('landlord.maintenance.index') }}" class="filters-form">
             <div class="filter-group">
                 <label><i class="fas fa-search"></i> Search</label>
                 <input type="text" name="search" placeholder="Search by title or description..." value="{{ request('search') }}">
@@ -113,7 +113,7 @@
             
             <div class="filter-actions">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Apply Filters</button>
-                <a href="{{ route('landlord.maintenance') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
+                <a href="{{ route('landlord.maintenance.index') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
                 <a href="{{ route('landlord.maintenance.create') }}" class="btn btn-success" style="margin-left: auto;">
                     <i class="fas fa-plus"></i> Create Maintenance Request
                 </a>

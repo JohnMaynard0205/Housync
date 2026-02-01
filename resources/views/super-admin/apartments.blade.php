@@ -334,6 +334,131 @@
             border-color: #3b82f6;
             color: white;
         }
+
+        /* Dark Mode Styles */
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .stat-card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .stat-value {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .stat-label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .page-section {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .section-title {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .section-subtitle {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .form-label {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control:focus {
+            border-color: #3b82f6 !important;
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control::placeholder {
+            color: #64748b !important;
+        }
+
+        body.dark-mode .property-card {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .property-card:hover {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode .property-title {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .property-landlord {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .info-item {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .info-item i {
+            color: #60a5fa !important;
+        }
+
+        body.dark-mode .property-stats {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .stat-item-value {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .stat-item-label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .status-active {
+            background: #064e3b !important;
+            color: #6ee7b7 !important;
+        }
+
+        body.dark-mode .empty-icon {
+            color: #475569 !important;
+        }
+
+        body.dark-mode .empty-title {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .empty-text {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .alert-success {
+            background: #064e3b !important;
+            border-color: #065f46 !important;
+            color: #6ee7b7 !important;
+        }
+
+        body.dark-mode .pagination a,
+        body.dark-mode .pagination span {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .pagination a:hover {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
     </style>
 @endpush
 
@@ -355,7 +480,7 @@
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">{{ \App\Models\Apartment::count() }}</div>
+                    <div class="stat-value">{{ \App\Models\Property::count() }}</div>
                     <div class="stat-label">Total Properties</div>
                 </div>
                 <div class="stat-card">
@@ -410,7 +535,7 @@
                 </form>
 
                 @php
-                    $apartments = \App\Models\Apartment::with(['landlord', 'units'])
+                    $apartments = \App\Models\Property::with(['landlord', 'units'])
                         ->when(request('search'), function($query) {
                             $search = request('search');
                             $query->where(function($q) use ($search) {

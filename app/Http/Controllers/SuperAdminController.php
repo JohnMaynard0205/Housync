@@ -289,7 +289,7 @@ class SuperAdminController extends Controller
         return back()->with('success', 'User deleted successfully.');
     }
 
-    public function properties()
+    public function apartments()
     {
         $query = Property::with('landlord', 'units');
         
@@ -318,6 +318,11 @@ class SuperAdminController extends Controller
         $apartments = $properties;
         
         return view('super-admin.apartments', compact('apartments', 'properties'));
+    }
+
+    public function properties()
+    {
+        return $this->apartments();
     }
 
     public function settings()

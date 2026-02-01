@@ -70,7 +70,7 @@
 
     <!-- Filters Section -->
     <div class="filters-section">
-        <form method="GET" action="{{ route('staff.maintenance') }}" class="filters-form">
+        <form method="GET" action="{{ route('staff.maintenance.index') }}" class="filters-form">
             <div class="filter-group">
                 <label><i class="fas fa-filter"></i> Status</label>
                 <select name="status">
@@ -95,7 +95,7 @@
             
             <div class="filter-actions">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Apply Filters</button>
-                <a href="{{ route('staff.maintenance') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
+                <a href="{{ route('staff.maintenance.index') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
             </div>
         </form>
     </div>

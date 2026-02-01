@@ -301,7 +301,7 @@
                                             </button>
                                             <ul class="dropdown-menu">
                                                 @if($activeTasks->count() > 0)
-                                                <li><a class="dropdown-item" href="{{ route('landlord.maintenance') }}?staff={{ $staffMember->id }}" title="View All Tasks">
+                                                <li><a class="dropdown-item" href="{{ route('landlord.maintenance.index') }}?staff={{ $staffMember->id }}" title="View All Tasks">
                                                     <i class="mdi mdi-format-list-bulleted me-1"></i> View All Tasks ({{ $activeTasks->count() }})
                                                 </a></li>
                                                 <li><hr class="dropdown-divider"></li>

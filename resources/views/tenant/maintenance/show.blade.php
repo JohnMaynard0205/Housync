@@ -11,7 +11,7 @@
     <!-- Header with Back Button -->
     <div class="maintenance-header">
         <div class="header-title">
-            <a href="{{ route('tenant.maintenance') }}" class="btn-back">
+            <a href="{{ route('tenant.maintenance.index') }}" class="btn-back">
                 <i class="fas fa-arrow-left"></i> Back to My Requests
             </a>
             <h1><i class="fas fa-tools"></i> Request #{{ $maintenanceRequest->id }}</h1>

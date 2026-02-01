@@ -221,7 +221,7 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ route('staff.maintenance') }}" class="btn btn-primary">
+                    <a href="{{ route('staff.maintenance.index') }}" class="btn btn-primary">
                         <i class="mdi mdi-format-list-bulleted me-1"></i> View All Tasks
                     </a>
                     <a href="{{ route('staff.maintenance.show', $currentTask->id) }}" class="btn btn-outline-success">
@@ -241,7 +241,7 @@
                 <i class="mdi mdi-check-circle text-success" style="font-size: 4rem;"></i>
                 <h4 class="mt-3">All Caught Up!</h4>
                 <p class="text-muted">You have no active maintenance tasks assigned at the moment.</p>
-                <a href="{{ route('staff.maintenance') }}" class="btn btn-outline-primary mt-3">
+                <a href="{{ route('staff.maintenance.index') }}" class="btn btn-outline-primary mt-3">
                     <i class="mdi mdi-history me-1"></i> View Task History
                 </a>
             </div>
@@ -305,7 +305,7 @@
         </div>
         @if($activeMaintenanceRequests->count() >= 10)
         <div class="text-center mt-3">
-            <a href="{{ route('staff.maintenance') }}" class="btn btn-outline-primary">
+            <a href="{{ route('staff.maintenance.index') }}" class="btn btn-outline-primary">
                 View All Tasks <i class="mdi mdi-arrow-right ms-1"></i>
             </a>
         </div>

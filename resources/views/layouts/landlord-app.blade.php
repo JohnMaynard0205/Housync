@@ -205,6 +205,261 @@
         @media (max-width: 1200px) { .main-content .content-grid { grid-template-columns: 1fr; } }
         @media (max-width: 900px) { aside.sidebar { position: fixed; left: 0; height: 100vh; z-index: 1040; } .main-content { padding: 1.5rem .5rem .5rem 1rem; } }
         @media (max-width: 600px) { .main-content { padding: .6rem .2rem; } .main-content .stats-grid { grid-template-columns: 1fr; } }
+
+        /* ========== DARK MODE STYLES ========== */
+        body.dark-mode, body.dark-mode html {
+            background-color: #0f172a !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .main-content {
+            background: #0f172a !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .profile-btn {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .dropdown-menu {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode .dropdown-item {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .dropdown-item:hover {
+            background: #334155 !important;
+        }
+
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .welcome-section,
+        body.dark-mode .stat-card,
+        body.dark-mode .property-summary,
+        body.dark-mode .activity-section,
+        body.dark-mode .quick-actions {
+            background: #1e293b !important;
+            color: #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode .stat-card.revenue-card {
+            background: linear-gradient(135deg, #064e3b 0%, #1e293b 100%) !important;
+        }
+
+        body.dark-mode .stat-card .stat-value {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .stat-card .stat-label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .stat-card .stat-sublabel {
+            color: #64748b !important;
+        }
+
+        body.dark-mode .welcome-section h2,
+        body.dark-mode .section-title {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .welcome-section p {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .user-profile {
+            background: #1e293b !important;
+        }
+
+        body.dark-mode .user-info h3 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .user-info p {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .occupancy-rate {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .occupancy-label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode h5 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode p {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .page-section,
+        body.dark-mode .content-card,
+        body.dark-mode .card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode .data-table,
+        body.dark-mode table {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .data-table th,
+        body.dark-mode table th {
+            background: #0f172a !important;
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .data-table td,
+        body.dark-mode table td {
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .data-table tbody tr:hover,
+        body.dark-mode table tbody tr:hover {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="email"],
+        body.dark-mode input[type="number"],
+        body.dark-mode input[type="password"],
+        body.dark-mode input[type="tel"],
+        body.dark-mode input[type="date"],
+        body.dark-mode textarea,
+        body.dark-mode select,
+        body.dark-mode .form-control {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode input:focus,
+        body.dark-mode textarea:focus,
+        body.dark-mode select:focus,
+        body.dark-mode .form-control:focus {
+            border-color: #f97316 !important;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1) !important;
+        }
+
+        body.dark-mode .form-label,
+        body.dark-mode label {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .alert-success {
+            background: #064e3b !important;
+            border-color: #065f46 !important;
+            color: #6ee7b7 !important;
+        }
+
+        body.dark-mode .alert-danger,
+        body.dark-mode .alert-error {
+            background: #7f1d1d !important;
+            border-color: #991b1b !important;
+            color: #fca5a5 !important;
+        }
+
+        body.dark-mode .alert-warning {
+            background: #78350f !important;
+            border-color: #92400e !important;
+            color: #fbbf24 !important;
+        }
+
+        body.dark-mode .alert-info {
+            background: #0c4a6e !important;
+            border-color: #075985 !important;
+            color: #7dd3fc !important;
+        }
+
+        body.dark-mode .status-badge.status-available {
+            background: #064e3b !important;
+            color: #6ee7b7 !important;
+        }
+
+        body.dark-mode .status-badge.status-occupied {
+            background: #1e40af !important;
+            color: #bfdbfe !important;
+        }
+
+        body.dark-mode .status-badge.status-maintenance {
+            background: #78350f !important;
+            color: #fbbf24 !important;
+        }
+
+        body.dark-mode .modal-content {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .modal-header {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .modal-footer {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .btn-close {
+            filter: invert(1);
+        }
+
+        body.dark-mode .pagination a,
+        body.dark-mode .pagination span {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .pagination a:hover {
+            background: #334155 !important;
+        }
+
+        body.dark-mode .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        /* Dark mode toggle button */
+        .dark-mode-toggle {
+            background: transparent;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: #64748b;
+            margin-right: 1rem;
+            transition: all 0.2s;
+        }
+
+        .dark-mode-toggle:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            border-color: #475569;
+            color: #fbbf24;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: #334155;
+            color: #fbbf24;
+        }
     </style>
     @stack('styles')
 </head>
@@ -234,7 +489,7 @@
             <a class="nav-link{{ request()->routeIs('landlord.staff*') ? ' active' : '' }}" href="{{ route('landlord.staff') }}">
                 <span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Staff</span>
             </a>
-            <a class="nav-link{{ request()->routeIs('landlord.security*') ? ' active' : '' }}" href="{{ route('landlord.security') }}">
+            <a class="nav-link{{ request()->routeIs('landlord.security*') ? ' active' : '' }}" href="{{ route('landlord.security.index') }}">
                 <span class="nav-icon"><i class="fas fa-shield-alt"></i></span> <span class="nav-label">Security</span>
             </a>
             <a class="nav-link{{ request()->routeIs('landlord.chat*') ? ' active' : '' }}" href="{{ route('landlord.chat') }}">
@@ -247,12 +502,15 @@
             <a class="nav-link{{ request()->routeIs('landlord.payments') ? ' active' : '' }}" href="{{ route('landlord.payments') }}">
                 <span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span>
             </a>
-            <a class="nav-link{{ request()->routeIs('landlord.maintenance*') ? ' active' : '' }}" href="{{ route('landlord.maintenance') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('landlord.maintenance*') ? ' active' : '' }}" href="{{ route('landlord.maintenance.index') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
         </nav>
         <div class="sidebar-footer mt-auto"></div>
     </aside>
     <main class="main-content">
         <div class="topbar">
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">
+                <i class="fas fa-moon" id="darkModeIcon"></i>
+            </button>
             <div class="dropdown" id="llProfileDropdown">
                 <div class="profile-btn" id="llProfileBtn">
                     @php 
@@ -302,6 +560,52 @@
             btn.addEventListener('click',function(e){ e.stopPropagation(); menu.classList.toggle('show'); });
             document.addEventListener('click',function(){ menu.classList.remove('show'); });
         }
+    })();
+
+    // Dark Mode Toggle
+    (function() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeIcon = document.getElementById('darkModeIcon');
+
+        function applyDarkMode(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                if (darkModeIcon) {
+                    darkModeIcon.classList.remove('fa-moon');
+                    darkModeIcon.classList.add('fa-sun');
+                }
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'light');
+                if (darkModeIcon) {
+                    darkModeIcon.classList.remove('fa-sun');
+                    darkModeIcon.classList.add('fa-moon');
+                }
+            }
+        }
+
+        // Check saved preference
+        const savedDarkMode = localStorage.getItem('darkMode');
+        if (savedDarkMode === 'true') {
+            applyDarkMode(true);
+        }
+
+        // Toggle on click
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', function() {
+                const isDark = !document.body.classList.contains('dark-mode');
+                applyDarkMode(isDark);
+                localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            });
+        }
+
+        // Listen for changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'darkMode') {
+                applyDarkMode(e.newValue === 'true');
+            }
+        });
     })();
 </script>
 @stack('scripts')

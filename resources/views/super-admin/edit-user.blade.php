@@ -556,6 +556,108 @@
         .alert-error li {
             margin: 2px 0;
         }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #0f172a !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .main-content {
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .content-header p {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .section {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .user-status-info {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .status-item label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .status-item span {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-group label {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control:focus {
+            border-color: #3b82f6 !important;
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .form-text {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .password-section {
+            background-color: #78350f !important;
+            border-color: #92400e !important;
+        }
+
+        body.dark-mode .password-section h3 {
+            color: #fbbf24 !important;
+        }
+
+        body.dark-mode .landlord-info,
+        body.dark-mode .rejection-info {
+            background-color: #0c4a6e !important;
+            border-color: #075985 !important;
+        }
+
+        body.dark-mode .landlord-info h3,
+        body.dark-mode .rejection-info h3 {
+            color: #bae6fd !important;
+        }
+
+        body.dark-mode .info-item label {
+            color: #7dd3fc !important;
+        }
+
+        body.dark-mode .info-item span {
+            color: #bae6fd !important;
+        }
+
+        body.dark-mode .rejection-info {
+            background-color: #7f1d1d !important;
+            border-color: #991b1b !important;
+        }
+
+        body.dark-mode .rejection-info h3 {
+            color: #fca5a5 !important;
+        }
+
+        body.dark-mode .rejection-reason {
+            color: #fca5a5 !important;
+        }
+
+        body.dark-mode .alert-error {
+            background-color: #7f1d1d !important;
+            color: #fca5a5 !important;
+            border-color: #991b1b !important;
+        }
     </style>
 
     <script>

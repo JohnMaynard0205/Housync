@@ -17,7 +17,7 @@
         <a href="{{ route('tenant.payments') }}" class="nav-item {{ request()->routeIs('tenant.payments') ? 'active' : '' }}">
             <i class="fas fa-credit-card"></i> Payments
         </a>
-        <a href="{{ route('tenant.maintenance') }}" class="nav-item {{ request()->routeIs('tenant.maintenance') ? 'active' : '' }}">
+        <a href="{{ route('tenant.maintenance.index') }}" class="nav-item {{ request()->routeIs('tenant.maintenance') ? 'active' : '' }}">
             <i class="fas fa-tools"></i> Maintenance
         </a>
         <a href="{{ route('tenant.chat') }}" class="nav-item {{ request()->routeIs('tenant.chat*') ? 'active' : '' }}">

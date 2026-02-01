@@ -13,278 +13,338 @@ use App\Http\Controllers\RfidController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\BillingController;
-use App\Models\Apartment;
-use App\Models\Unit;
+use App\Http\Controllers\ExploreController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', fn() => redirect()->route('login'));
+
+// Authentication
+Route::controller(AuthController::class)->group(function () {
+    Route::get('/login', 'showLogin')->name('login');
+    Route::post('/login', 'login')->name('login.post');
+    Route::get('/register', fn() => view('register'))->name('register');
+    Route::post('/register', 'register')->name('register.post');
+    Route::post('/logout', 'logout')->name('logout');
 });
 
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+// Public Explore (Property Listings)
+Route::controller(ExploreController::class)->group(function () {
+    Route::get('/explore', 'index')->name('explore');
+    Route::get('/property/{slug}', 'show')->name('property.show');
+});
 
-Route::get('/register', function () {
-    return view('register');
-})->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+// Public Landlord Registration & Status
+Route::controller(LandlordController::class)->prefix('landlord')->name('landlord.')->group(function () {
+    Route::get('/register', 'register')->name('register');
+    Route::post('/register', 'storeRegistration')->name('register.store');
+    Route::get('/pending', 'pending')->name('pending');
+    Route::get('/rejected', 'rejected')->name('rejected');
+});
 
-// Public Explore page (landing-like listings) - New Property System
-Route::get('/explore', [App\Http\Controllers\ExploreController::class, 'index'])->name('explore');
-Route::get('/property/{slug}', [App\Http\Controllers\ExploreController::class, 'show'])->name('property.show');
+/*
+|--------------------------------------------------------------------------
+| Super Admin Routes
+|--------------------------------------------------------------------------
+*/
 
-// Landlord Registration (public)
-Route::get('/landlord/register', [LandlordController::class, 'register'])->name('landlord.register');
-Route::post('/landlord/register', [LandlordController::class, 'storeRegistration'])->name('landlord.register.store');
-
-// Landlord status pages
-Route::get('/landlord/pending', [LandlordController::class, 'pending'])->name('landlord.pending');
-Route::get('/landlord/rejected', [LandlordController::class, 'rejected'])->name('landlord.rejected');
-
-// Super Admin Routes
 Route::middleware(['role:super_admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
-    Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/users', [SuperAdminController::class, 'users'])->name('users');
-    Route::get('/pending-landlords', [SuperAdminController::class, 'pendingLandlords'])->name('pending-landlords');
-    Route::post('/approve-landlord/{id}', [SuperAdminController::class, 'approveLandlord'])->name('approve-landlord');
-    Route::post('/reject-landlord/{id}', [SuperAdminController::class, 'rejectLandlord'])->name('reject-landlord');
-    Route::get('/landlords/{id}/documents', [SuperAdminController::class, 'reviewLandlordDocuments'])->name('landlord-docs');
-    Route::post('/landlord-documents/{docId}/verify', [SuperAdminController::class, 'verifyLandlordDocument'])->name('verify-landlord-document');
-    Route::get('/users/create', [SuperAdminController::class, 'createUser'])->name('create-user');
-    Route::post('/users', [SuperAdminController::class, 'storeUser'])->name('store-user');
-    Route::get('/users/{id}/edit', [SuperAdminController::class, 'editUser'])->name('edit-user');
-    Route::put('/users/{id}', [SuperAdminController::class, 'updateUser'])->name('update-user');
-    Route::delete('/users/{id}', [SuperAdminController::class, 'deleteUser'])->name('delete-user');
-    Route::get('/apartments', [SuperAdminController::class, 'apartments'])->name('apartments');
-    Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
-    Route::post('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
-    Route::post('/settings/{group}', [SuperAdminController::class, 'updateSettingsGroup'])->name('settings.group.update');
-    Route::get('/check-dark-mode', [SuperAdminController::class, 'checkDarkMode'])->name('check-dark-mode');
+    
+    Route::controller(SuperAdminController::class)->group(function () {
+        // Dashboard & Properties
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+        Route::get('/apartments', 'apartments')->name('apartments');
+        
+        // User Management
+        Route::get('/users', 'users')->name('users');
+        Route::get('/users/create', 'createUser')->name('create-user');
+        Route::post('/users', 'storeUser')->name('store-user');
+        Route::get('/users/{id}', 'editUser')->name('edit-user');
+        Route::put('/users/{id}', 'updateUser')->name('update-user');
+        Route::delete('/users/{id}', 'deleteUser')->name('delete-user');
+        
+        // Landlord Verification
+        Route::get('/pending-landlords', 'pendingLandlords')->name('pending-landlords');
+        Route::post('/approve-landlord/{id}', 'approveLandlord')->name('approve-landlord');
+        Route::post('/reject-landlord/{id}', 'rejectLandlord')->name('reject-landlord');
+        Route::get('/landlords/{id}/documents', 'reviewLandlordDocuments')->name('landlord-docs');
+        Route::post('/landlord-documents/{docId}/verify', 'verifyLandlordDocument')->name('verify-landlord-document');
+        
+        // Settings
+        Route::get('/settings', 'settings')->name('settings');
+        Route::post('/settings', 'updateSettings')->name('settings.update');
+        Route::post('/settings/{group}', 'updateSettingsGroup')->name('settings.group.update');
+        Route::get('/check-dark-mode', 'checkDarkMode')->name('check-dark-mode');
+    });
 });
 
-// Landlord Routes
+/*
+|--------------------------------------------------------------------------
+| Landlord Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->group(function () {
-    Route::get('/dashboard', [LandlordController::class, 'dashboard'])->name('dashboard');
-    Route::get('/apartments', [LandlordController::class, 'apartments'])->name('apartments');
-    Route::get('/apartments/create', [LandlordController::class, 'createApartment'])->name('create-apartment');
-    Route::post('/apartments', [LandlordController::class, 'storeApartment'])->name('store-apartment');
-    Route::get('/apartments/{id}/edit', [LandlordController::class, 'editApartment'])->name('edit-apartment');
-    Route::put('/apartments/{id}', [LandlordController::class, 'updateApartment'])->name('update-apartment');
-    Route::delete('/apartments/{id}', [LandlordController::class, 'deleteApartment'])->name('delete-apartment');
     
-    // Create Unit routes must come BEFORE parameterized units route to avoid "create" being captured as {apartmentId}
-    Route::get('/units/create', [LandlordController::class, 'createUnit'])->name('create-unit');
-    Route::get('/apartments/{apartmentId}/units/create', [LandlordController::class, 'createUnit'])->name('create-unit-for-apartment')->whereNumber('apartmentId');
-    Route::get('/apartments/{apartmentId}/units/create-multiple', [LandlordController::class, 'createMultipleUnits'])->name('create-multiple-units')->whereNumber('apartmentId');
-    Route::post('/apartments/{apartmentId}/units', [LandlordController::class, 'storeUnit'])->name('store-unit')->whereNumber('apartmentId');
-    Route::post('/apartments/{apartmentId}/units/bulk', [LandlordController::class, 'storeBulkUnits'])->name('store-bulk-units')->whereNumber('apartmentId');
-    Route::get('/apartments/{apartmentId}/units/bulk-edit', [LandlordController::class, 'bulkEditUnits'])->name('bulk-edit-units')->whereNumber('apartmentId');
-    Route::post('/apartments/{apartmentId}/units/finalize-bulk', [LandlordController::class, 'finalizeBulkUnits'])->name('finalize-bulk-units')->whereNumber('apartmentId');
-    Route::get('/units/{apartmentId?}', [LandlordController::class, 'units'])->name('units')->whereNumber('apartmentId');
+    // Dashboard, Settings & Tenants
+    Route::controller(LandlordController::class)->group(function () {
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+        Route::get('/tenants', 'tenants')->name('tenants');
+        Route::get('/tenant-history', 'tenantHistory')->name('tenant-history');
+        Route::get('/tenant-history/export-csv', 'exportTenantHistoryCSV')->name('tenant-history.export-csv');
+        
+        // Settings
+        Route::get('/settings', 'settings')->name('settings');
+        Route::put('/settings', 'updateSettings')->name('settings.update');
+        Route::put('/settings/password', 'updatePassword')->name('settings.password');
+        
+        // Apartments (Properties)
+        Route::get('/apartments', 'apartments')->name('apartments');
+        Route::get('/apartments/create', 'createApartment')->name('create-apartment');
+        Route::post('/apartments', 'storeApartment')->name('store-apartment');
+        Route::get('/apartments/{id}/edit', 'editApartment')->name('edit-apartment');
+        Route::put('/apartments/{id}', 'updateApartment')->name('update-apartment');
+        Route::delete('/apartments/{id}', 'deleteApartment')->name('delete-apartment');
+        Route::get('/apartments/{id}/details', 'getApartmentDetails')->name('apartment-details')->whereNumber('id');
+        Route::get('/apartments/{id}/units', 'getApartmentUnits')->name('apartment-units')->whereNumber('id');
+        
+        // Units
+        Route::get('/units/create', 'createUnit')->name('create-unit');
+        Route::get('/units/{apartmentId?}', 'units')->name('units')->whereNumber('apartmentId');
+        Route::get('/units/{id}/details', 'getUnitDetails')->name('unit-details')->whereNumber('id');
+        Route::put('/units/{id}', 'updateUnit')->name('update-unit')->whereNumber('id');
+        Route::delete('/units/{id}', 'deleteUnit')->name('delete-unit')->whereNumber('id');
+        
+        // Apartment-specific Unit Operations
+        Route::get('/apartments/{apartmentId}/units/create', 'createUnit')->name('create-unit-for-apartment')->whereNumber('apartmentId');
+        Route::get('/apartments/{apartmentId}/units/create-multiple', 'createMultipleUnits')->name('create-multiple-units')->whereNumber('apartmentId');
+        Route::post('/apartments/{apartmentId}/units', 'storeUnit')->name('store-unit')->whereNumber('apartmentId');
+        Route::post('/apartments/{apartmentId}/units/bulk', 'storeBulkUnits')->name('store-bulk-units')->whereNumber('apartmentId');
+        Route::get('/apartments/{apartmentId}/units/bulk-edit', 'bulkEditUnits')->name('bulk-edit-units')->whereNumber('apartmentId');
+        Route::post('/apartments/{apartmentId}/units/finalize-bulk', 'finalizeBulkUnits')->name('finalize-bulk-units')->whereNumber('apartmentId');
+        Route::post('/apartments/{apartmentId}/units/json', 'storeApartmentUnit')->name('store-apartment-unit-json')->whereNumber('apartmentId');
+    });
     
-    // Bulk Unit Generation Route
+    // Tenant Assignments
+    Route::controller(TenantAssignmentController::class)->group(function () {
+        Route::get('/tenant-assignments', 'index')->name('tenant-assignments');
+        Route::post('/units/{unitId}/assign-tenant', 'store')->name('store-tenant-assignment');
+        Route::get('/tenant-assignments/{id}', 'show')->name('assignment-details');
+        Route::put('/tenant-assignments/{id}/status', 'updateStatus')->name('update-assignment-status');
+        Route::post('/tenant-assignments/{id}/reassign', 'reassign')->name('reassign-tenant');
+        Route::delete('/tenant-assignments/{id}', 'destroy')->name('delete-tenant-assignment');
+        Route::get('/tenant-assignments/{id}/credentials', 'getCredentials')->name('get-credentials');
+        Route::get('/available-units', 'getAvailableUnits')->name('available-units');
+        Route::get('/download-document/{documentId}', 'downloadDocument')->name('download-document');
+        Route::post('/tenant-assignments/{id}/approve', 'approveApplication')->name('approve-application');
+        Route::post('/tenant-assignments/{id}/reject', 'rejectApplication')->name('reject-application');
+    });
     
-    // Unit Update Route (for AJAX modal)
-    Route::put('/units/{id}', [LandlordController::class, 'updateUnit'])->name('update-unit')->whereNumber('id');
+    // Staff Management
+    Route::controller(StaffController::class)->group(function () {
+        Route::get('/staff', 'index')->name('staff');
+        Route::post('/staff/add', 'addStaff')->name('add-staff');
+        Route::get('/staff/by-type/{staffType}', 'getStaffByType')->name('staff-by-type');
+        Route::get('/staff/create', 'create')->name('create-staff');
+        Route::get('/units/{unitId}/assign-staff', 'create')->name('assign-staff');
+        Route::post('/staff', 'store')->name('store-staff');
+        Route::get('/staff/{id}', 'show')->name('staff-details');
+        Route::put('/staff/{id}/status', 'updateStatus')->name('update-staff-status');
+        Route::delete('/staff/{id}', 'destroy')->name('delete-staff');
+        Route::get('/staff/{id}/credentials', 'getCredentials')->name('get-staff-credentials');
+    });
     
-    // Unit Delete Route
-    Route::delete('/units/{id}', [LandlordController::class, 'deleteUnit'])->name('delete-unit')->whereNumber('id');
+    // Billing & Payments
+    Route::controller(BillingController::class)->group(function () {
+        Route::get('/payments', 'landlordIndex')->name('payments');
+        Route::get('/billing/create', 'create')->name('billing.create');
+        Route::post('/billing', 'store')->name('billing.store');
+        Route::get('/billing/{id}', 'show')->name('billing.show');
+        Route::post('/billing/{id}/payment', 'recordPayment')->name('billing.record-payment');
+        Route::post('/billing/{id}/mark-paid', 'markAsPaid')->name('billing.mark-paid');
+        Route::delete('/billing/{id}', 'destroy')->name('billing.destroy');
+    });
     
-    // Tenant Assignment Routes
-    Route::get('/tenant-assignments', [TenantAssignmentController::class, 'index'])->name('tenant-assignments');
-    // Standalone assign-tenant page removed; use modal in tenant-assignments instead
-    Route::post('/units/{unitId}/assign-tenant', [TenantAssignmentController::class, 'store'])->name('store-tenant-assignment');
-    Route::get('/tenant-assignments/{id}', [TenantAssignmentController::class, 'show'])->name('assignment-details');
-    Route::put('/tenant-assignments/{id}/status', [TenantAssignmentController::class, 'updateStatus'])->name('update-assignment-status');
-    Route::post('/tenant-assignments/{id}/reassign', [TenantAssignmentController::class, 'reassign'])->name('reassign-tenant');
-    Route::delete('/tenant-assignments/{id}', [TenantAssignmentController::class, 'destroy'])->name('delete-tenant-assignment');
-    Route::get('/tenant-assignments/{id}/credentials', [TenantAssignmentController::class, 'getCredentials'])->name('get-credentials');
-    Route::get('/available-units', [TenantAssignmentController::class, 'getAvailableUnits'])->name('available-units');
-    Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
+    // RFID Security
+    Route::controller(RfidController::class)->prefix('security')->name('security.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/cards/create', 'create')->name('create-card');
+        Route::post('/cards', 'store')->name('store-card');
+        Route::get('/cards/{id}', 'show')->name('card-details');
+        Route::put('/cards/{id}/toggle-status', 'toggleStatus')->name('toggle-card-status');
+        Route::get('/cards/{id}/reassign', 'reassignForm')->name('reassign-card-form');
+        Route::post('/cards/{id}/reassign', 'reassign')->name('reassign-card');
+        Route::get('/access-logs', 'accessLogs')->name('access-logs');
+    });
     
-    // Application approval/rejection routes
-    Route::post('/tenant-assignments/{id}/approve', [TenantAssignmentController::class, 'approveApplication'])->name('approve-application');
-    Route::post('/tenant-assignments/{id}/reject', [TenantAssignmentController::class, 'rejectApplication'])->name('reject-application');
+    // Chat & Messaging
+    Route::controller(ChatController::class)->group(function () {
+        Route::get('/messages', 'landlordIndex')->name('chat');
+        Route::get('/messages/{id}', 'show')->name('chat.show');
+        Route::post('/messages/start-with-tenant', 'startWithTenant')->name('chat.start-with-tenant');
+        Route::post('/messages/{id}/send', 'sendMessage')->name('chat.send');
+        Route::get('/messages/{id}/fetch', 'getMessages')->name('chat.fetch');
+        Route::post('/messages/{id}/read', 'markAsRead')->name('chat.mark-read');
+        Route::post('/messages/{id}/ticket-status', 'updateTicketStatus')->name('chat.ticket-status');
+        Route::get('/api/conversations', 'getConversations')->name('chat.conversations');
+        Route::get('/api/unread-count', 'getUnreadCount')->name('chat.unread-count');
+        Route::get('/api/tenants-list', 'getTenantsList')->name('chat.tenants-list');
+    });
     
-    // Staff Management Routes
-    Route::get('/staff', [StaffController::class, 'index'])->name('staff');
-    Route::post('/staff/add', [StaffController::class, 'addStaff'])->name('add-staff');
-    Route::get('/staff/by-type/{staffType}', [StaffController::class, 'getStaffByType'])->name('staff-by-type');
-    Route::get('/staff/create', [StaffController::class, 'create'])->name('create-staff');
-    Route::get('/units/{unitId}/assign-staff', [StaffController::class, 'create'])->name('assign-staff');
-    Route::post('/staff', [StaffController::class, 'store'])->name('store-staff');
-    Route::get('/staff/{id}', [StaffController::class, 'show'])->name('staff-details');
-    Route::put('/staff/{id}/status', [StaffController::class, 'updateStatus'])->name('update-staff-status');
-    Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('delete-staff');
-    Route::get('/staff/{id}/credentials', [StaffController::class, 'getCredentials'])->name('get-staff-credentials');
-    
-    // Tenant History Routes
-    Route::get('/tenant-history', [LandlordController::class, 'tenantHistory'])->name('tenant-history');
-    Route::get('/tenant-history/export-csv', [LandlordController::class, 'exportTenantHistoryCSV'])->name('tenant-history.export-csv');
-
-    // Billing & Payments (Landlord)
-    Route::get('/payments', [BillingController::class, 'landlordIndex'])->name('payments');
-    Route::get('/billing/create', [BillingController::class, 'create'])->name('billing.create');
-    Route::post('/billing', [BillingController::class, 'store'])->name('billing.store');
-    Route::get('/billing/{id}', [BillingController::class, 'show'])->name('billing.show');
-    Route::post('/billing/{id}/payment', [BillingController::class, 'recordPayment'])->name('billing.record-payment');
-    Route::post('/billing/{id}/mark-paid', [BillingController::class, 'markAsPaid'])->name('billing.mark-paid');
-    Route::delete('/billing/{id}', [BillingController::class, 'destroy'])->name('billing.destroy');
-    
-    // RFID Security Management Routes
-    Route::get('/security', [RfidController::class, 'index'])->name('security');
-    Route::get('/security/cards/create', [RfidController::class, 'create'])->name('security.create-card');
-    Route::post('/security/cards', [RfidController::class, 'store'])->name('security.store-card');
-    Route::get('/security/cards/{id}', [RfidController::class, 'show'])->name('security.card-details');
-    Route::put('/security/cards/{id}/toggle-status', [RfidController::class, 'toggleStatus'])->name('security.toggle-card-status');
-    Route::get('/security/cards/{id}/reassign', [RfidController::class, 'reassignForm'])->name('security.reassign-card-form');
-    Route::post('/security/cards/{id}/reassign', [RfidController::class, 'reassign'])->name('security.reassign-card');
-    Route::get('/security/access-logs', [RfidController::class, 'accessLogs'])->name('security.access-logs');
-    
-    // API endpoints for apartment management
-    Route::get('/apartments/{id}/details', [LandlordController::class, 'getApartmentDetails'])->name('apartment-details')->whereNumber('id');
-    Route::get('/apartments/{id}/units', [LandlordController::class, 'getApartmentUnits'])->name('apartment-units')->whereNumber('id');
-    Route::get('/units/{id}/details', [LandlordController::class, 'getUnitDetails'])->name('unit-details')->whereNumber('id');
-    // Keep JSON API separate from form POST to avoid route conflicts with landlord.store-unit
-    Route::post('/apartments/{apartmentId}/units/json', [LandlordController::class, 'storeApartmentUnit'])->name('store-apartment-unit-json')->whereNumber('apartmentId');
-    
-    // Chat Routes for Landlord
-    Route::get('/messages', [ChatController::class, 'landlordIndex'])->name('chat');
-    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/messages/start-with-tenant', [ChatController::class, 'startWithTenant'])->name('chat.start-with-tenant');
-    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
-    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
-    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
-    Route::post('/messages/{id}/ticket-status', [ChatController::class, 'updateTicketStatus'])->name('chat.ticket-status');
-    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
-    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
-    Route::get('/api/tenants-list', [ChatController::class, 'getTenantsList'])->name('chat.tenants-list');
-    
-    // Maintenance Routes for Landlord
-    Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance');
-    Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
-    Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
-    Route::get('/maintenance/{id}', [MaintenanceController::class, 'show'])->name('maintenance.show');
-    Route::post('/maintenance/{id}/assign-staff', [MaintenanceController::class, 'assignStaff'])->name('maintenance.assign-staff');
-    Route::post('/maintenance/{id}/update-status', [MaintenanceController::class, 'updateStatus'])->name('maintenance.update-status');
-    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'updateNotes'])->name('maintenance.update-notes');
-    Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
-    Route::delete('/maintenance/{id}', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
-    
-    // Settings Routes
-    Route::get('/settings', [LandlordController::class, 'settings'])->name('settings');
-    Route::put('/settings', [LandlordController::class, 'updateSettings'])->name('settings.update');
-    Route::put('/settings/password', [LandlordController::class, 'updatePassword'])->name('settings.password');
+    // Maintenance
+    Route::controller(MaintenanceController::class)->prefix('maintenance')->name('maintenance.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->name('show');
+        Route::post('/{id}/assign-staff', 'assignStaff')->name('assign-staff');
+        Route::post('/{id}/update-status', 'updateStatus')->name('update-status');
+        Route::post('/{id}/update-notes', 'updateNotes')->name('update-notes');
+        Route::post('/{id}/cancel', 'cancel')->name('cancel');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
 });
 
-// Original dashboard route - redirect based on role
+/*
+|--------------------------------------------------------------------------
+| Tenant Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(function () {
+    
+    // Dashboard & Profile
+    Route::controller(TenantAssignmentController::class)->group(function () {
+        Route::get('/dashboard', 'tenantDashboard')->name('dashboard');
+        Route::get('/profile', 'tenantProfile')->name('profile');
+        Route::get('/lease', 'tenantLease')->name('lease');
+        Route::post('/update-password', 'updatePassword')->name('update-password');
+        Route::get('/upload-documents', 'uploadDocuments')->name('upload-documents');
+        Route::post('/upload-documents', 'storeDocuments')->name('store-documents');
+        Route::get('/download-document/{documentId}', 'downloadDocument')->name('download-document');
+        Route::delete('/delete-document/{documentId}', 'deleteDocument')->name('delete-document');
+        Route::post('/apply/{propertyId}', 'applyForProperty')->name('apply');
+        Route::post('/apply-unit/{unitId}', 'applyForUnit')->name('apply.unit');
+    });
+    
+    // Payments
+    Route::controller(BillingController::class)->group(function () {
+        Route::get('/payments', 'tenantIndex')->name('payments');
+        Route::get('/payments/{id}', 'tenantShowBill')->name('payments.show');
+    });
+    
+    // Maintenance
+    Route::controller(MaintenanceController::class)->prefix('maintenance')->name('maintenance.')->group(function () {
+        Route::get('/', 'tenantIndex')->name('index');
+        Route::get('/create', 'tenantCreate')->name('create');
+        Route::post('/', 'tenantStore')->name('store');
+        Route::get('/{id}', 'tenantShow')->name('show');
+        Route::post('/{id}/update-notes', 'tenantUpdateNotes')->name('update-notes');
+        Route::post('/{id}/cancel', 'tenantCancel')->name('cancel');
+    });
+    
+    // Chat & Messaging
+    Route::controller(ChatController::class)->group(function () {
+        Route::get('/messages', 'tenantIndex')->name('chat');
+        Route::get('/messages/{id}', 'show')->name('chat.show');
+        Route::post('/messages/start-with-landlord', 'startWithLandlord')->name('chat.start-with-landlord');
+        Route::post('/messages/create-ticket', 'createTicket')->name('chat.create-ticket');
+        Route::post('/messages/{id}/send', 'sendMessage')->name('chat.send');
+        Route::get('/messages/{id}/fetch', 'getMessages')->name('chat.fetch');
+        Route::post('/messages/{id}/read', 'markAsRead')->name('chat.mark-read');
+        Route::get('/api/conversations', 'getConversations')->name('chat.conversations');
+        Route::get('/api/unread-count', 'getUnreadCount')->name('chat.unread-count');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Staff Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
+    
+    // Dashboard & Profile
+    Route::controller(StaffController::class)->group(function () {
+        Route::get('/dashboard', 'staffDashboard')->name('dashboard');
+        Route::get('/profile', 'staffProfile')->name('profile');
+        Route::post('/update-password', 'updatePassword')->name('update-password');
+        Route::post('/assignments/{id}/complete', 'completeAssignment')->name('complete-assignment');
+    });
+    
+    // Maintenance
+    Route::controller(MaintenanceController::class)->prefix('maintenance')->name('maintenance.')->group(function () {
+        Route::get('/', 'staffIndex')->name('index');
+        Route::get('/{id}', 'staffShow')->name('show');
+        Route::post('/{id}/update-status', 'staffUpdateStatus')->name('update-status');
+        Route::post('/{id}/update-notes', 'staffUpdateNotes')->name('update-notes');
+    });
+    
+    // Chat & Messaging
+    Route::controller(ChatController::class)->group(function () {
+        Route::get('/messages', 'staffIndex')->name('chat');
+        Route::get('/messages/{id}', 'show')->name('chat.show');
+        Route::post('/messages/{id}/send', 'sendMessage')->name('chat.send');
+        Route::get('/messages/{id}/fetch', 'getMessages')->name('chat.fetch');
+        Route::post('/messages/{id}/read', 'markAsRead')->name('chat.mark-read');
+        Route::get('/api/conversations', 'getConversations')->name('chat.conversations');
+        Route::get('/api/unread-count', 'getUnreadCount')->name('chat.unread-count');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Unit Management (Super Admin Only)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::controller(UnitController::class)->prefix('units')->name('units.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/filter', 'filter')->name('filter');
+        Route::get('/stats', 'getStats')->name('stats');
+        Route::get('/types', 'getUnitTypes')->name('types');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard Redirect (Role-based)
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/dashboard', function () {
     $user = Auth::user();
-    if (!$user) {
-        return redirect()->route('login');
-    }
+    if (!$user) return redirect()->route('login');
     
-    switch ($user->role) {
-        case 'super_admin':
-            return redirect()->route('super-admin.dashboard');
-        case 'landlord':
-            if ($user->status === 'approved') {
-                return redirect()->route('landlord.dashboard');
-            } elseif ($user->status === 'pending') {
-                return redirect()->route('landlord.pending');
-            } else {
-                return redirect()->route('landlord.rejected');
-            }
-        case 'tenant':
-            return redirect()->route('tenant.dashboard');
-        case 'staff':
-            return redirect()->route('staff.dashboard');
-        default:
-            return redirect()->route('login');
-    }
+    return match($user->role) {
+        'super_admin' => redirect()->route('super-admin.dashboard'),
+        'landlord' => redirect()->route(
+            $user->status === 'approved' ? 'landlord.dashboard' : 
+            ($user->status === 'pending' ? 'landlord.pending' : 'landlord.rejected')
+        ),
+        'tenant' => redirect()->route('tenant.dashboard'),
+        'staff' => redirect()->route('staff.dashboard'),
+        default => redirect()->route('login'),
+    };
 })->middleware('auth')->name('dashboard');
 
-// Tenant Routes
-Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(function () {
-    // Tenant Dashboard
-    Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
-    Route::get('/dashboard', [TenantAssignmentController::class, 'tenantDashboard'])->name('dashboard');
-    Route::get('/upload-documents', [TenantAssignmentController::class, 'uploadDocuments'])->name('upload-documents');
-    Route::post('/upload-documents', [TenantAssignmentController::class, 'storeDocuments'])->name('store-documents');
-    Route::get('/download-document/{documentId}', [TenantAssignmentController::class, 'downloadDocument'])->name('download-document');
-    Route::delete('/delete-document/{documentId}', [TenantAssignmentController::class, 'deleteDocument'])->name('delete-document');
-    Route::get('/profile', [TenantAssignmentController::class, 'tenantProfile'])->name('profile');
-    Route::get('/lease', [TenantAssignmentController::class, 'tenantLease'])->name('lease');
-    Route::post('/update-password', [TenantAssignmentController::class, 'updatePassword'])->name('update-password');
+/*
+|--------------------------------------------------------------------------
+| System Routes (Health Check & Debug)
+|--------------------------------------------------------------------------
+*/
 
-    // Payments (Tenant)
-    Route::get('/payments', [BillingController::class, 'tenantIndex'])->name('payments');
-    Route::get('/payments/{id}', [BillingController::class, 'tenantShowBill'])->name('payments.show');
-    
-    // Apply for property
-    Route::post('/apply/{propertyId}', [TenantAssignmentController::class, 'applyForProperty'])->name('apply');
-    
-    // Apply for unit directly
-    Route::post('/apply-unit/{unitId}', [TenantAssignmentController::class, 'applyForUnit'])->name('apply.unit');
-    
-    // Maintenance Routes for Tenant
-    Route::get('/maintenance', [MaintenanceController::class, 'tenantIndex'])->name('maintenance');
-    Route::get('/maintenance/create', [MaintenanceController::class, 'tenantCreate'])->name('maintenance.create');
-    Route::post('/maintenance', [MaintenanceController::class, 'tenantStore'])->name('maintenance.store');
-    Route::get('/maintenance/{id}', [MaintenanceController::class, 'tenantShow'])->name('maintenance.show');
-    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'tenantUpdateNotes'])->name('maintenance.update-notes');
-    Route::post('/maintenance/{id}/cancel', [MaintenanceController::class, 'tenantCancel'])->name('maintenance.cancel');
-    
-    // Chat Routes for Tenant
-    Route::get('/messages', [ChatController::class, 'tenantIndex'])->name('chat');
-    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/messages/start-with-landlord', [ChatController::class, 'startWithLandlord'])->name('chat.start-with-landlord');
-    Route::post('/messages/create-ticket', [ChatController::class, 'createTicket'])->name('chat.create-ticket');
-    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
-    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
-    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
-    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
-    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
-});
-
-// Staff Routes
-Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
-    Route::get('/dashboard', [StaffController::class, 'staffDashboard'])->name('dashboard');
-    Route::post('/assignments/{id}/complete', [StaffController::class, 'completeAssignment'])->name('complete-assignment');
-    Route::get('/profile', [StaffController::class, 'staffProfile'])->name('profile');
-    Route::post('/update-password', [StaffController::class, 'updatePassword'])->name('update-password');
-    
-    // Maintenance Routes for Staff
-    Route::get('/maintenance', [MaintenanceController::class, 'staffIndex'])->name('maintenance');
-    Route::get('/maintenance/{id}', [MaintenanceController::class, 'staffShow'])->name('maintenance.show');
-    Route::post('/maintenance/{id}/update-status', [MaintenanceController::class, 'staffUpdateStatus'])->name('maintenance.update-status');
-    Route::post('/maintenance/{id}/update-notes', [MaintenanceController::class, 'staffUpdateNotes'])->name('maintenance.update-notes');
-    
-    // Chat Routes for Staff
-    Route::get('/messages', [ChatController::class, 'staffIndex'])->name('chat');
-    Route::get('/messages/{id}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/messages/{id}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
-    Route::get('/messages/{id}/fetch', [ChatController::class, 'getMessages'])->name('chat.fetch');
-    Route::post('/messages/{id}/read', [ChatController::class, 'markAsRead'])->name('chat.mark-read');
-    Route::get('/api/conversations', [ChatController::class, 'getConversations'])->name('chat.conversations');
-    Route::get('/api/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
-});
-
-// Units routes (need to be updated for role-based access)
-Route::middleware(['role:super_admin'])->group(function () {
-    Route::get('/admin/units', [UnitController::class, 'index'])->name('admin.units');
-    Route::post('/admin/units', [UnitController::class, 'store'])->name('admin.units.store');
-    Route::get('/admin/units/filter', [UnitController::class, 'filter'])->name('admin.units.filter');
-    Route::get('/admin/units/stats', [UnitController::class, 'getStats'])->name('admin.units.stats');
-    Route::get('/admin/units/types', [UnitController::class, 'getUnitTypes'])->name('admin.units.types');
-});
-
-Route::get('/landlord/tenants', [LandlordController::class, 'tenants'])->name('landlord.tenants');
-
-// Health Check Route (for Railway monitoring)
 Route::get('/health', function () {
     try {
         $dbConnected = DB::connection()->getPdo() ? 'connected' : 'disconnected';
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         $dbConnected = 'disconnected: ' . $e->getMessage();
     }
     
@@ -299,7 +359,6 @@ Route::get('/health', function () {
     ]);
 });
 
-// Simple debug route
 Route::get('/debug', function () {
     return response()->json([
         'message' => 'Laravel is working!',
@@ -316,8 +375,3 @@ Route::get('/debug', function () {
         ]
     ]);
 });
-
-
-
-// Authentication routes
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

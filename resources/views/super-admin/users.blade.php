@@ -235,6 +235,22 @@
             color: #065f46;
         }
 
+        /* Dark Mode Role Badge Styles */
+        body.dark-mode .role-super_admin {
+            background: #6366f1;
+            color: #e0e7ff;
+        }
+
+        body.dark-mode .role-landlord {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        body.dark-mode .role-tenant {
+            background: #10b981;
+            color: #fff;
+        }
+
         .status-pending {
             background: #fef3c7;
             color: #d97706;
@@ -253,6 +269,106 @@
         .status-active {
             background: #dbeafe;
             color: #2563eb;
+        }
+
+        /* Dark Mode Status Badge Styles */
+        body.dark-mode .status-active {
+            background: #1e40af;
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .status-pending {
+            background: #78350f;
+            color: #fbbf24;
+        }
+
+        body.dark-mode .status-approved {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        body.dark-mode .status-rejected {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        /* Additional Dark Mode Styles for Users Page */
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .page-section {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .section-title {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .section-subtitle {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .stat-card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .stat-value {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .stat-label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .data-table th {
+            background: #0f172a !important;
+            color: #94a3b8 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode .data-table td {
+            border-bottom-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .data-table tbody tr:hover {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .form-label {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control:focus {
+            border-color: #3b82f6 !important;
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .alert-success {
+            background: #064e3b !important;
+            border-color: #065f46 !important;
+            color: #6ee7b7 !important;
+        }
+
+        body.dark-mode .pagination a,
+        body.dark-mode .pagination span {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .pagination a:hover {
+            background: #334155 !important;
+            border-color: #475569 !important;
         }
 
         .alert {

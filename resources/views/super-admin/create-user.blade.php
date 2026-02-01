@@ -382,6 +382,59 @@
             border-radius: 6px;
             border: 1px solid #e5e7eb;
         }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #0f172a !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .main-content {
+            background-color: #0f172a !important;
+        }
+
+        body.dark-mode .content-header h1 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .content-header p {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .section {
+            background: #1e293b !important;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .form-group label {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode .form-control:focus {
+            border-color: #3b82f6 !important;
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .form-text {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .landlord-options {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .alert-error {
+            background-color: #7f1d1d !important;
+            color: #fca5a5 !important;
+            border-color: #991b1b !important;
+        }
     </style>
 
     <script>

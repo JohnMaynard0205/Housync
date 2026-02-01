@@ -15,7 +15,7 @@
     <!-- Header with Back Button -->
     <div class="maintenance-header">
         <div class="header-title">
-            <a href="{{ route('landlord.maintenance') }}" class="btn-back">
+            <a href="{{ route('landlord.maintenance.index') }}" class="btn-back">
                 <i class="fas fa-arrow-left"></i> Back to Maintenance
             </a>
             <h1><i class="fas fa-plus-circle"></i> Create Maintenance Request</h1>
@@ -175,7 +175,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-check"></i> Create Maintenance Request
                     </button>
-                    <a href="{{ route('landlord.maintenance') }}" class="btn btn-secondary">
+                    <a href="{{ route('landlord.maintenance.index') }}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancel
                     </a>
                 </div>

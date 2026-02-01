@@ -270,6 +270,91 @@
             grid-template-columns: 1fr !important;
         }
     }
+
+    /* Dark Mode Styles */
+    body.dark-mode .dashboard-header h1 {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-mode .dashboard-header p {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .stat-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .stat-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .stat-value {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-mode .stat-label {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .stat-change.positive {
+        color: #6ee7b7 !important;
+    }
+
+    body.dark-mode .stat-change.negative {
+        color: #fca5a5 !important;
+    }
+
+    body.dark-mode .content-card {
+        background: #1e293b !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-mode .content-card-header {
+        border-bottom-color: #334155 !important;
+    }
+
+    body.dark-mode .content-card-title {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-mode .content-card-title i {
+        color: #60a5fa !important;
+    }
+
+    body.dark-mode .view-all-link {
+        color: #60a5fa !important;
+    }
+
+    body.dark-mode .view-all-link:hover {
+        color: #93c5fd !important;
+    }
+
+    body.dark-mode .activity-item:hover {
+        background: #0f172a !important;
+    }
+
+    body.dark-mode .activity-name {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-mode .activity-meta {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .status-pending {
+        background: #78350f !important;
+        color: #fbbf24 !important;
+    }
+
+    body.dark-mode .status-approved {
+        background: #064e3b !important;
+        color: #6ee7b7 !important;
+    }
+
+    body.dark-mode .empty-state {
+        color: #94a3b8 !important;
+    }
 </style>
 @endpush
 
