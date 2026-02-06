@@ -92,6 +92,57 @@
             padding: 2rem;
             color: #94a3b8;
         }
+
+        /* ===== Dark Mode ===== */
+        body.dark-mode .bill-details-card {
+            background: #1e293b !important;
+            color: #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode .bill-header {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .bill-invoice {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .bill-status.paid { background: #064e3b; color: #6ee7b7; }
+        body.dark-mode .bill-status.unpaid { background: #7f1d1d; color: #fca5a5; }
+        body.dark-mode .bill-status.partially_paid { background: #78350f; color: #fbbf24; }
+        body.dark-mode .bill-status.overdue { background: #450a0a; color: #fca5a5; }
+
+        body.dark-mode .info-item label {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .info-item span {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .amount-summary {
+            background: #0f172a !important;
+        }
+
+        body.dark-mode .amount-row {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .payments-table th {
+            background: #0f172a !important;
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .payments-table td {
+            color: #e2e8f0;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .bill-details-card h4 {
+            color: #f1f5f9 !important;
+        }
     </style>
 @endpush
 

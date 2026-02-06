@@ -141,6 +141,36 @@
     padding: 0.5rem;
     color: #94a3b8;
 }
+
+/* ===== Dark Mode Overrides ===== */
+body.dark-mode .pagination a,
+body.dark-mode .pagination span {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+body.dark-mode .pagination a:hover {
+    background: #334155;
+    color: #f1f5f9;
+    border-color: #475569;
+}
+
+body.dark-mode .pagination .active span {
+    background: #f97316;
+    border-color: #f97316;
+    color: white;
+}
+
+body.dark-mode .pagination .disabled span {
+    background: #0f172a;
+    color: #475569;
+}
+
+body.dark-mode .badge[style*="background: #e0e7ff"] {
+    background: rgba(99, 102, 241, 0.2) !important;
+    color: #a5b4fc !important;
+}
 </style>
 @endpush
 
@@ -333,18 +363,18 @@
 
 <!-- Force Delete Modal -->
 <div id="force-delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+    <div class="force-delete-inner" style="padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
         <h3 style="color: #dc3545; margin-bottom: 20px;">
             <i class="fas fa-exclamation-triangle"></i> Force Delete Property
         </h3>
         <div style="margin-bottom: 20px;">
-            <p style="color: #666; margin-bottom: 15px;">
+            <p class="force-delete-text" style="margin-bottom: 15px;">
                 <strong>Warning:</strong> This will permanently delete the property "<span id="force-delete-property-name"></span>" and all <span id="force-delete-unit-count"></span> unit(s) associated with it.
             </p>
             <p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">
                 This action cannot be undone!
             </p>
-            <p style="color: #666; margin-bottom: 15px;">
+            <p class="force-delete-text" style="margin-bottom: 15px;">
                 Please enter your password to confirm:
             </p>
             <input type="password" id="modal-password" class="form-control" placeholder="Enter your password" style="margin-bottom: 10px;">

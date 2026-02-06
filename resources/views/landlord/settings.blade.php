@@ -127,6 +127,63 @@
     .password-requirements li {
         margin-bottom: 0.25rem;
     }
+
+    /* ===== Dark Mode ===== */
+    body.dark-mode .settings-section {
+        background: #1e293b !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    body.dark-mode .settings-section h3 {
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+
+    body.dark-mode .form-label {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .form-control {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-mode .form-control:focus {
+        border-color: #f97316 !important;
+    }
+
+    body.dark-mode .form-control:disabled,
+    body.dark-mode .form-control[disabled] {
+        background: #1e293b !important;
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .form-control[style*="background: #f1f5f9"] {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .form-control[style*="background: #d1fae5"] {
+        background: #064e3b !important;
+        color: #6ee7b7 !important;
+    }
+
+    body.dark-mode .profile-avatar-section {
+        border-color: #334155 !important;
+    }
+
+    body.dark-mode .profile-info h4 {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-mode .profile-info p {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-mode .password-requirements {
+        color: #94a3b8 !important;
+    }
 </style>
 @endpush
 
