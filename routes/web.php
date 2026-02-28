@@ -14,6 +14,9 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ExploreController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -205,7 +208,29 @@ Route::middleware(['role:landlord'])->prefix('landlord')->name('landlord.')->gro
         Route::post('/{id}/update-status', 'updateStatus')->name('update-status');
         Route::post('/{id}/update-notes', 'updateNotes')->name('update-notes');
         Route::post('/{id}/cancel', 'cancel')->name('cancel');
+        Route::post('/{id}/comment', 'addComment')->name('add-comment');
         Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // Announcements
+    Route::controller(AnnouncementController::class)->prefix('announcements')->name('announcements.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->name('show');
+        Route::get('/{id}/edit', 'edit')->name('edit');
+        Route::put('/{id}', 'update')->name('update');
+        Route::post('/{id}/publish', 'publish')->name('publish');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // Billing: verify tenant payment proof
+    Route::post('/billing/payments/{paymentId}/verify', [BillingController::class, 'verifyPayment'])->name('billing.verify-payment');
+
+    // Reports & Analytics
+    Route::controller(ReportController::class)->prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/export-financial', 'exportFinancial')->name('export-financial');
     });
 });
 
@@ -235,6 +260,7 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
     Route::controller(BillingController::class)->group(function () {
         Route::get('/payments', 'tenantIndex')->name('payments');
         Route::get('/payments/{id}', 'tenantShowBill')->name('payments.show');
+        Route::post('/payments/{id}/submit-proof', 'submitPaymentProof')->name('payments.submit-proof');
     });
     
     // Maintenance
@@ -245,6 +271,14 @@ Route::middleware(['role:tenant'])->prefix('tenant')->name('tenant.')->group(fun
         Route::get('/{id}', 'tenantShow')->name('show');
         Route::post('/{id}/update-notes', 'tenantUpdateNotes')->name('update-notes');
         Route::post('/{id}/cancel', 'tenantCancel')->name('cancel');
+        Route::post('/{id}/comment', 'addComment')->name('add-comment');
+        Route::post('/{id}/rate', 'rate')->name('rate');
+    });
+
+    // Announcements
+    Route::controller(AnnouncementController::class)->prefix('announcements')->name('announcements.')->group(function () {
+        Route::get('/', 'tenantIndex')->name('index');
+        Route::get('/{id}', 'tenantShow')->name('show');
     });
     
     // Chat & Messaging
@@ -283,6 +317,13 @@ Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(functi
         Route::get('/{id}', 'staffShow')->name('show');
         Route::post('/{id}/update-status', 'staffUpdateStatus')->name('update-status');
         Route::post('/{id}/update-notes', 'staffUpdateNotes')->name('update-notes');
+        Route::post('/{id}/comment', 'addComment')->name('add-comment');
+    });
+
+    // Announcements
+    Route::controller(AnnouncementController::class)->prefix('announcements')->name('announcements.')->group(function () {
+        Route::get('/', 'staffIndex')->name('index');
+        Route::get('/{id}', 'staffShow')->name('show');
     });
     
     // Chat & Messaging
@@ -310,7 +351,20 @@ Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(
         Route::get('/filter', 'filter')->name('filter');
         Route::get('/stats', 'getStats')->name('stats');
         Route::get('/types', 'getUnitTypes')->name('types');
-    });
+});
+});
+
+/*
+|--------------------------------------------------------------------------
+| Notification Routes (All Authenticated Users)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])->controller(NotificationController::class)->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/unread-count', 'unreadCount')->name('unread-count');
+    Route::post('/{id}/read', 'markAsRead')->name('mark-read');
+    Route::post('/mark-all-read', 'markAllAsRead')->name('mark-all-read');
 });
 
 /*

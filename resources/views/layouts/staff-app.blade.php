@@ -266,6 +266,7 @@
                     <span style="background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:0.7rem;margin-left:6px;">{{ auth()->user()->total_unread_messages }}</span>
                 @endif
             </a>
+            <a class="nav-link{{ request()->routeIs('staff.announcements*') ? ' active' : '' }}" href="{{ route('staff.announcements.index') }}"><span class="nav-icon"><i class="fas fa-bullhorn"></i></span> <span class="nav-label">Announcements</span></a>
             <a class="nav-link{{ request()->routeIs('staff.profile') ? ' active' : '' }}" href="{{ route('staff.profile') }}">
                 <span class="nav-icon"><i class="fas fa-user"></i></span> <span class="nav-label">Profile</span>
             </a>
@@ -279,6 +280,7 @@
     </aside>
     <main class="main-content">
         <div class="topbar">
+            @include('partials.notification-bell')
             <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">
                 <i class="fas fa-moon" id="darkModeIcon"></i>
             </button>

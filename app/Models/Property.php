@@ -150,6 +150,14 @@ class Property extends Model
         return $this->hasMany(MaintenanceRequest::class);
     }
 
+    /**
+     * Get announcements for this property
+     */
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
     // ==================== ACCESSORS ====================
 
     /**

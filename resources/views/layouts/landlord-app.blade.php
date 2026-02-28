@@ -1243,12 +1243,15 @@
             <a class="nav-link{{ request()->routeIs('landlord.payments') ? ' active' : '' }}" href="{{ route('landlord.payments') }}">
                 <span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span>
             </a>
-            <a class="nav-link{{ request()->routeIs('landlord.maintenance*') ? ' active' : '' }}" href="{{ route('landlord.maintenance.index') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('landlord.maintenance*') ? ' active' : '' }}" href="{{ route('landlord.maintenance.index') }}"><span class="nav-icon"><i class="fas fa-wrench"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('landlord.announcements*') ? ' active' : '' }}" href="{{ route('landlord.announcements.index') }}"><span class="nav-icon"><i class="fas fa-bullhorn"></i></span> <span class="nav-label">Announcements</span></a>
+            <a class="nav-link{{ request()->routeIs('landlord.reports*') ? ' active' : '' }}" href="{{ route('landlord.reports.index') }}"><span class="nav-icon"><i class="fas fa-chart-bar"></i></span> <span class="nav-label">Reports</span></a>
         </nav>
         <div class="sidebar-footer mt-auto"></div>
     </aside>
     <main class="main-content">
         <div class="topbar">
+            @include('partials.notification-bell')
             <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">
                 <i class="fas fa-moon" id="darkModeIcon"></i>
             </button>

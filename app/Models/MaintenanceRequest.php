@@ -28,7 +28,9 @@ class MaintenanceRequest extends Model
     use HasFactory;
 
     protected $fillable = [
+        'ticket_number',
         'unit_id',
+        'property_id',
         'tenant_id',
         'landlord_id',
         'title',
@@ -39,6 +41,8 @@ class MaintenanceRequest extends Model
         'requested_date',
         'expected_completion_date',
         'completed_date',
+        'rating',
+        'rating_feedback',
         'assigned_staff_id',
         'staff_notes',
         'tenant_notes',
@@ -48,12 +52,43 @@ class MaintenanceRequest extends Model
         'requested_date' => 'date',
         'expected_completion_date' => 'date',
         'completed_date' => 'date',
+        'rating' => 'integer',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($request) {
+            if (empty($request->ticket_number)) {
+                $year = now()->format('Y');
+                $lastTicket = static::whereYear('created_at', $year)
+                    ->orderByDesc('id')
+                    ->first();
+
+                $nextNumber = $lastTicket
+                    ? ((int) substr($lastTicket->ticket_number ?? '0000', -4)) + 1
+                    : 1;
+
+                $request->ticket_number = 'MR-' . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            }
+
+            if (empty($request->property_id) && $request->unit_id) {
+                $unit = Unit::find($request->unit_id);
+                $request->property_id = $unit?->property_id;
+            }
+        });
+    }
 
     // Relationships
     public function unit()
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function property()
+    {
+        return $this->belongsTo(Property::class);
     }
 
     public function tenant()
@@ -69,6 +104,11 @@ class MaintenanceRequest extends Model
     public function assignedStaff()
     {
         return $this->belongsTo(User::class, 'assigned_staff_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(MaintenanceComment::class)->orderBy('created_at', 'asc');
     }
 
     // Scopes

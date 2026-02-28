@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\MaintenanceRequest;
+use App\Models\MaintenanceComment;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\Unit;
+use App\Notifications\NewMaintenanceRequest;
+use App\Notifications\MaintenanceStatusUpdated;
+use App\Notifications\StaffAssignedToMaintenance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -147,7 +152,7 @@ class MaintenanceController extends Controller
         // Create the maintenance request
         $maintenanceRequest = MaintenanceRequest::create([
             'unit_id' => $request->unit_id,
-            'tenant_id' => null, // Landlord-created, no tenant
+            'tenant_id' => null,
             'landlord_id' => $landlordId,
             'title' => $request->title,
             'description' => $request->description,
@@ -159,6 +164,15 @@ class MaintenanceController extends Controller
             'expected_completion_date' => $request->expected_completion_date,
             'staff_notes' => $request->staff_notes,
         ]);
+
+        ActivityLog::log('maintenance_created', "Created maintenance request: {$maintenanceRequest->title}", $maintenanceRequest);
+
+        if ($request->assigned_staff_id) {
+            $staff = User::find($request->assigned_staff_id);
+            if ($staff) {
+                $staff->notify(new StaffAssignedToMaintenance($maintenanceRequest));
+            }
+        }
         
         return redirect()
             ->route('landlord.maintenance.show', $maintenanceRequest->id)
@@ -176,17 +190,16 @@ class MaintenanceController extends Controller
             'unit.apartment', 
             'tenant.tenantProfile', 
             'assignedStaff.staffProfile',
-            'landlord'
+            'landlord',
+            'comments.user',
         ])
         ->where('landlord_id', $landlordId)
         ->findOrFail($id);
         
-        // Get available staff for assignment
-        // SECURITY: Only show staff created by THIS landlord (multi-tenant isolation)
         $availableStaff = User::where('role', 'staff')
             ->whereHas('staffProfile', function($query) use ($landlordId) {
                 $query->where('status', 'active')
-                      ->where('created_by_landlord_id', $landlordId); // CRITICAL: Landlord isolation
+                      ->where('created_by_landlord_id', $landlordId);
             })
             ->with('staffProfile')
             ->get();
@@ -233,6 +246,19 @@ class MaintenanceController extends Controller
         }
         
         $maintenanceRequest->update($updateData);
+
+        // Notify the assigned staff
+        $staffMember->notify(new StaffAssignedToMaintenance($maintenanceRequest));
+
+        MaintenanceComment::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'user_id' => $landlordId,
+            'comment' => "Staff assigned: {$staffMember->name}",
+            'type' => 'staff_assigned',
+            'metadata' => ['staff_id' => $staffMember->id, 'staff_name' => $staffMember->name],
+        ]);
+
+        ActivityLog::log('staff_assigned', "Assigned {$staffMember->name} to maintenance request", $maintenanceRequest);
         
         return redirect()
             ->route('landlord.maintenance.show', $id)
@@ -253,14 +279,40 @@ class MaintenanceController extends Controller
         $maintenanceRequest = MaintenanceRequest::where('landlord_id', $landlordId)
             ->findOrFail($id);
         
+        $oldStatus = $maintenanceRequest->status;
         $updateData = ['status' => $request->status];
         
-        // If marking as completed, set completed date
         if ($request->status === 'completed') {
             $updateData['completed_date'] = now();
         }
         
         $maintenanceRequest->update($updateData);
+
+        // Notify tenant about status change
+        if ($maintenanceRequest->tenant_id) {
+            $tenant = User::find($maintenanceRequest->tenant_id);
+            if ($tenant) {
+                $tenant->notify(new MaintenanceStatusUpdated($maintenanceRequest, $oldStatus, $request->status));
+            }
+        }
+
+        // Notify assigned staff about status change
+        if ($maintenanceRequest->assigned_staff_id) {
+            $staff = User::find($maintenanceRequest->assigned_staff_id);
+            if ($staff) {
+                $staff->notify(new MaintenanceStatusUpdated($maintenanceRequest, $oldStatus, $request->status));
+            }
+        }
+
+        MaintenanceComment::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'user_id' => $landlordId,
+            'comment' => "Status changed from {$oldStatus} to {$request->status}",
+            'type' => 'status_change',
+            'metadata' => ['old_status' => $oldStatus, 'new_status' => $request->status],
+        ]);
+
+        ActivityLog::log('maintenance_status_updated', "Maintenance status changed: {$oldStatus} → {$request->status}", $maintenanceRequest);
         
         return redirect()
             ->route('landlord.maintenance.show', $id)
@@ -420,7 +472,6 @@ class MaintenanceController extends Controller
                 ->with('error', 'You need an active unit assignment to create a maintenance request.');
         }
         
-        // Create the maintenance request
         $maintenanceRequest = MaintenanceRequest::create([
             'unit_id' => $activeAssignment->unit_id,
             'tenant_id' => $tenantId,
@@ -433,9 +484,17 @@ class MaintenanceController extends Controller
             'requested_date' => now(),
             'tenant_notes' => $request->tenant_notes,
         ]);
+
+        // Notify landlord
+        $landlord = User::find($activeAssignment->landlord_id);
+        if ($landlord) {
+            $landlord->notify(new NewMaintenanceRequest($maintenanceRequest));
+        }
+
+        ActivityLog::log('maintenance_created', "Tenant submitted maintenance request: {$maintenanceRequest->title}", $maintenanceRequest);
         
         return redirect()
-            ->route('tenant.maintenance')
+            ->route('tenant.maintenance.index')
             ->with('success', 'Maintenance request submitted successfully! Your landlord will be notified.');
     }
     
@@ -449,7 +508,8 @@ class MaintenanceController extends Controller
         $maintenanceRequest = MaintenanceRequest::with([
             'unit.apartment', 
             'landlord',
-            'assignedStaff.staffProfile'
+            'assignedStaff.staffProfile',
+            'comments.user',
         ])
         ->where('tenant_id', $tenantId)
         ->findOrFail($id);
@@ -566,7 +626,8 @@ class MaintenanceController extends Controller
             'unit.apartment', 
             'tenant.tenantProfile', 
             'landlord.landlordProfile',
-            'assignedStaff.staffProfile'
+            'assignedStaff.staffProfile',
+            'comments.user',
         ])
         ->where('assigned_staff_id', $staffId)
         ->findOrFail($id);
@@ -588,14 +649,37 @@ class MaintenanceController extends Controller
         $maintenanceRequest = MaintenanceRequest::where('assigned_staff_id', $staffId)
             ->findOrFail($id);
         
+        $oldStatus = $maintenanceRequest->status;
         $updateData = ['status' => $request->status];
         
-        // If marking as completed, set completed date
         if ($request->status === 'completed') {
             $updateData['completed_date'] = now();
         }
         
         $maintenanceRequest->update($updateData);
+
+        // Notify landlord and tenant about status change
+        $landlord = User::find($maintenanceRequest->landlord_id);
+        if ($landlord) {
+            $landlord->notify(new MaintenanceStatusUpdated($maintenanceRequest, $oldStatus, $request->status));
+        }
+
+        if ($maintenanceRequest->tenant_id) {
+            $tenant = User::find($maintenanceRequest->tenant_id);
+            if ($tenant) {
+                $tenant->notify(new MaintenanceStatusUpdated($maintenanceRequest, $oldStatus, $request->status));
+            }
+        }
+
+        MaintenanceComment::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'user_id' => $staffId,
+            'comment' => "Status changed from {$oldStatus} to {$request->status}",
+            'type' => 'status_change',
+            'metadata' => ['old_status' => $oldStatus, 'new_status' => $request->status],
+        ]);
+
+        ActivityLog::log('maintenance_status_updated', "Staff updated maintenance status: {$oldStatus} → {$request->status}", $maintenanceRequest);
         
         return redirect()
             ->route('staff.maintenance.show', $id)
@@ -616,7 +700,6 @@ class MaintenanceController extends Controller
         $maintenanceRequest = MaintenanceRequest::where('assigned_staff_id', $staffId)
             ->findOrFail($id);
         
-        // Only allow updates if request is not completed or cancelled
         if (in_array($maintenanceRequest->status, ['completed', 'cancelled'])) {
             return redirect()
                 ->route('staff.maintenance.show', $id)
@@ -630,6 +713,90 @@ class MaintenanceController extends Controller
         return redirect()
             ->route('staff.maintenance.show', $id)
             ->with('success', 'Notes updated successfully!');
+    }
+
+    // ==================== COMMENT METHODS ====================
+
+    /**
+     * Add a comment to a maintenance request (available to all roles).
+     */
+    public function addComment(Request $request, $id)
+    {
+        $request->validate([
+            'comment' => 'required|string|max:2000',
+        ]);
+
+        $user = Auth::user();
+        $maintenanceRequest = MaintenanceRequest::findOrFail($id);
+
+        // Verify the user has access to this request
+        $hasAccess = false;
+        if ($user->isLandlord() && $maintenanceRequest->landlord_id === $user->id) {
+            $hasAccess = true;
+        } elseif ($user->isTenant() && $maintenanceRequest->tenant_id === $user->id) {
+            $hasAccess = true;
+        } elseif ($user->isStaff() && $maintenanceRequest->assigned_staff_id === $user->id) {
+            $hasAccess = true;
+        } elseif ($user->isSuperAdmin()) {
+            $hasAccess = true;
+        }
+
+        if (!$hasAccess) {
+            abort(403);
+        }
+
+        MaintenanceComment::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'user_id' => $user->id,
+            'comment' => $request->comment,
+            'type' => 'comment',
+        ]);
+
+        $redirectRoute = match ($user->role) {
+            'landlord' => 'landlord.maintenance.show',
+            'tenant' => 'tenant.maintenance.show',
+            'staff' => 'staff.maintenance.show',
+            default => 'landlord.maintenance.show',
+        };
+
+        return redirect()
+            ->route($redirectRoute, $id)
+            ->with('success', 'Comment added successfully!');
+    }
+
+    /**
+     * Tenant rates a completed maintenance request.
+     */
+    public function rate(Request $request, $id)
+    {
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'rating_feedback' => 'nullable|string|max:1000',
+        ]);
+
+        $tenantId = Auth::id();
+
+        $maintenanceRequest = MaintenanceRequest::where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->whereNull('rating')
+            ->findOrFail($id);
+
+        $maintenanceRequest->update([
+            'rating' => $request->rating,
+            'rating_feedback' => $request->rating_feedback,
+        ]);
+
+        MaintenanceComment::create([
+            'maintenance_request_id' => $maintenanceRequest->id,
+            'user_id' => $tenantId,
+            'comment' => "Rated {$request->rating}/5" . ($request->rating_feedback ? ": {$request->rating_feedback}" : ''),
+            'type' => 'comment',
+            'metadata' => ['rating' => $request->rating],
+        ]);
+
+        return redirect()
+            ->route('tenant.maintenance.show', $id)
+            ->with('success', 'Thank you for your feedback!');
     }
 }
 

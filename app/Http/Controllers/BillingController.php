@@ -5,7 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Bill;
 use App\Models\Payment;
 use App\Models\Unit;
+use App\Models\User;
 use App\Models\TenantAssignment;
+use App\Models\ActivityLog;
+use App\Notifications\BillCreated;
+use App\Notifications\PaymentRecorded;
+use App\Notifications\PaymentProofSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +144,13 @@ class BillingController extends Controller
                 'amount' => $request->amount,
             ]);
 
+            // Notify tenant
+            if ($assignment->tenant) {
+                $assignment->tenant->notify(new BillCreated($bill));
+            }
+
+            ActivityLog::log('bill_created', "Created bill {$invoiceNumber} for ₱" . number_format($request->amount, 2), $bill);
+
             return redirect()->route('landlord.payments')
                 ->with('success', "Bill #{$invoiceNumber} created successfully for ₱" . number_format($request->amount, 2));
 
@@ -220,6 +232,18 @@ class BillingController extends Controller
                     'paid_at' => $newStatus === 'paid' ? now() : null,
                 ]);
             });
+
+            // Notify tenant about the payment
+            $bill->refresh();
+            if ($bill->tenant_id) {
+                $tenant = User::find($bill->tenant_id);
+                $latestPayment = $bill->payments()->latest()->first();
+                if ($tenant && $latestPayment) {
+                    $tenant->notify(new PaymentRecorded($latestPayment, $bill));
+                }
+            }
+
+            ActivityLog::log('payment_recorded', "Recorded payment of ₱" . number_format($request->amount, 2) . " for bill {$bill->invoice_number}", $bill);
 
             return back()->with('success', 'Payment of ₱' . number_format($request->amount, 2) . ' recorded successfully.');
 
@@ -335,5 +359,127 @@ class BillingController extends Controller
             ->findOrFail($id);
 
         return view('tenant.billing.show', compact('bill'));
+    }
+
+    /**
+     * Tenant submits payment proof for a bill.
+     */
+    public function submitPaymentProof(Request $request, $billId)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'method' => 'required|in:cash,bank_transfer,gcash,other',
+            'reference_number' => 'nullable|string|max:100',
+            'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $tenantId = Auth::id();
+        $bill = Bill::forTenant($tenantId)->findOrFail($billId);
+
+        if ($bill->status === 'paid') {
+            return back()->with('error', 'This bill is already fully paid.');
+        }
+
+        if ($request->amount > $bill->balance) {
+            return back()->with('error', 'Payment amount cannot exceed the outstanding balance.');
+        }
+
+        try {
+            $proofPath = null;
+            if ($request->hasFile('proof_image')) {
+                $proofPath = $request->file('proof_image')->store('payment-proofs', 'public');
+            }
+
+            $payment = Payment::create([
+                'bill_id' => $bill->id,
+                'tenant_id' => $tenantId,
+                'amount' => $request->amount,
+                'method' => $request->method,
+                'reference_number' => $request->reference_number,
+                'proof_image' => $proofPath,
+                'status' => 'pending',
+                'notes' => $request->notes,
+                'paid_at' => now(),
+            ]);
+
+            // Notify landlord
+            $landlord = User::find($bill->landlord_id);
+            if ($landlord) {
+                $landlord->notify(new PaymentProofSubmitted($payment, $bill));
+            }
+
+            ActivityLog::log('payment_proof_submitted', "Submitted payment proof of ₱" . number_format($request->amount, 2), $bill);
+
+            return back()->with('success', 'Payment proof submitted! Your landlord will verify it shortly.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to submit payment proof', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to submit payment proof. Please try again.');
+        }
+    }
+
+    /**
+     * Landlord verifies a tenant-submitted payment.
+     */
+    public function verifyPayment(Request $request, $paymentId)
+    {
+        $request->validate([
+            'action' => 'required|in:verify,reject',
+        ]);
+
+        $landlordId = Auth::id();
+
+        $payment = Payment::whereHas('bill', function ($q) use ($landlordId) {
+            $q->where('landlord_id', $landlordId);
+        })->findOrFail($paymentId);
+
+        $bill = $payment->bill;
+
+        if ($request->action === 'verify') {
+            DB::transaction(function () use ($payment, $bill, $landlordId) {
+                $payment->update([
+                    'status' => 'verified',
+                    'verified_by' => $landlordId,
+                    'verified_at' => now(),
+                ]);
+
+                $newAmountPaid = $bill->amount_paid + $payment->amount;
+                $newBalance = $bill->amount - $newAmountPaid;
+
+                $newStatus = 'unpaid';
+                if ($newBalance <= 0) {
+                    $newStatus = 'paid';
+                    $newBalance = 0;
+                } elseif ($newAmountPaid > 0) {
+                    $newStatus = 'partially_paid';
+                }
+
+                $bill->update([
+                    'amount_paid' => $newAmountPaid,
+                    'balance' => $newBalance,
+                    'status' => $newStatus,
+                    'paid_at' => $newStatus === 'paid' ? now() : null,
+                ]);
+            });
+
+            $bill->refresh();
+            if ($bill->tenant_id) {
+                $tenant = User::find($bill->tenant_id);
+                if ($tenant) {
+                    $tenant->notify(new PaymentRecorded($payment, $bill));
+                }
+            }
+
+            ActivityLog::log('payment_verified', "Verified payment of ₱" . number_format($payment->amount, 2), $bill);
+
+            return back()->with('success', 'Payment verified successfully.');
+        }
+
+        // Reject
+        $payment->update(['status' => 'rejected']);
+        ActivityLog::log('payment_rejected', "Rejected payment proof for bill {$bill->invoice_number}", $bill);
+
+        return back()->with('success', 'Payment proof rejected.');
     }
 }

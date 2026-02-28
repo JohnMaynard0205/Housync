@@ -29,13 +29,17 @@ class Payment extends Model
         'method',
         'reference_number',
         'proof_path',
+        'proof_image',
         'status',
+        'verified_by',
+        'verified_at',
         'notes',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
     // Relationships
@@ -47,6 +51,22 @@ class Payment extends Model
     public function tenant()
     {
         return $this->belongsTo(User::class, 'tenant_id');
+    }
+
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function getProofImageUrlAttribute(): ?string
+    {
+        if (empty($this->proof_image)) {
+            return null;
+        }
+        if (str_starts_with($this->proof_image, 'http')) {
+            return $this->proof_image;
+        }
+        return url('api/storage/' . $this->proof_image);
     }
 
     // Helpers

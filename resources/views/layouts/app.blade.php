@@ -484,7 +484,8 @@
             <a class="nav-link{{ request()->routeIs('tenant.payments') ? ' active' : '' }}" href="{{ route('tenant.payments') }}">
                 <span class="nav-icon"><i class="fas fa-credit-card"></i></span> <span class="nav-label">Payments</span>
             </a>
-            <a class="nav-link{{ request()->routeIs('tenant.maintenance*') ? ' active' : '' }}" href="{{ route('tenant.maintenance.index') }}"><span class="nav-icon"><i class="fas fa-tools"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('tenant.maintenance*') ? ' active' : '' }}" href="{{ route('tenant.maintenance.index') }}"><span class="nav-icon"><i class="fas fa-wrench"></i></span> <span class="nav-label">Maintenance</span></a>
+            <a class="nav-link{{ request()->routeIs('tenant.announcements*') ? ' active' : '' }}" href="{{ route('tenant.announcements.index') }}"><span class="nav-icon"><i class="fas fa-bullhorn"></i></span> <span class="nav-label">Announcements</span></a>
             <a class="nav-link{{ request()->routeIs('tenant.chat*') ? ' active' : '' }}" href="{{ route('tenant.chat') }}">
                 <span class="nav-icon"><i class="fas fa-comments"></i></span> 
                 <span class="nav-label">Messages</span>
@@ -503,6 +504,7 @@
     </aside>
     <main class="main-content">
         <div class="topbar">
+            @include('partials.notification-bell')
             <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">
                 <i class="fas fa-moon" id="darkModeIcon"></i>
             </button>
