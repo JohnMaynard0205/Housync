@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Services\SupabaseService;
 
 class LandlordController extends Controller
@@ -123,29 +124,44 @@ class LandlordController extends Controller
         try {
             $coverPath = null;
             if ($request->hasFile('cover_image')) {
-                $supabase = new SupabaseService();
-                $filename = 'property-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
-                $path = 'properties/' . $filename;
-                $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
-                
-                if ($uploadResult['success']) {
-                    $coverPath = $uploadResult['url'];
-                } else {
-                    Log::error('Failed to upload cover image', ['result' => $uploadResult]);
-                    throw new \Exception('Failed to upload cover image: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                try {
+                    $supabase = new SupabaseService();
+                    $filename = 'property-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                    $path = 'properties/' . $filename;
+                    $uploadResult = $supabase->uploadFile('house-sync', $path, $request->file('cover_image')->getRealPath());
+
+                    if ($uploadResult['success']) {
+                        $coverPath = $uploadResult['url'];
+                    } else {
+                        throw new \Exception($uploadResult['message'] ?? 'Supabase upload failed');
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Supabase upload failed, falling back to local storage', ['error' => $e->getMessage()]);
+                    $filename = 'apartment-' . time() . '-' . uniqid() . '.' . $request->file('cover_image')->getClientOriginalExtension();
+                    $path = $request->file('cover_image')->storeAs('apartment-covers', $filename, 'public');
+                    $coverPath = asset('storage/' . $path);
                 }
             }
 
             $galleryPaths = [];
             if ($request->hasFile('gallery')) {
                 foreach ($request->file('gallery') as $index => $file) {
-                    $supabase = new SupabaseService();
-                    $filename = 'property-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $path = 'properties/gallery/' . $filename;
-                    $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
-                    
-                    if ($uploadResult['success']) {
-                        $galleryPaths[] = $uploadResult['url'];
+                    try {
+                        $supabase = $supabase ?? new SupabaseService();
+                        $filename = 'property-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                        $path = 'properties/gallery/' . $filename;
+                        $uploadResult = $supabase->uploadFile('house-sync', $path, $file->getRealPath());
+
+                        if ($uploadResult['success']) {
+                            $galleryPaths[] = $uploadResult['url'];
+                        } else {
+                            throw new \Exception($uploadResult['message'] ?? 'Supabase upload failed');
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('Supabase gallery upload failed, falling back to local', ['index' => $index]);
+                        $filename = 'apartment-gallery-' . time() . '-' . $index . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('apartment-gallery', $filename, 'public');
+                        $galleryPaths[] = asset('storage/' . $path);
                     }
                 }
             }
@@ -817,14 +833,16 @@ class LandlordController extends Controller
             'role' => 'landlord',
         ]);
 
-        LandlordProfile::create([
-            'user_id' => $landlord->id,
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'business_info' => $request->business_info,
-            'status' => 'pending',
-        ]);
+        LandlordProfile::updateOrCreate(
+            ['user_id' => $landlord->id],
+            [
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'business_info' => $request->business_info,
+                'status' => 'pending',
+            ]
+        );
 
         foreach ($request->file('documents') as $index => $file) {
             $docType = $request->document_types[$index] ?? 'other';
